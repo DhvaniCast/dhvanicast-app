@@ -27,7 +27,9 @@ class DialerService extends ChangeNotifier {
       try {
         final frequencyId = data['frequency']?['id'];
         if (frequencyId != null) {
-          print('🔔 User joined frequency: ${data['frequency']?['frequency']} MHz');
+          print(
+            '🔔 User joined frequency: ${data['frequency']?['frequency']} MHz',
+          );
           // Refresh frequencies to get updated user counts
           loadFrequencies();
         }
@@ -43,7 +45,9 @@ class DialerService extends ChangeNotifier {
       try {
         final frequencyId = data['frequency']?['id'];
         if (frequencyId != null) {
-          print('🔔 User left frequency: ${data['frequency']?['frequency']} MHz');
+          print(
+            '🔔 User left frequency: ${data['frequency']?['frequency']} MHz',
+          );
           // Refresh frequencies to get updated user counts
           loadFrequencies();
         }

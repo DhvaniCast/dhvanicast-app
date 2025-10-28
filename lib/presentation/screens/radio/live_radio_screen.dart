@@ -81,7 +81,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
   void _setupWebSocketListeners() {
     final wsClient = getIt<WebSocketClient>();
-    
+
     // Listen for user joined events
     wsClient.on('user_joined_frequency', (data) {
       print('🔔 User joined frequency: $data');
@@ -89,7 +89,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         _refreshFrequencyData();
       }
     });
-    
+
     // Listen for user left events
     wsClient.on('user_left_frequency', (data) {
       print('🔔 User left frequency: $data');
@@ -97,7 +97,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         _refreshFrequencyData();
       }
     });
-    
+
     // Listen for frequency joined confirmation
     wsClient.on('frequency_joined', (data) {
       print('✅ Frequency joined via WebSocket: $data');
