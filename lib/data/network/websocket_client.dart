@@ -32,13 +32,18 @@ class WebSocketClient {
     _socket = IO.io(
       socketUrl,
       IO.OptionBuilder()
-          .setTransports(['websocket', 'polling']) // Fallback to polling if websocket fails
+          .setTransports([
+            'websocket',
+            'polling',
+          ]) // Fallback to polling if websocket fails
           .enableAutoConnect()
           .enableForceNew()
           .setAuth({'token': token})
           .setExtraHeaders({'Authorization': 'Bearer $token'})
           // Production-specific settings
-          .setTimeout(isProduction ? 20000 : 10000) // Longer timeout for production
+          .setTimeout(
+            isProduction ? 20000 : 10000,
+          ) // Longer timeout for production
           .enableReconnection()
           .setReconnectionAttempts(5)
           .setReconnectionDelay(1000)
@@ -57,7 +62,9 @@ class WebSocketClient {
       _isConnected = true;
       if (kDebugMode) {
         print('✅ Socket.IO Connected to ${ApiEndpoints.socketUrl}');
-        print('🎯 Transport: ${_socket?.io.engine?.transport?.name ?? 'unknown'}');
+        print(
+          '🎯 Transport: ${_socket?.io.engine?.transport?.name ?? 'unknown'}',
+        );
       }
     });
 

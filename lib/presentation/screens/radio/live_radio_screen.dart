@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../injection.dart';
 import '../../../data/models/frequency_model.dart';
+import '../../../data/network/websocket_client.dart';
 import '../../services/dialer_service.dart';
 
 class LiveRadioScreen extends StatefulWidget {
@@ -75,6 +76,44 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     }
 
     _dialerService.addListener(_onServiceUpdate);
+    _setupWebSocketListeners();
+  }
+
+  void _setupWebSocketListeners() {
+    final wsClient = getIt<WebSocketClient>();
+    
+    // Listen for user joined events
+    wsClient.on('user_joined_frequency', (data) {
+      print('🔔 User joined frequency: $data');
+      if (data['frequency']?['id'] == _frequencyId) {
+        _refreshFrequencyData();
+      }
+    });
+    
+    // Listen for user left events
+    wsClient.on('user_left_frequency', (data) {
+      print('🔔 User left frequency: $data');
+      if (data['frequency']?['id'] == _frequencyId) {
+        _refreshFrequencyData();
+      }
+    });
+    
+    // Listen for frequency joined confirmation
+    wsClient.on('frequency_joined', (data) {
+      print('✅ Frequency joined via WebSocket: $data');
+      _refreshFrequencyData();
+    });
+  }
+
+  Future<void> _refreshFrequencyData() async {
+    if (_frequencyId != null) {
+      try {
+        await _dialerService.loadFrequencies();
+        _loadFrequencyData();
+      } catch (e) {
+        print('❌ Error refreshing frequency data: $e');
+      }
+    }
   }
 
   void _onServiceUpdate() {
@@ -98,9 +137,20 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         ),
       );
 
+      // Convert activeUsers to connectedUsers format for display
+      _connectedUsers = _currentFrequency!.activeUsers.map((user) {
+        return {
+          'name': user.callSign ?? user.userName ?? 'Unknown',
+          'avatar': user.avatar ?? '📻',
+          'isActive': user.isTransmitting,
+          'signalStrength': user.signalStrength,
+        };
+      }).toList();
+
       print(
         '✅ Current frequency users: ${_currentFrequency?.activeUsers.length ?? 0}',
       );
+      print('👥 Connected users for display: ${_connectedUsers.length}');
       setState(() {});
     }
   }

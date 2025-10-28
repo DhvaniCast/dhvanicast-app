@@ -234,6 +234,36 @@ class CommunicationService extends ChangeNotifier {
       }
     });
 
+    // Listen for user joined group
+    _socketClient.on('user_joined_group', (data) {
+      try {
+        print('🔔 User joined group: ${data['user']?['name']}');
+        // Refresh group data to get updated member list
+        if (_currentGroup != null) {
+          loadGroupDetails(_currentGroup!.id);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error processing user joined: $e');
+        }
+      }
+    });
+
+    // Listen for user left group
+    _socketClient.on('user_left_group', (data) {
+      try {
+        print('🔔 User left group: ${data['user']?['name']}');
+        // Refresh group data to get updated member list
+        if (_currentGroup != null) {
+          loadGroupDetails(_currentGroup!.id);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error processing user left: $e');
+        }
+      }
+    });
+
     // Listen for reactions
     _socketClient.on('reaction_added', (data) {
       try {

@@ -16,6 +16,47 @@ class DialerService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  DialerService() {
+    _setupAutomaticSocketListeners();
+  }
+
+  /// Setup automatic WebSocket listeners for frequency updates
+  void _setupAutomaticSocketListeners() {
+    // Listen for user joined frequency
+    _socketClient.on('user_joined_frequency', (data) {
+      try {
+        final frequencyId = data['frequency']?['id'];
+        if (frequencyId != null) {
+          print('🔔 User joined frequency: ${data['frequency']?['frequency']} MHz');
+          // Refresh frequencies to get updated user counts
+          loadFrequencies();
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error processing user_joined_frequency: $e');
+        }
+      }
+    });
+
+    // Listen for user left frequency
+    _socketClient.on('user_left_frequency', (data) {
+      try {
+        final frequencyId = data['frequency']?['id'];
+        if (frequencyId != null) {
+          print('🔔 User left frequency: ${data['frequency']?['frequency']} MHz');
+          // Refresh frequencies to get updated user counts
+          loadFrequencies();
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error processing user_left_frequency: $e');
+        }
+      }
+    });
+
+    print('✅ DialerService: Automatic WebSocket listeners setup');
+  }
+
   // Getters
   List<FrequencyModel> get frequencies => _frequencies;
   List<GroupModel> get groups => _groups;

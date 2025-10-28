@@ -30,6 +30,9 @@
   });
 
   factory FrequencyModel.fromJson(Map<String, dynamic> json) {
+    // Backend returns 'connectedUsers', frontend uses 'activeUsers'
+    final usersData = json['connectedUsers'] ?? json['activeUsers'];
+    
     return FrequencyModel(
       id: json['_id'] ?? json['id'] ?? '',
       frequency: (json['frequency'] ?? 0).toDouble(),
@@ -42,11 +45,11 @@
           ? json['createdBy']
           : json['createdBy']?['_id'],
       activeUsers:
-          (json['activeUsers'] as List<dynamic>?)
+          (usersData as List<dynamic>?)
               ?.map((u) => FrequencyUser.fromJson(u))
               .toList() ??
           [],
-      userCount: json['userCount'] ?? json['activeUsers']?.length ?? 0,
+      userCount: json['currentUsers'] ?? json['userCount'] ?? (usersData is List ? usersData.length : 0),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
