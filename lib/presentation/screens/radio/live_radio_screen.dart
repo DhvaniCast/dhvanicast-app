@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../injection.dart';
+import '../../../data/models/frequency_model.dart';
+import '../../services/dialer_service.dart';
 
 class LiveRadioScreen extends StatefulWidget {
   final Map<String, dynamic>? groupData;
@@ -15,36 +18,25 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   late AnimationController _pulseController;
   late Animation<double> _waveAnimation;
   late Animation<double> _pulseAnimation;
+  late DialerService _dialerService;
 
   bool _isMuted = false;
   bool _isConnected = true;
   double _volume = 0.8;
   String _frequency = "505.1";
   String _stationName = "Dhvani Cast Station";
+  String? _frequencyId;
 
-  // List of connected users with avatars
-  final List<Map<String, dynamic>> _connectedUsers = [
-    {'name': 'User 1', 'avatar': '🎯', 'isActive': true},
-    {'name': 'User 2', 'avatar': '🚁', 'isActive': false},
-    {'name': 'User 3', 'avatar': '🚗', 'isActive': true},
-    {'name': 'User 4', 'avatar': '🏢', 'isActive': false},
-    {'name': 'User 5', 'avatar': '🎪', 'isActive': true},
-    {'name': 'User 6', 'avatar': '🎨', 'isActive': false},
-    {'name': 'User 7', 'avatar': '🎭', 'isActive': true},
-    {'name': 'User 8', 'avatar': '🎸', 'isActive': false},
-    {'name': 'User 9', 'avatar': '⚽', 'isActive': true},
-    {'name': 'User 10', 'avatar': '🎲', 'isActive': false},
-    {'name': 'User 11', 'avatar': '🎯', 'isActive': true},
-    {'name': 'User 12', 'avatar': '🎪', 'isActive': false},
-    {'name': 'User 13', 'avatar': '🎨', 'isActive': true},
-    {'name': 'User 14', 'avatar': '🎭', 'isActive': false},
-    {'name': 'User 15', 'avatar': '🎸', 'isActive': true},
-    {'name': 'User 16', 'avatar': '⚽', 'isActive': false},
-  ];
+  FrequencyModel? _currentFrequency;
+  List<Map<String, dynamic>> _connectedUsers = [];
 
   @override
   void initState() {
     super.initState();
+
+    _dialerService = getIt<DialerService>();
+
+    print('🚀 LiveRadioScreen: Initializing...');
 
     _waveController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -69,15 +61,53 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       _pulseController.repeat(reverse: true);
     }
 
-    // Load group data if available
+    // Load frequency data if available
     if (widget.groupData != null) {
       _frequency = widget.groupData!['frequency']?.toString() ?? _frequency;
       _stationName = widget.groupData!['name'] ?? _stationName;
+      _frequencyId = widget.groupData!['frequencyId'];
+
+      print('📡 Frequency: $_frequency MHz');
+      print('📻 Station: $_stationName');
+      print('🆔 Frequency ID: $_frequencyId');
+
+      _loadFrequencyData();
+    }
+
+    _dialerService.addListener(_onServiceUpdate);
+  }
+
+  void _onServiceUpdate() {
+    print('📡 LiveRadioScreen: Service updated');
+    setState(() {});
+  }
+
+  Future<void> _loadFrequencyData() async {
+    if (_frequencyId != null) {
+      // Get frequency details from already loaded data
+      _currentFrequency = _dialerService.frequencies.firstWhere(
+        (f) => f.id == _frequencyId,
+        orElse: () => FrequencyModel(
+          id: _frequencyId!,
+          frequency: double.tryParse(_frequency) ?? 505.1,
+          band: 'UHF',
+          isPublic: true,
+          activeUsers: [],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      print(
+        '✅ Current frequency users: ${_currentFrequency?.activeUsers.length ?? 0}',
+      );
+      setState(() {});
     }
   }
 
   @override
   void dispose() {
+    _dialerService.removeListener(_onServiceUpdate);
     _waveController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -87,6 +117,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     setState(() {
       _isMuted = !_isMuted;
     });
+    print('🎤 Mic ${_isMuted ? "muted" : "unmuted"}');
   }
 
   void _shareFrequency() {

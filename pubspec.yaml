@@ -38,6 +38,9 @@ dependencies:
   # HTTP client for API calls
   http: ^1.1.0
   
+  # WebSocket/Socket.IO for real-time communication
+  socket_io_client: ^2.0.3+1
+  
   # State management
   flutter_bloc: ^8.1.3
   

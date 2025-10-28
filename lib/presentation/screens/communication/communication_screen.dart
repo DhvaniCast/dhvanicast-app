@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../injection.dart';
+import '../../services/communication_service.dart';
 
 class CommunicationScreen extends StatefulWidget {
   const CommunicationScreen({Key? key}) : super(key: key);
@@ -13,6 +15,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   late AnimationController _pulseController;
   late Animation<double> _audioWaveAnimation;
   late Animation<double> _pulseAnimation;
+  late CommunicationService _commService;
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -23,151 +26,22 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   bool _isRecording = false;
 
   Map<String, dynamic>? groupData;
+  String? _groupId;
 
-  // Enhanced static data with more realistic radio communication
-  final List<Map<String, dynamic>> _activeUsers = [
-    {
-      'id': 1,
-      'name': 'Alex Rodriguez',
-      'callSign': 'Alpha-7',
-      'frequency': '99.9',
-      'status': 'active',
-      'signal': 5,
-      'location': 'Sector A',
-      'avatar': '🚁',
-    },
-    {
-      'id': 2,
-      'name': 'Sarah Chen',
-      'callSign': 'Bravo-3',
-      'frequency': '99.9',
-      'status': 'transmitting',
-      'signal': 4,
-      'location': 'Base Station',
-      'avatar': '🎯',
-    },
-    {
-      'id': 3,
-      'name': 'Mike Johnson',
-      'callSign': 'Charlie-9',
-      'frequency': '99.9',
-      'status': 'listening',
-      'signal': 3,
-      'location': 'Mobile Unit',
-      'avatar': '🚗',
-    },
-    {
-      'id': 4,
-      'name': 'Emma Davis',
-      'callSign': 'Delta-2',
-      'frequency': '99.9',
-      'status': 'active',
-      'signal': 5,
-      'location': 'Control Tower',
-      'avatar': '🏢',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'id': 1,
-      'sender': 'Alpha-7',
-      'senderName': 'Alex Rodriguez',
-      'message':
-          'Base, this is Alpha-7. Visual on target, requesting permission to proceed, over.',
-      'time': '14:30',
-      'type': 'text',
-      'isMe': false,
-      'priority': 'high',
-    },
-    {
-      'id': 2,
-      'sender': 'Control',
-      'senderName': 'You (Control)',
-      'message':
-          'Alpha-7, permission granted. Proceed with caution. Bravo-3 is en route to your position.',
-      'time': '14:32',
-      'type': 'text',
-      'isMe': true,
-      'priority': 'normal',
-    },
-    {
-      'id': 3,
-      'sender': 'Bravo-3',
-      'senderName': 'Sarah Chen',
-      'message': 'voice_transmission.mp3',
-      'time': '14:34',
-      'type': 'audio',
-      'isMe': false,
-      'duration': '0:23',
-      'priority': 'normal',
-    },
-    {
-      'id': 4,
-      'sender': 'Charlie-9',
-      'senderName': 'Mike Johnson',
-      'message':
-          'All units, weather alert: Heavy rain expected in 20 minutes. Visibility will be reduced.',
-      'time': '14:36',
-      'type': 'text',
-      'isMe': false,
-      'priority': 'urgent',
-    },
-    {
-      'id': 5,
-      'sender': 'Control',
-      'senderName': 'You (Control)',
-      'message': 'emergency_broadcast.mp3',
-      'time': '14:38',
-      'type': 'audio',
-      'isMe': true,
-      'duration': '0:15',
-      'priority': 'emergency',
-    },
-    {
-      'id': 4,
-      'sender': 'Mike Johnson',
-      'message': 'Roger that, maintaining position at harbor entrance',
-      'time': '10:38 AM',
-      'type': 'text',
-      'isMe': false,
-    },
-  ];
-
-  final List<Map<String, dynamic>> _activeMembers = [
-    {
-      'name': 'John Parker',
-      'role': 'Team Leader',
-      'status': 'speaking',
-      'avatar': Icons.person,
-      'isOnline': true,
-    },
-    {
-      'name': 'Sarah Wilson',
-      'role': 'Medic',
-      'status': 'listening',
-      'avatar': Icons.person_2,
-      'isOnline': true,
-    },
-    {
-      'name': 'Mike Johnson',
-      'role': 'Security',
-      'status': 'muted',
-      'avatar': Icons.person_3,
-      'isOnline': true,
-    },
-    {
-      'name': 'Lisa Chen',
-      'role': 'Coordinator',
-      'status': 'listening',
-      'avatar': Icons.person_4,
-      'isOnline': false,
-    },
-  ];
+  // Local state for messages and active users/members
+  List<Map<String, dynamic>> _messages = [];
+  List<Map<String, dynamic>> _activeUsers = [];
+  List<Map<String, dynamic>> _activeMembers = [];
 
   @override
   void initState() {
     super.initState();
+
+    // Get CommunicationService from DI
+    _commService = getIt<CommunicationService>();
+
+    print('🚀 CommunicationScreen: Initializing...');
+
     _audioWaveController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -185,6 +59,46 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Listen to service changes
+    _commService.addListener(_onServiceUpdate);
+  }
+
+  void _onServiceUpdate() {
+    print('📡 CommunicationScreen: Service updated');
+    print('💬 Messages count: ${_commService.messages.length}');
+
+    if (_commService.error != null) {
+      print('❌ Error: ${_commService.error}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${_commService.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() {});
+    _scrollToBottom();
+  }
+
+  Future<void> _loadGroupData(String groupId) async {
+    print('📥 CommunicationScreen: Loading group data for $groupId');
+
+    // Load group details
+    await _commService.loadGroupDetails(groupId);
+    print('✅ Group loaded: ${_commService.currentGroup?.name}');
+
+    // Load messages
+    await _commService.loadMessages(
+      recipientType: 'group',
+      recipientId: groupId,
+    );
+    print('✅ Messages loaded: ${_commService.messages.length}');
+
+    // Setup WebSocket listeners
+    _commService.setupSocketListeners();
+    print('✅ WebSocket listeners setup complete');
   }
 
   @override

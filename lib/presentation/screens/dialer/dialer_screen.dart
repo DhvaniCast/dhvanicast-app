@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../injection.dart';
+import '../../../data/models/frequency_model.dart';
+import '../../services/dialer_service.dart';
 
 class DialerScreen extends StatefulWidget {
   const DialerScreen({Key? key}) : super(key: key);
@@ -12,6 +15,7 @@ class _DialerScreenState extends State<DialerScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _dialController;
+  late DialerService _dialerService;
 
   double _frequency = 450.0; // Changed to 320-650 range
   bool _isConnected = false;
@@ -20,56 +24,14 @@ class _DialerScreenState extends State<DialerScreen>
   double _volume = 0.7;
   String _selectedBand = 'UHF'; // UHF for 320-650 MHz range
 
-  final List<Map<String, dynamic>> _activeGroups = [
-    {
-      'name': 'Security Team Alpha',
-      'members': ['Officer Johnson', 'Sergeant Wilson', 'Captain Smith'],
-      'status': 'active',
-      'icon': Icons.security,
-      'color': Colors.red,
-      'frequency': 450.0,
-    },
-    {
-      'name': 'Emergency Response',
-      'members': ['Paramedic Martinez', 'Dr. Anderson', 'Nurse Taylor'],
-      'status': 'active',
-      'icon': Icons.local_hospital,
-      'color': Colors.blue,
-      'frequency': 462.5,
-    },
-    {
-      'name': 'Fire Department',
-      'members': ['Chief Thompson', 'Captain Garcia', 'Lieutenant Lee'],
-      'status': 'idle',
-      'icon': Icons.local_fire_department,
-      'color': Colors.orange,
-      'frequency': 468.2,
-    },
-  ];
-
-  // Updated frequency user data for 320-650 MHz range
-  final Map<double, int> _frequencyUsers = {
-    325.0: 12,
-    350.5: 8,
-    375.0: 15,
-    400.0: 22,
-    425.5: 18,
-    450.0: 5,
-    462.5: 5,
-    468.2: 0,
-    475.8: 4,
-    500.0: 9,
-    525.5: 11,
-    550.0: 7,
-    575.5: 14,
-    600.0: 16,
-    625.0: 3,
-    640.5: 10,
-  };
-
   @override
   void initState() {
     super.initState();
+
+    // Get DialerService from DI
+    _dialerService = getIt<DialerService>();
+
+    print('🚀 DialerScreen: Initializing...');
 
     // Ensure frequency is within valid range
     if (_frequency < 320.0 || _frequency > 650.0) {
@@ -89,26 +51,74 @@ class _DialerScreenState extends State<DialerScreen>
     if (_isConnected) {
       _pulseController.repeat(reverse: true);
     }
+
+    // Listen to service changes
+    _dialerService.addListener(_onServiceUpdate);
+
+    // Load initial data from API
+    _loadInitialData();
+  }
+
+  void _onServiceUpdate() {
+    print('📡 DialerScreen: Service updated');
+    print('📊 Frequencies count: ${_dialerService.frequencies.length}');
+    print('👥 Groups count: ${_dialerService.groups.length}');
+
+    if (_dialerService.error != null) {
+      print('❌ Error: ${_dialerService.error}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${_dialerService.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() {});
+  }
+
+  Future<void> _loadInitialData() async {
+    print('📥 DialerScreen: Loading initial data from API...');
+
+    // Load frequencies
+    await _dialerService.loadFrequencies(band: _selectedBand, isPublic: true);
+    print('✅ Frequencies loaded: ${_dialerService.frequencies.length}');
+
+    // Load groups
+    await _dialerService.loadUserGroups();
+    print('✅ Groups loaded: ${_dialerService.groups.length}');
+
+    // Setup WebSocket listeners
+    _dialerService.setupSocketListeners();
+    print('✅ WebSocket listeners setup complete');
   }
 
   @override
   void dispose() {
+    _dialerService.removeListener(_onServiceUpdate);
     _pulseController.dispose();
     _dialController.dispose();
     super.dispose();
   }
 
   int _getUsersOnFrequency(double frequency) {
-    // Find the closest frequency in our data
-    double closestFreq = _frequencyUsers.keys.reduce(
-      (a, b) => (frequency - a).abs() < (frequency - b).abs() ? a : b,
+    // Get users from API data
+    final freq = _dialerService.frequencies.firstWhere(
+      (f) => (f.frequency - frequency).abs() <= 0.5,
+      orElse: () => FrequencyModel(
+        id: '',
+        frequency: frequency,
+        band: _selectedBand,
+        isPublic: true,
+        activeUsers: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
     );
 
-    // If the frequency is close enough (within 0.5), return the user count
-    if ((frequency - closestFreq).abs() <= 0.5) {
-      return _frequencyUsers[closestFreq] ?? 0;
-    }
-    return 0;
+    int userCount = freq.activeUsers.length;
+    print('👥 Users on ${frequency.toStringAsFixed(1)} MHz: $userCount');
+    return userCount;
   }
 
   // Dynamic button functions
@@ -159,18 +169,29 @@ class _DialerScreenState extends State<DialerScreen>
   }
 
   void _autoTuneToStrongestSignal() {
-    // Find frequency with most users
-    double strongestFreq = _frequencyUsers.entries
-        .reduce((a, b) => a.value > b.value ? a : b)
-        .key;
+    // Find frequency with most users from API data
+    if (_dialerService.frequencies.isEmpty) {
+      print('⚠️ No frequencies available for auto-tune');
+      return;
+    }
+
+    final strongestFreq = _dialerService.frequencies.reduce(
+      (a, b) => a.activeUsers.length > b.activeUsers.length ? a : b,
+    );
 
     setState(() {
-      _frequency = strongestFreq;
+      _frequency = strongestFreq.frequency;
     });
+
+    print(
+      '🎯 Auto-tuned to ${strongestFreq.frequency.toStringAsFixed(1)} MHz with ${strongestFreq.activeUsers.length} users',
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Auto-tuned to ${strongestFreq.toStringAsFixed(1)} MHz'),
+        content: Text(
+          'Auto-tuned to ${strongestFreq.frequency.toStringAsFixed(1)} MHz (${strongestFreq.activeUsers.length} users)',
+        ),
         backgroundColor: const Color(0xFF00ff88),
         duration: const Duration(seconds: 2),
       ),
@@ -190,6 +211,8 @@ class _DialerScreenState extends State<DialerScreen>
 
   // Missing functions - Add back
   void _showActiveGroupsPopup() {
+    print('👥 Showing ${_dialerService.groups.length} active groups from API');
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -210,9 +233,9 @@ class _DialerScreenState extends State<DialerScreen>
                 children: [
                   const Icon(Icons.group, color: Color(0xFF00ff88)),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Active Groups',
-                    style: TextStyle(
+                  Text(
+                    'Active Groups (${_dialerService.groups.length})',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -221,7 +244,35 @@ class _DialerScreenState extends State<DialerScreen>
                 ],
               ),
             ),
-            ..._activeGroups.map((group) => _buildGroupCard(group)),
+            // Use API data instead of static data
+            if (_dialerService.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(color: Color(0xFF00ff88)),
+              )
+            else if (_dialerService.groups.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text(
+                  'No active groups found',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              )
+            else
+              ..._dialerService.groups.map((group) {
+                // Convert GroupModel to Map for _buildGroupCard
+                return _buildGroupCard({
+                  'id': group.id,
+                  'name': group.name,
+                  'members': group.members.map((m) => m.userId).toList(),
+                  'status': group.members.any((m) => m.isOnline)
+                      ? 'active'
+                      : 'idle',
+                  'icon': Icons.group,
+                  'color': Colors.blue,
+                  'frequency': 450.0, // Default frequency
+                });
+              }),
             const SizedBox(height: 20),
           ],
         ),
@@ -375,7 +426,16 @@ class _DialerScreenState extends State<DialerScreen>
     );
   }
 
-  void _showJoinDialog() {
+  void _showJoinDialog() async {
+    print(
+      '🔗 Attempting to join frequency: ${_frequency.toStringAsFixed(1)} MHz',
+    );
+
+    // Find the frequency in loaded data
+    FrequencyModel? frequencyToJoin = _dialerService.frequencies
+        .where((f) => (f.frequency - _frequency).abs() <= 0.5)
+        .firstOrNull;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -410,9 +470,11 @@ class _DialerScreenState extends State<DialerScreen>
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Connecting to channel...',
-                style: TextStyle(color: Color(0xFF888888)),
+              Text(
+                frequencyToJoin == null
+                    ? 'Creating new frequency...'
+                    : 'Connecting to channel...',
+                style: const TextStyle(color: Color(0xFF888888)),
               ),
               const SizedBox(height: 30),
               Row(
@@ -431,20 +493,79 @@ class _DialerScreenState extends State<DialerScreen>
                     child: const Text('Cancel'),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        _isConnected = true;
-                      });
-                      // Navigate to live radio screen
-                      Navigator.pushNamed(
-                        context,
-                        '/live_radio',
-                        arguments: {
-                          'frequency': _frequency.toStringAsFixed(1),
-                          'name': 'Dhvani Cast Live',
+                    onPressed: () async {
+                      print('🎯 JOIN button pressed - Calling API...');
+
+                      // If frequency doesn't exist, create it first
+                      if (frequencyToJoin == null) {
+                        print('📝 Creating new frequency...');
+                        final newFrequency = await _dialerService.createFrequency(
+                          frequency: _frequency,
+                          name: '${_frequency.toStringAsFixed(1)} MHz',
+                          band: _selectedBand,
+                          description:
+                              'Public ${_selectedBand} frequency at ${_frequency.toStringAsFixed(1)} MHz',
+                          isPublic: true,
+                        );
+
+                        if (newFrequency == null) {
+                          Navigator.pop(context);
+                          print('❌ Failed to create frequency');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Failed to create frequency: ${_dialerService.error}',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        frequencyToJoin = newFrequency;
+                        print('✅ Frequency created: ${newFrequency.id}');
+                      }
+
+                      // Now join the frequency
+                      final success = await _dialerService.joinFrequency(
+                        frequencyToJoin!.id,
+                        userInfo: {
+                          'frequency': _frequency,
+                          'band': _selectedBand,
                         },
                       );
+
+                      Navigator.pop(context);
+
+                      if (success) {
+                        print('✅ Successfully joined frequency via API');
+
+                        setState(() {
+                          _isConnected = true;
+                        });
+
+                        // Navigate to live radio screen
+                        Navigator.pushNamed(
+                          context,
+                          '/live_radio',
+                          arguments: {
+                            'frequency': _frequency.toStringAsFixed(1),
+                            'name': 'Dhvani Cast Live',
+                            'frequencyId': frequencyToJoin!.id,
+                          },
+                        );
+                      } else {
+                        print('❌ Failed to join frequency via API');
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Failed to join: ${_dialerService.error}',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00ff88),
