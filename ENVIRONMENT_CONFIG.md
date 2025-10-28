@@ -12,9 +12,10 @@
 static const Environment _currentEnvironment = Environment.production;
 ```
 
-**Production URL:**
+**Production URLs:**
 ```
-https://dhvani-cast-radio-backend.onrender.com
+API:    https://dhvani-cast-radio-backend.onrender.com/api
+Socket: https://dhvani-cast-radio-backend.onrender.com
 ```
 
 ---
@@ -34,6 +35,9 @@ static const Environment _currentEnvironment = Environment.production;
 **URLs Used:**
 - API: `https://dhvani-cast-radio-backend.onrender.com/api`
 - Socket: `https://dhvani-cast-radio-backend.onrender.com`
+- **Transport:** WebSocket with polling fallback
+- **Timeout:** 20 seconds
+- **Reconnection:** 5 attempts with exponential backoff
 
 ---
 
@@ -50,6 +54,49 @@ static const Environment _currentEnvironment = Environment.local;
 **URLs Used:**
 - API: `http://10.0.2.2:5000/api` (Android Emulator)
 - Socket: `http://10.0.2.2:5000`
+- **Transport:** WebSocket with polling fallback
+- **Timeout:** 10 seconds
+- **Reconnection:** 5 attempts
+
+---
+
+## 🔌 WebSocket Configuration
+
+### **New Features (v2.0):**
+
+✅ **Dual Transport Support**
+- Primary: WebSocket (`ws://` or `wss://`)
+- Fallback: Long-polling (if WebSocket fails)
+
+✅ **Production Optimizations**
+- Longer timeout (20s vs 10s)
+- Better reconnection strategy
+- Enhanced error logging
+- Connection info debugging
+
+✅ **Enhanced Logging**
+```dart
+print('🔌 Connecting to Socket.IO...');
+print('📡 URL: $socketUrl');
+print('🌍 Environment: ${ApiEndpoints.environmentName}');
+print('✅ Socket.IO Connected to ${ApiEndpoints.socketUrl}');
+print('🎯 Transport: websocket/polling');
+```
+
+### **Connection Flow:**
+
+1. **Initial Connection Attempt**
+   - Try WebSocket first
+   - If fails, fallback to polling
+   - Retry up to 5 times with delays
+
+2. **Reconnection Strategy**
+   - Attempt 1: 1 second delay
+   - Attempt 2: 2 seconds delay
+   - Attempt 3: 3 seconds delay
+   - Attempt 4: 4 seconds delay
+   - Attempt 5: 5 seconds delay
+   - Max delay: 5 seconds
 
 ---
 

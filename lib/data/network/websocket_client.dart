@@ -19,13 +19,32 @@ class WebSocketClient {
   void connect(String token) {
     _authToken = token;
 
+    // Get socket URL and determine if production
+    final socketUrl = ApiEndpoints.socketUrl;
+    final isProduction = ApiEndpoints.isProduction;
+
+    if (kDebugMode) {
+      print('🔌 Connecting to Socket.IO...');
+      print('📡 URL: $socketUrl');
+      print('🌍 Environment: ${ApiEndpoints.environmentName}');
+    }
+
     _socket = IO.io(
-      ApiEndpoints.socketUrl,
+      socketUrl,
       IO.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['websocket', 'polling']) // Fallback to polling if websocket fails
           .enableAutoConnect()
+          .enableForceNew()
           .setAuth({'token': token})
           .setExtraHeaders({'Authorization': 'Bearer $token'})
+          // Production-specific settings
+          .setTimeout(isProduction ? 20000 : 10000) // Longer timeout for production
+          .enableReconnection()
+          .setReconnectionAttempts(5)
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          // Security settings for production
+          .disableMultiplex() // Better for production
           .build(),
     );
 
@@ -37,14 +56,16 @@ class WebSocketClient {
     _socket?.on('connect', (_) {
       _isConnected = true;
       if (kDebugMode) {
-        print('✅ Socket.IO Connected');
+        print('✅ Socket.IO Connected to ${ApiEndpoints.socketUrl}');
+        print('🎯 Transport: ${_socket?.io.engine?.transport?.name ?? 'unknown'}');
       }
     });
 
-    _socket?.on('disconnect', (_) {
+    _socket?.on('disconnect', (reason) {
       _isConnected = false;
       if (kDebugMode) {
         print('❌ Socket.IO Disconnected');
+        print('📋 Reason: $reason');
       }
     });
 
@@ -52,6 +73,8 @@ class WebSocketClient {
       _isConnected = false;
       if (kDebugMode) {
         print('🔴 Socket.IO Connection Error: $error');
+        print('🌍 URL: ${ApiEndpoints.socketUrl}');
+        print('🔧 Environment: ${ApiEndpoints.environmentName}');
       }
     });
 
@@ -64,6 +87,30 @@ class WebSocketClient {
     _socket?.on('authenticated', (data) {
       if (kDebugMode) {
         print('🔐 Socket.IO Authenticated: $data');
+      }
+    });
+
+    _socket?.on('reconnect', (attemptNumber) {
+      if (kDebugMode) {
+        print('🔄 Socket.IO Reconnected after $attemptNumber attempts');
+      }
+    });
+
+    _socket?.on('reconnect_attempt', (attemptNumber) {
+      if (kDebugMode) {
+        print('🔄 Socket.IO Reconnection attempt #$attemptNumber');
+      }
+    });
+
+    _socket?.on('reconnect_error', (error) {
+      if (kDebugMode) {
+        print('🔴 Socket.IO Reconnection error: $error');
+      }
+    });
+
+    _socket?.on('reconnect_failed', (_) {
+      if (kDebugMode) {
+        print('❌ Socket.IO Reconnection failed - max attempts reached');
       }
     });
   }
@@ -245,5 +292,18 @@ class WebSocketClient {
     if (_authToken != null) {
       connect(_authToken!);
     }
+  }
+
+  /// Get connection info for debugging
+  Map<String, dynamic> getConnectionInfo() {
+    return {
+      'isConnected': _isConnected,
+      'socketUrl': ApiEndpoints.socketUrl,
+      'environment': ApiEndpoints.environmentName,
+      'isProduction': ApiEndpoints.isProduction,
+      'hasToken': _authToken != null,
+      'socketExists': _socket != null,
+      'transport': _socket?.io.engine?.transport?.name ?? 'none',
+    };
   }
 }
