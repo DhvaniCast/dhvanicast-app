@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../state/auth/auth_bloc.dart';
 import '../../state/auth/auth_event.dart';
 import '../../state/auth/auth_state.dart';
+import '../../../injection.dart';
+import '../../../data/network/websocket_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -107,12 +109,22 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           );
         } else if (state is AuthSuccess) {
+          print('✅ Login Success!');
+          print('🔑 Token: ${state.token}');
+          print('👤 User: ${state.user.name}');
+
+          // Initialize WebSocket connection with token
+          final wsClient = getIt<WebSocketClient>();
+          print('🔌 Initializing WebSocket connection...');
+          wsClient.connect(state.token);
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
               backgroundColor: Colors.green,
             ),
           );
+
           // Navigate to dialer screen
           Navigator.pushReplacementNamed(context, '/dialer');
         } else if (state is AuthError) {

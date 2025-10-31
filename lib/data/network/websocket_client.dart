@@ -27,6 +27,10 @@ class WebSocketClient {
       print('🔌 Connecting to Socket.IO...');
       print('📡 URL: $socketUrl');
       print('🌍 Environment: ${ApiEndpoints.environmentName}');
+      print(
+        '🔑 Token (first 20 chars): ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
+      );
+      print('🔑 Token length: ${token.length}');
     }
 
     _socket = IO.io(
@@ -52,6 +56,10 @@ class WebSocketClient {
           .disableMultiplex() // Better for production
           .build(),
     );
+
+    if (kDebugMode) {
+      print('✅ Socket instance created with auth config');
+    }
 
     _setupSocketListeners();
   }
@@ -166,6 +174,98 @@ class WebSocketClient {
   /// Stop transmission
   void stopTransmission(String frequencyId) {
     _socket?.emit('stop_transmission', {'frequencyId': frequencyId});
+  }
+
+  /// Send frequency chat message
+  void sendFrequencyChat(
+    String frequencyId,
+    String message, {
+    String messageType = 'text',
+  }) {
+    if (kDebugMode) {
+      print('\n💬 ===== SENDING FREQUENCY CHAT =====');
+      print('🔌 Socket connected: $_isConnected');
+      print('📡 Socket instance: ${_socket != null ? "EXISTS" : "NULL"}');
+      print('📋 Frequency ID: $frequencyId');
+      print('💬 Message: $message');
+      print('📝 Message Type: $messageType');
+    }
+
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('❌ Cannot send frequency chat: Socket not connected');
+        print('===== SEND FREQUENCY CHAT FAILED =====\n');
+      }
+      return;
+    }
+
+    final data = {
+      'frequencyId': frequencyId,
+      'message': message,
+      'messageType': messageType,
+    };
+
+    if (kDebugMode) {
+      print('Emitting send_frequency_chat with data: $data');
+    }
+
+    _socket!.emit('send_frequency_chat', data);
+
+    if (kDebugMode) {
+      print('✅ Frequency chat sent');
+      print('===== SEND FREQUENCY CHAT COMPLETE =====\n');
+    }
+  }
+
+  /// Get frequency chat history
+  void getFrequencyChatHistory(
+    String frequencyId, {
+    int limit = 50,
+    String? before,
+  }) {
+    if (kDebugMode) {
+      print('\n📜 ===== GETTING FREQUENCY CHAT HISTORY =====');
+      print('🔌 Socket connected: $_isConnected');
+      print('📡 Socket instance: ${_socket != null ? "EXISTS" : "NULL"}');
+      print('📋 Frequency ID: $frequencyId');
+      print('📊 Limit: $limit');
+      print('⏰ Before: ${before ?? "N/A"}');
+    }
+
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('❌ Cannot get chat history: Socket not connected');
+        print('===== GET CHAT HISTORY FAILED =====\n');
+      }
+      return;
+    }
+
+    final data = {
+      'frequencyId': frequencyId,
+      'limit': limit,
+      if (before != null) 'before': before,
+    };
+
+    if (kDebugMode) {
+      print('Emitting get_frequency_chat_history with data: $data');
+    }
+
+    _socket!.emit('get_frequency_chat_history', data);
+
+    if (kDebugMode) {
+      print('✅ Chat history request sent');
+      print('===== GET CHAT HISTORY COMPLETE =====\n');
+    }
+  }
+
+  /// Send typing indicator for frequency chat
+  void sendFrequencyTyping(String frequencyId, bool isTyping) {
+    if (!_isConnected || _socket == null) return;
+
+    _socket!.emit('frequency_chat_typing', {
+      'frequencyId': frequencyId,
+      'isTyping': isTyping,
+    });
   }
 
   /// Send audio data chunk

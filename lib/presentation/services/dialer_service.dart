@@ -164,10 +164,28 @@ class DialerService extends ChangeNotifier {
     Map<String, dynamic>? userInfo,
   }) async {
     try {
+      print('🔗 DialerService: Joining frequency $frequencyId...');
+
       final response = await _frequencyRepo.joinFrequency(frequencyId);
 
       if (response.success && response.data != null) {
         _currentFrequency = response.data!;
+
+        print('✅ Join API Success! Updated frequency:');
+        print('   - ID: ${_currentFrequency!.id}');
+        print('   - Frequency: ${_currentFrequency!.frequency} MHz');
+        print('   - Current Users: ${_currentFrequency!.userCount}');
+        print('   - Active Users: ${_currentFrequency!.activeUsers.length}');
+
+        // Update the frequency in the list with new user data
+        final index = _frequencies.indexWhere((f) => f.id == frequencyId);
+        if (index != -1) {
+          print('📝 Updating frequency in list at index $index');
+          _frequencies[index] = _currentFrequency!;
+        } else {
+          print('➕ Adding new frequency to list');
+          _frequencies.add(_currentFrequency!);
+        }
 
         // Connect via WebSocket
         _socketClient.joinFrequency(frequencyId, userInfo: userInfo);
@@ -176,6 +194,7 @@ class DialerService extends ChangeNotifier {
         return true;
       } else {
         _error = response.message;
+        print('❌ Join API Failed: ${response.message}');
         notifyListeners();
         return false;
       }

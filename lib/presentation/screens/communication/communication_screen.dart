@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../injection.dart';
 import '../../services/communication_service.dart';
+import '../../../data/network/websocket_client.dart';
 
 class CommunicationScreen extends StatefulWidget {
   const CommunicationScreen({Key? key}) : super(key: key);
@@ -105,9 +106,85 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
+
+    print('📥 CommunicationScreen: Received arguments: $args');
+
     if (args != null && args is Map<String, dynamic>) {
       groupData = args;
+
+      // Check if it's frequency chat or group chat
+      final type = args['type'] as String?;
+      final frequencyId = args['frequencyId'] as String?;
+      final groupId = args['groupId'] as String?;
+
+      print('🔍 Chat Type: $type');
+      print('🆔 Frequency ID: $frequencyId');
+      print('🆔 Group ID: $groupId');
+
+      if (type == 'frequency' && frequencyId != null) {
+        print('💬 Setting up FREQUENCY CHAT');
+        _setupFrequencyChat(frequencyId);
+      } else if (groupId != null) {
+        print('💬 Setting up GROUP CHAT');
+        _loadGroupData(groupId);
+      } else {
+        print('⚠️ No valid chat target found!');
+      }
     }
+  }
+
+  // Setup frequency chat
+  void _setupFrequencyChat(String frequencyId) {
+    print('🔧 Setting up frequency chat for: $frequencyId');
+
+    final wsClient = getIt<WebSocketClient>();
+
+    // Request frequency chat history
+    print('📜 Requesting frequency chat history...');
+    wsClient.getFrequencyChatHistory(frequencyId);
+
+    // Setup frequency-specific listeners
+    wsClient.on('frequency_chat_message', (data) {
+      print('💬 [FREQUENCY] Received chat message: $data');
+      if (mounted) {
+        setState(() {
+          _messages.add({
+            'id': data['id'],
+            'senderId': data['sender']['id'],
+            'senderName': data['sender']['name'],
+            'text': data['message'],
+            'timestamp': data['timestamp'],
+            'type': 'text',
+          });
+        });
+        _scrollToBottom();
+      }
+    });
+
+    wsClient.on('frequency_chat_history', (data) {
+      print(
+        '📜 [FREQUENCY] Received chat history: ${data['messages']?.length ?? 0} messages',
+      );
+      if (mounted && data['messages'] != null) {
+        setState(() {
+          _messages = (data['messages'] as List)
+              .map(
+                (msg) => {
+                  'id': msg['id'],
+                  'senderId': msg['sender']['id'],
+                  'senderName': msg['sender']['name'],
+                  'text': msg['message'],
+                  'timestamp': msg['timestamp'],
+                  'type': 'text',
+                },
+              )
+              .toList();
+        });
+        Future.delayed(Duration(milliseconds: 100), _scrollToBottom);
+      }
+    });
+
+    print('✅ Frequency chat setup complete');
   }
 
   @override
@@ -156,22 +233,56 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   }
 
   void _sendMessage() {
-    if (_messageController.text.trim().isNotEmpty) {
+    if (_messageController.text.trim().isEmpty) {
+      print('⚠️ Empty message, not sending');
+      return;
+    }
+
+    final message = _messageController.text.trim();
+    print('📤 Attempting to send message: $message');
+
+    // Check if it's frequency chat or group chat
+    final type = groupData?['type'] as String?;
+    final frequencyId = groupData?['frequencyId'] as String?;
+    final groupId = groupData?['groupId'] as String?;
+
+    print('🔍 Chat Type: $type');
+    print('🆔 Frequency ID: $frequencyId');
+    print('🆔 Group ID: $groupId');
+
+    if (type == 'frequency' && frequencyId != null) {
+      // Send frequency chat message via WebSocket
+      print('📡 Sending FREQUENCY chat message...');
+      final wsClient = getIt<WebSocketClient>();
+      wsClient.sendFrequencyChat(frequencyId, message);
+      print('✅ Frequency chat message sent to backend');
+    } else if (groupId != null) {
+      // Send group chat message
+      print('📡 Sending GROUP chat message...');
       setState(() {
         _messages.add({
-          'id': _messages.length + 1,
+          'id': DateTime.now().millisecondsSinceEpoch.toString(),
           'sender': 'Me',
-          'message': _messageController.text.trim(),
+          'message': message,
           'time':
               '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
           'type': 'text',
           'isMe': true,
         });
       });
-
-      _messageController.clear();
-      _scrollToBottom();
+    } else {
+      print('❌ No valid chat target!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cannot send message: Invalid chat target'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
+
+    _messageController.clear();
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {
