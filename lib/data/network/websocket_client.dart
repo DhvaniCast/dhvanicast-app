@@ -385,6 +385,86 @@ class WebSocketClient {
     _socket?.off(event);
   }
 
+  // ===== RADIO CONTROL METHODS =====
+
+  /// Toggle microphone (MIC button)
+  void toggleMic(String frequencyId, bool isMuted) {
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('❌ Cannot toggle mic: Socket not connected');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('🎤 [MIC] Toggling microphone: ${isMuted ? "MUTED" : "UNMUTED"}');
+      print('📍 Frequency: $frequencyId');
+    }
+
+    _socket!.emit('toggle_mic', {
+      'frequencyId': frequencyId,
+      'isMuted': isMuted,
+    });
+  }
+
+  /// Toggle volume/speaker (VOL button)
+  void toggleVolume(String frequencyId, bool isSpeakerOn) {
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('❌ Cannot toggle volume: Socket not connected');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('🔊 [VOL] Toggling volume: ${isSpeakerOn ? "ON" : "OFF"}');
+      print('📍 Frequency: $frequencyId');
+    }
+
+    _socket!.emit('toggle_volume', {
+      'frequencyId': frequencyId,
+      'isSpeakerOn': isSpeakerOn,
+    });
+  }
+
+  /// Check signal strength (SIG button)
+  void checkSignal(String frequencyId) {
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('❌ Cannot check signal: Socket not connected');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('📡 [SIG] Checking signal strength');
+      print('📍 Frequency: $frequencyId');
+    }
+
+    _socket!.emit('check_signal', {'frequencyId': frequencyId});
+  }
+
+  /// Trigger emergency broadcast (EMG button)
+  void triggerEmergency(String frequencyId, {String? message}) {
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('❌ Cannot trigger emergency: Socket not connected');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('🚨 [EMG] TRIGGERING EMERGENCY BROADCAST');
+      print('📍 Frequency: $frequencyId');
+      print('💬 Message: ${message ?? "Emergency broadcast"}');
+    }
+
+    _socket!.emit('trigger_emergency', {
+      'frequencyId': frequencyId,
+      'emergencyMessage': message ?? '🚨 EMERGENCY BROADCAST 🚨',
+    });
+  }
+
   /// Disconnect socket
   void disconnect() {
     _socket?.disconnect();

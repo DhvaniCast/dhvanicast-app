@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../injection.dart';
 import '../../services/communication_service.dart';
 import '../../../data/network/websocket_client.dart';
@@ -22,17 +24,15 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   final ScrollController _scrollController = ScrollController();
 
   bool _isMuted = false;
-  bool _isVideoOn = true;
   bool _isSpeakerOn = false;
   bool _isRecording = false;
 
   Map<String, dynamic>? groupData;
-  String? _groupId;
+  String? _currentUserId; // Store current user ID
 
   // Local state for messages and active users/members
   List<Map<String, dynamic>> _messages = [];
   List<Map<String, dynamic>> _activeUsers = [];
-  List<Map<String, dynamic>> _activeMembers = [];
 
   @override
   void initState() {
@@ -63,6 +63,40 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
     // Listen to service changes
     _commService.addListener(_onServiceUpdate);
+
+    // Load current user ID
+    _loadCurrentUserId();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    print('👤 [USER ID] Loading current user ID...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user');
+
+      print('👤 [USER ID] User data from storage: $userDataString');
+
+      if (userDataString != null) {
+        final userData = Map<String, dynamic>.from(
+          jsonDecode(userDataString) as Map,
+        );
+        setState(() {
+          _currentUserId = userData['id'] ?? userData['_id'];
+        });
+        print('✅ [USER ID] Current User ID loaded: $_currentUserId');
+        print('✅ [USER ID] User Name: ${userData['name']}');
+      } else {
+        print('❌ [USER ID] No user data found in storage');
+      }
+    } catch (e) {
+      print('❌ [USER ID] Error loading current user ID: $e');
+    }
+  }
+
+  String _getCurrentUserId() {
+    final userId = _currentUserId ?? '';
+    print('👤 [GET USER ID] Returning: $userId');
+    return userId;
   }
 
   void _onServiceUpdate() {
@@ -79,7 +113,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       );
     }
 
-    setState(() {});
+    setState(() {
+      // Convert MessageModel to Map for UI
+      // Note: You may need to handle this differently based on your MessageModel structure
+    });
     _scrollToBottom();
   }
 
@@ -147,14 +184,19 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     wsClient.on('frequency_chat_message', (data) {
       print('💬 [FREQUENCY] Received chat message: $data');
       if (mounted) {
+        final currentUserId = _getCurrentUserId();
         setState(() {
           _messages.add({
             'id': data['id'],
             'senderId': data['sender']['id'],
+            'sender': data['sender']['name'],
             'senderName': data['sender']['name'],
+            'message': data['message'],
             'text': data['message'],
             'timestamp': data['timestamp'],
+            'time': _formatTime(data['timestamp']),
             'type': 'text',
+            'isMe': data['sender']['id'] == currentUserId,
           });
         });
         _scrollToBottom();
@@ -166,16 +208,21 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         '📜 [FREQUENCY] Received chat history: ${data['messages']?.length ?? 0} messages',
       );
       if (mounted && data['messages'] != null) {
+        final currentUserId = _getCurrentUserId();
         setState(() {
           _messages = (data['messages'] as List)
               .map(
                 (msg) => {
                   'id': msg['id'],
                   'senderId': msg['sender']['id'],
+                  'sender': msg['sender']['name'],
                   'senderName': msg['sender']['name'],
+                  'message': msg['message'],
                   'text': msg['message'],
                   'timestamp': msg['timestamp'],
+                  'time': _formatTime(msg['timestamp']),
                   'type': 'text',
+                  'isMe': msg['sender']['id'] == currentUserId,
                 },
               )
               .toList();
@@ -184,7 +231,340 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       }
     });
 
+    // Listen for active users updates
+    wsClient.on('frequency_users_update', (data) {
+      print(
+        '👥 [FREQUENCY] Active users updated: ${data['users']?.length ?? 0}',
+      );
+      if (mounted && data['users'] != null) {
+        setState(() {
+          _activeUsers = List<Map<String, dynamic>>.from(data['users']);
+        });
+      }
+    });
+
+    wsClient.on('user_joined_frequency', (data) {
+      print('👤 [FREQUENCY] User joined: ${data['user']['name']}');
+      if (mounted) {
+        setState(() {
+          final userExists = _activeUsers.any(
+            (u) => u['id'] == data['user']['id'],
+          );
+          if (!userExists) {
+            _activeUsers.add(data['user']);
+          }
+        });
+      }
+    });
+
+    wsClient.on('user_left_frequency', (data) {
+      print('👤 [FREQUENCY] User left: ${data['userId']}');
+      if (mounted) {
+        setState(() {
+          _activeUsers.removeWhere((u) => u['id'] == data['userId']);
+        });
+      }
+    });
+
+    // ===== RADIO CONTROL LISTENERS =====
+
+    // Mic status updates
+    wsClient.on('user_mic_status', (data) {
+      print(
+        '🎤 [MIC] User ${data['userName']} mic status: ${data['isMuted'] ? "MUTED" : "UNMUTED"}',
+      );
+      // You can show a toast or update UI if needed
+    });
+
+    wsClient.on('mic_status_updated', (data) {
+      if (mounted) {
+        print('✅ [MIC] ${data['message']}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message']),
+            backgroundColor: const Color(0xFF00ff88),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    });
+
+    // Volume status updates
+    wsClient.on('volume_status_updated', (data) {
+      if (mounted) {
+        print('✅ [VOL] ${data['message']}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message']),
+            backgroundColor: const Color(0xFF00ff88),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    });
+
+    // Signal status updates
+    wsClient.on('signal_status', (data) {
+      if (mounted) {
+        print(
+          '✅ [SIG] Signal: ${data['signalBars']}/5 bars (${data['signalQuality']})',
+        );
+        print('✅ [SIG] Active users: ${data['activeUsers']}');
+
+        // Show signal info dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF2a2a2a),
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.signal_cellular_alt,
+                  color: Color(0xFF00ff88),
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Signal Status',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Quality: ',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    Text(
+                      data['signalQuality'],
+                      style: const TextStyle(
+                        color: Color(0xFF00ff88),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text(
+                      'Strength: ',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    ...List.generate(5, (index) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 2),
+                        width: 4,
+                        height: 12 + (index * 2),
+                        decoration: BoxDecoration(
+                          color: index < data['signalBars']
+                              ? const Color(0xFF00ff88)
+                              : const Color(0xFF333333),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      );
+                    }),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${data['signalBars']}/5',
+                      style: const TextStyle(
+                        color: Color(0xFF00ff88),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.people, color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${data['activeUsers']} active users',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Color(0xFF00ff88)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+
+    // Emergency broadcast received
+    wsClient.on('emergency_broadcast', (data) {
+      if (mounted) {
+        print('🚨 [EMG] EMERGENCY BROADCAST RECEIVED');
+        print('🚨 [EMG] From: ${data['sender']['name']}');
+        print('🚨 [EMG] Message: ${data['message']}');
+
+        // Show emergency alert dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF2a2a2a),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFff4444).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.emergency,
+                    color: Color(0xFFff4444),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'EMERGENCY',
+                  style: TextStyle(
+                    color: Color(0xFFff4444),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFff4444).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFff4444)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'From: ',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            data['sender']['name'],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        data['message'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'This is an emergency broadcast to all units on this frequency.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFff4444).withOpacity(0.2),
+                ),
+                child: const Text(
+                  'ACKNOWLEDGE',
+                  style: TextStyle(
+                    color: Color(0xFFff4444),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        // Also add to messages
+        setState(() {
+          _messages.add({
+            'id': data['id'],
+            'senderId': data['sender']['id'],
+            'sender': data['sender']['name'],
+            'senderName': data['sender']['name'],
+            'message': data['message'],
+            'text': data['message'],
+            'timestamp': data['timestamp'],
+            'time': _formatTime(data['timestamp']),
+            'type': 'text',
+            'priority': 'emergency',
+            'isMe': data['sender']['id'] == _getCurrentUserId(),
+          });
+        });
+        _scrollToBottom();
+      }
+    });
+
+    wsClient.on('emergency_triggered', (data) {
+      if (mounted) {
+        print('✅ [EMG] Emergency broadcast sent successfully');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.emergency, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Emergency broadcast sent to all units'),
+              ],
+            ),
+            backgroundColor: const Color(0xFFff4444),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+
     print('✅ Frequency chat setup complete');
+  }
+
+  String _formatTime(String? timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final dt = DateTime.parse(timestamp);
+      return '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -256,13 +636,19 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       final wsClient = getIt<WebSocketClient>();
       wsClient.sendFrequencyChat(frequencyId, message);
       print('✅ Frequency chat message sent to backend');
+
+      // Note: Don't add message here, wait for server response to add it
+      // This ensures proper sender info and prevents duplicates
     } else if (groupId != null) {
       // Send group chat message
       print('📡 Sending GROUP chat message...');
+
+      // Add optimistic message (will be replaced by server response)
       setState(() {
         _messages.add({
           'id': DateTime.now().millisecondsSinceEpoch.toString(),
-          'sender': 'Me',
+          'sender': 'You',
+          'senderName': 'You',
           'message': message,
           'time':
               '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
@@ -312,7 +698,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              groupData?['name'] ?? 'Radio Channel 99.9 MHz',
+              groupData?['name'] ??
+                  (groupData?['frequency'] != null
+                      ? 'Channel ${groupData!['frequency']} MHz'
+                      : 'Radio Channel'),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -391,9 +780,11 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'CHANNEL 99.9 MHz',
-                          style: TextStyle(
+                        Text(
+                          groupData?['frequency'] != null
+                              ? 'CHANNEL ${groupData!['frequency']} MHz'
+                              : 'CHANNEL 99.9 MHz',
+                          style: const TextStyle(
                             color: Color(0xFF00ff88),
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -440,6 +831,16 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                         setState(() {
                           _isMuted = !_isMuted;
                         });
+
+                        // Send mic status to backend
+                        final frequencyId = groupData?['frequencyId'];
+                        if (frequencyId != null) {
+                          final wsClient = getIt<WebSocketClient>();
+                          wsClient.toggleMic(frequencyId, _isMuted);
+                          print(
+                            '🎤 [MIC] Toggled: ${_isMuted ? "MUTED" : "UNMUTED"}',
+                          );
+                        }
                       },
                     ),
                     _buildRadioControlButton(
@@ -450,13 +851,33 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                         setState(() {
                           _isSpeakerOn = !_isSpeakerOn;
                         });
+
+                        // Send volume status to backend
+                        final frequencyId = groupData?['frequencyId'];
+                        if (frequencyId != null) {
+                          final wsClient = getIt<WebSocketClient>();
+                          wsClient.toggleVolume(frequencyId, _isSpeakerOn);
+                          print(
+                            '🔊 [VOL] Toggled: ${_isSpeakerOn ? "ON" : "OFF"}',
+                          );
+                        }
                       },
                     ),
                     _buildRadioControlButton(
                       icon: Icons.radio,
                       label: 'SIG',
                       isActive: true,
-                      onPressed: () {},
+                      onPressed: () {
+                        // Check signal strength
+                        final frequencyId = groupData?['frequencyId'];
+                        if (frequencyId != null) {
+                          final wsClient = getIt<WebSocketClient>();
+                          wsClient.checkSignal(frequencyId);
+                          print('📡 [SIG] Checking signal...');
+                        } else {
+                          print('❌ [SIG] No frequency ID available');
+                        }
+                      },
                     ),
                     _buildRadioControlButton(
                       icon: Icons.emergency,
@@ -464,7 +885,109 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                       isActive: false,
                       isEmergency: true,
                       onPressed: () {
-                        // Emergency protocol
+                        // Show emergency confirmation dialog
+                        final frequencyId = groupData?['frequencyId'];
+                        if (frequencyId != null) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: const Color(0xFF2a2a2a),
+                              title: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFFff4444,
+                                      ).withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.emergency,
+                                      color: Color(0xFFff4444),
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Emergency Broadcast',
+                                    style: TextStyle(
+                                      color: Color(0xFFff4444),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'This will send an emergency alert to ALL users on this frequency.',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFFff4444,
+                                      ).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      '⚠️ Use only in genuine emergency situations',
+                                      style: TextStyle(
+                                        color: Color(0xFFff4444),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text(
+                                    'CANCEL',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+
+                                    // Trigger emergency
+                                    final wsClient = getIt<WebSocketClient>();
+                                    wsClient.triggerEmergency(
+                                      frequencyId,
+                                      message:
+                                          '🚨 EMERGENCY BROADCAST - Immediate assistance required!',
+                                    );
+                                    print('🚨 [EMG] Emergency triggered!');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFff4444),
+                                  ),
+                                  child: const Text(
+                                    'SEND EMERGENCY',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          print('❌ [EMG] No frequency ID available');
+                        }
                       },
                     ),
                   ],
@@ -827,138 +1350,142 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     if (priority == 'emergency') priorityColor = const Color(0xFFff4444);
     if (priority == 'high') priorityColor = const Color(0xFF00aaff);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: isMe
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          // Header with call sign and time
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Row(
-              mainAxisAlignment: isMe
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                if (!isMe) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: priorityColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: priorityColor, width: 0.5),
-                    ),
-                    child: Text(
-                      message['sender'] ?? 'Unknown',
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.70,
+        ),
+        child: Column(
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            // Header with sender name and time (only show for received messages)
+            if (!isMe) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4, left: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message['sender'] ?? message['senderName'] ?? 'Unknown',
                       style: TextStyle(
                         color: priorityColor,
-                        fontSize: 9,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Text(
+                    const SizedBox(width: 6),
+                    Text(
+                      message['time'] ?? '',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.4),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            // Message bubble
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isMe
+                    ? const LinearGradient(
+                        colors: [Color(0xFF00ff88), Color(0xFF00dd77)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isMe ? null : const Color(0xFF2a2a2a),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(isMe ? 12 : 4),
+                  topRight: Radius.circular(isMe ? 4 : 12),
+                  bottomLeft: const Radius.circular(12),
+                  bottomRight: const Radius.circular(12),
+                ),
+                border: Border.all(
+                  color: isMe
+                      ? const Color(0xFF00ff88).withOpacity(0.3)
+                      : const Color(0xFF444444),
+                  width: 1,
+                ),
+                boxShadow: isMe
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF00ff88).withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: message['type'] == 'audio'
+                  ? _buildAudioMessage(message, isMe)
+                  : _buildTextMessage(message, isMe),
+            ),
+            // Time for sent messages
+            if (isMe) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 4, right: 4),
+                child: Text(
                   message['time'] ?? '',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.4),
-                    fontSize: 9,
-                    fontFamily: 'monospace',
+                    fontSize: 10,
                   ),
                 ),
-                if (isMe) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00ff88).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color(0xFF00ff88),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: const Text(
-                      'CTRL',
-                      style: TextStyle(
-                        color: Color(0xFF00ff88),
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // Message bubble
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.65,
-            ),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isMe
-                  ? const Color(0xFF00ff88).withOpacity(0.08)
-                  : const Color(0xFF333333),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isMe
-                    ? const Color(0xFF00ff88).withOpacity(0.2)
-                    : priorityColor.withOpacity(0.2),
               ),
-            ),
-            child: message['type'] == 'audio'
-                ? _buildAudioMessage(message)
-                : _buildTextMessage(message, isMe, priorityColor),
-          ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTextMessage(
-    Map<String, dynamic> message,
-    bool isMe,
-    Color priorityColor,
-  ) {
+  Widget _buildTextMessage(Map<String, dynamic> message, bool isMe) {
+    final messageText = message['message'] ?? message['text'] ?? '';
+
     return Text(
-      message['message'] ?? '',
-      style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.3),
+      messageText,
+      style: TextStyle(
+        color: isMe ? const Color(0xFF000000) : Colors.white,
+        fontSize: 14,
+        height: 1.4,
+        fontWeight: isMe ? FontWeight.w500 : FontWeight.normal,
+      ),
     );
   }
 
-  Widget _buildAudioMessage(Map<String, dynamic> message) {
+  Widget _buildAudioMessage(Map<String, dynamic> message, bool isMe) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.play_arrow, color: Color(0xFF00ff88), size: 18),
-        const SizedBox(width: 6),
-        const Text(
+        Icon(
+          Icons.play_arrow,
+          color: isMe ? const Color(0xFF000000) : const Color(0xFF00ff88),
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Text(
           'Audio Message',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 13,
+            color: isMe ? const Color(0xFF000000) : Colors.white,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Text(
           message['duration'] ?? '0:00',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
-            fontSize: 11,
+            color: isMe
+                ? const Color(0xFF000000).withOpacity(0.7)
+                : Colors.white.withOpacity(0.6),
+            fontSize: 12,
             fontFamily: 'monospace',
           ),
         ),
@@ -970,145 +1497,201 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF2a2a2a),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF2a2a2a),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: 4,
-              width: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF555555),
-                borderRadius: BorderRadius.circular(2),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF555555),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Group Members',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              const SizedBox(height: 20),
+              // Title
+              Text(
+                _activeUsers.isNotEmpty
+                    ? 'Active Users (${_activeUsers.length})'
+                    : 'No Active Users',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            ..._activeMembers
-                .map((member) => _buildMemberTile(member))
-                .toList(),
-          ],
+              const SizedBox(height: 20),
+              // Users List
+              Expanded(
+                child: _activeUsers.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 64,
+                              color: Colors.white.withOpacity(0.3),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No users connected',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.5),
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: _activeUsers.length,
+                        itemBuilder: (context, index) {
+                          final user = _activeUsers[index];
+                          return _buildUserTile(user);
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMemberTile(Map<String, dynamic> member) {
+  Widget _buildUserTile(Map<String, dynamic> user) {
+    final isCurrentUser = user['id'] == _currentUserId;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1a1a1a),
+        color: isCurrentUser
+            ? const Color(0xFF00ff88).withOpacity(0.1)
+            : const Color(0xFF1a1a1a),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF555555), width: 0.5),
+        border: Border.all(
+          color: isCurrentUser
+              ? const Color(0xFF00ff88)
+              : const Color(0xFF555555),
+          width: isCurrentUser ? 1.5 : 0.5,
+        ),
       ),
       child: Row(
         children: [
-          Stack(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00ff88).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(
-                  member['avatar'],
-                  color: const Color(0xFF00ff88),
-                  size: 18,
+          // Avatar
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF00ff88), Color(0xFF00dd77)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: Text(
+                (user['name'] ?? 'U')[0].toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: member['isOnline']
-                        ? const Color(0xFF00ff88)
-                        : const Color(0xFF666666),
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(
-                      color: const Color(0xFF2a2a2a),
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
+          // User Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  member['name'],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user['name'] ?? 'Unknown User',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isCurrentUser) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00ff88),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'YOU',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                Text(
-                  member['role'],
-                  style: const TextStyle(color: Colors.white60, fontSize: 11),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00ff88),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      user['state'] ?? 'Active',
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: _getStatusColor(member['status']).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: _getStatusColor(member['status']),
-                width: 0.5,
-              ),
-            ),
-            child: Text(
-              member['status'],
-              style: TextStyle(
-                color: _getStatusColor(member['status']),
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          // Signal Strength
+          Icon(
+            Icons.signal_cellular_alt,
+            color: const Color(0xFF00ff88),
+            size: 20,
           ),
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'speaking':
-        return const Color(0xFF00ff88);
-      case 'listening':
-        return const Color(0xFF00aaff);
-      case 'muted':
-        return const Color(0xFFff4444);
-      default:
-        return const Color(0xFF666666);
-    }
   }
 }
