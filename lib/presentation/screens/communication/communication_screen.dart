@@ -29,6 +29,8 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
   Map<String, dynamic>? groupData;
   String? _currentUserId; // Store current user ID
+  String? _chatStorageKey; // Unique key for storing chat messages
+  bool _isInitialized = false; // Track if chat is initialized
 
   // Local state for messages and active users/members
   List<Map<String, dynamic>> _messages = [];
@@ -36,6 +38,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
   @override
   void initState() {
+    
     super.initState();
 
     // Get CommunicationService from DI
@@ -99,6 +102,117 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     return userId;
   }
 
+  // Load chat messages from local storage
+  Future<void> _loadChatFromStorage() async {
+    print('💾 [STORAGE] ====== LOADING CHAT FROM STORAGE ======');
+    print('💾 [STORAGE] Storage key: $_chatStorageKey');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final chatKey = _chatStorageKey ?? '';
+
+      if (chatKey.isEmpty) {
+        print('❌ [STORAGE] No storage key available');
+        return;
+      }
+
+      final chatData = prefs.getString(chatKey);
+      print('💾 [STORAGE] Raw data from key "$chatKey": $chatData');
+      print('💾 [STORAGE] Data length: ${chatData?.length ?? 0}');
+
+      if (chatData != null && chatData.isNotEmpty) {
+        final List<dynamic> decodedList = jsonDecode(chatData);
+        print('💾 [STORAGE] Decoded ${decodedList.length} messages');
+
+        setState(() {
+          _messages = decodedList
+              .map((item) => Map<String, dynamic>.from(item as Map))
+              .toList();
+        });
+
+        print('✅ [STORAGE] Loaded ${_messages.length} messages from storage');
+        print('📋 [STORAGE] Messages: $_messages');
+
+        // Scroll to bottom after loading
+        Future.delayed(Duration(milliseconds: 100), _scrollToBottom);
+      } else {
+        print('💾 [STORAGE] No saved chat found (data is null or empty)');
+      }
+    } catch (e, stackTrace) {
+      print('❌ [STORAGE] Error loading chat: $e');
+      print('❌ [STORAGE] Stack trace: $stackTrace');
+    }
+
+    print('💾 [STORAGE] ====== LOAD COMPLETE ======');
+  }
+
+  // Save chat messages to local storage
+  Future<void> _saveChatToStorage() async {
+    print('💾 [SAVE] ====== SAVING CHAT TO STORAGE ======');
+    print('💾 [SAVE] Storage key: $_chatStorageKey');
+    print('💾 [SAVE] Messages count: ${_messages.length}');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final chatKey = _chatStorageKey ?? '';
+
+      if (chatKey.isEmpty) {
+        print('❌ [SAVE] No storage key available');
+        return;
+      }
+
+      final chatData = jsonEncode(_messages);
+      print('💾 [SAVE] Encoded data length: ${chatData.length}');
+
+      await prefs.setString(chatKey, chatData);
+      print('✅ [SAVE] Saved ${_messages.length} messages to storage');
+
+      // Verify save
+      final verifyData = prefs.getString(chatKey);
+      print('✅ [SAVE] Verification - Data exists: ${verifyData != null}');
+      print('✅ [SAVE] Verification - Data length: ${verifyData?.length ?? 0}');
+    } catch (e, stackTrace) {
+      print('❌ [SAVE] Error saving chat: $e');
+      print('❌ [SAVE] Stack trace: $stackTrace');
+    }
+
+    print('💾 [SAVE] ====== SAVE COMPLETE ======');
+  }
+
+  // Clear chat from local storage
+  Future<void> _clearChatFromStorage() async {
+    print('🗑️ [CLEAR] ====== CLEARING CHAT FROM STORAGE ======');
+    print('🗑️ [CLEAR] Storage key: $_chatStorageKey');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final chatKey = _chatStorageKey ?? '';
+
+      if (chatKey.isEmpty) {
+        print('❌ [CLEAR] No storage key available');
+        return;
+      }
+
+      await prefs.remove(chatKey);
+      print('✅ [CLEAR] Chat cleared from storage with key: $chatKey');
+
+      // Verify clear
+      final verifyData = prefs.getString(chatKey);
+      print('✅ [CLEAR] Verification - Data exists: ${verifyData != null}');
+
+      // Also clear messages in memory
+      setState(() {
+        _messages.clear();
+      });
+      print('✅ [CLEAR] Cleared ${_messages.length} messages from memory');
+    } catch (e, stackTrace) {
+      print('❌ [CLEAR] Error clearing chat: $e');
+      print('❌ [CLEAR] Stack trace: $stackTrace');
+    }
+
+    print('🗑️ [CLEAR] ====== CLEAR COMPLETE ======');
+  }
+
   void _onServiceUpdate() {
     print('📡 CommunicationScreen: Service updated');
     print('💬 Messages count: ${_commService.messages.length}');
@@ -142,6 +256,16 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
+    print('🔄 [DID CHANGE] didChangeDependencies called');
+    print('🔄 [DID CHANGE] _isInitialized: $_isInitialized');
+
+    // Only initialize once
+    if (_isInitialized) {
+      print('⏭️ [DID CHANGE] Already initialized, skipping...');
+      return;
+    }
+
     final args = ModalRoute.of(context)?.settings.arguments;
 
     print('📥 CommunicationScreen: Received arguments: $args');
@@ -160,10 +284,20 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
       if (type == 'frequency' && frequencyId != null) {
         print('💬 Setting up FREQUENCY CHAT');
+        _chatStorageKey = 'chat_$frequencyId';
+        print('🔑 [STORAGE KEY] Set to: $_chatStorageKey');
+        _loadChatFromStorage(); // Load from local storage first
         _setupFrequencyChat(frequencyId);
+        _isInitialized = true;
+        print('✅ [INIT] Frequency chat initialized');
       } else if (groupId != null) {
         print('💬 Setting up GROUP CHAT');
+        _chatStorageKey = 'chat_group_$groupId';
+        print('🔑 [STORAGE KEY] Set to: $_chatStorageKey');
+        _loadChatFromStorage(); // Load from local storage first
         _loadGroupData(groupId);
+        _isInitialized = true;
+        print('✅ [INIT] Group chat initialized');
       } else {
         print('⚠️ No valid chat target found!');
       }
@@ -199,36 +333,81 @@ class _CommunicationScreenState extends State<CommunicationScreen>
             'isMe': data['sender']['id'] == currentUserId,
           });
         });
+
+        // Save to local storage
+        _saveChatToStorage();
+
         _scrollToBottom();
       }
     });
 
     wsClient.on('frequency_chat_history', (data) {
-      print(
-        '📜 [FREQUENCY] Received chat history: ${data['messages']?.length ?? 0} messages',
-      );
+      print('📜 [HISTORY] ====== CHAT HISTORY RECEIVED ======');
+      print('📜 [HISTORY] Messages count: ${data['messages']?.length ?? 0}');
+      print('📜 [HISTORY] Current messages count: ${_messages.length}');
+
       if (mounted && data['messages'] != null) {
         final currentUserId = _getCurrentUserId();
+        print('📜 [HISTORY] Current User ID: $currentUserId');
+
+        // Convert server messages
+        final serverMessages = (data['messages'] as List).map((msg) {
+          final newMsg = {
+            'id': msg['id'],
+            'senderId': msg['sender']['id'],
+            'sender': msg['sender']['name'],
+            'senderName': msg['sender']['name'],
+            'message': msg['message'],
+            'text': msg['message'],
+            'timestamp': msg['timestamp'],
+            'time': _formatTime(msg['timestamp']),
+            'type': 'text',
+            'isMe': msg['sender']['id'] == currentUserId,
+          };
+          print(
+            '📨 [HISTORY] Processed message: ${newMsg['message']} from ${newMsg['senderName']}',
+          );
+          return newMsg;
+        }).toList();
+
+        print(
+          '📜 [HISTORY] Processed ${serverMessages.length} server messages',
+        );
+
         setState(() {
-          _messages = (data['messages'] as List)
-              .map(
-                (msg) => {
-                  'id': msg['id'],
-                  'senderId': msg['sender']['id'],
-                  'sender': msg['sender']['name'],
-                  'senderName': msg['sender']['name'],
-                  'message': msg['message'],
-                  'text': msg['message'],
-                  'timestamp': msg['timestamp'],
-                  'time': _formatTime(msg['timestamp']),
-                  'type': 'text',
-                  'isMe': msg['sender']['id'] == currentUserId,
-                },
-              )
+          // Merge with local storage messages (avoid duplicates)
+          final existingIds = _messages.map((m) => m['id']).toSet();
+          print('📜 [HISTORY] Existing IDs: $existingIds');
+
+          final newMessages = serverMessages
+              .where((m) => !existingIds.contains(m['id']))
               .toList();
+
+          print('📜 [HISTORY] New messages to add: ${newMessages.length}');
+
+          _messages.addAll(newMessages);
+
+          // Sort by timestamp
+          _messages.sort((a, b) {
+            try {
+              final timeA = DateTime.parse(a['timestamp'] ?? '');
+              final timeB = DateTime.parse(b['timestamp'] ?? '');
+              return timeA.compareTo(timeB);
+            } catch (e) {
+              return 0;
+            }
+          });
+
+          print('📜 [HISTORY] Total messages after merge: ${_messages.length}');
         });
+
+        // Save merged messages to storage
+        _saveChatToStorage();
+
         Future.delayed(Duration(milliseconds: 100), _scrollToBottom);
       }
+
+      print('📜 [HISTORY] ====== HISTORY PROCESSING COMPLETE ======');
     });
 
     // Listen for active users updates
@@ -685,613 +864,633 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1a1a1a),
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        // DON'T clear chat on back - only on leave
+        print('🔙 [BACK] Back button pressed - Chat will be saved');
+        return true;
+      },
+      child: Scaffold(
         backgroundColor: const Color(0xFF1a1a1a),
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              groupData?['name'] ??
-                  (groupData?['frequency'] != null
-                      ? 'Channel ${groupData!['frequency']} MHz'
-                      : 'Radio Channel'),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                fontSize: 16,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1a1a1a),
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () {
+              // DON'T clear chat on back - only on leave
+              print('🔙 [BACK] Back arrow pressed - Chat will be saved');
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                groupData?['name'] ??
+                    (groupData?['frequency'] != null
+                        ? 'Channel ${groupData!['frequency']} MHz'
+                        : 'Radio Channel'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                '${_activeUsers.length} Active Units • Signal Strong',
+                style: const TextStyle(
+                  color: Color(0xFF00ff88),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // Emergency Button
+            Container(
+              margin: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                onPressed: () {
+                  // Emergency broadcast
+                },
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFff4444).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: const Color(0xFFff4444),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.emergency,
+                    color: Color(0xFFff4444),
+                    size: 16,
+                  ),
+                ),
               ),
             ),
-            Text(
-              '${_activeUsers.length} Active Units • Signal Strong',
-              style: const TextStyle(
-                color: Color(0xFF00ff88),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+            // Settings
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                onPressed: _showMembersSheet,
+                icon: const Icon(Icons.settings, color: Colors.white, size: 20),
               ),
             ),
           ],
         ),
-        actions: [
-          // Emergency Button
-          Container(
-            margin: const EdgeInsets.only(right: 4),
-            child: IconButton(
-              onPressed: () {
-                // Emergency broadcast
-              },
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFff4444).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFff4444), width: 1),
+        body: Column(
+          children: [
+            // Radio Status Panel
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2a2a2a),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF00ff88).withOpacity(0.2),
                 ),
-                child: const Icon(
-                  Icons.emergency,
-                  color: Color(0xFFff4444),
-                  size: 16,
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00ff88).withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ),
-          ),
-          // Settings
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              onPressed: _showMembersSheet,
-              icon: const Icon(Icons.settings, color: Colors.white, size: 20),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Radio Status Panel
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2a2a2a),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF00ff88).withOpacity(0.2),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00ff88).withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Channel Info
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          groupData?['frequency'] != null
-                              ? 'CHANNEL ${groupData!['frequency']} MHz'
-                              : 'CHANNEL 99.9 MHz',
-                          style: const TextStyle(
-                            color: Color(0xFF00ff88),
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
+              child: Column(
+                children: [
+                  // Channel Info
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            groupData?['frequency'] != null
+                                ? 'CHANNEL ${groupData!['frequency']} MHz'
+                                : 'CHANNEL 99.9 MHz',
+                            style: const TextStyle(
+                              color: Color(0xFF00ff88),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Active Transmission',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 11,
+                          Text(
+                            'Active Transmission',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 11,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    // Signal Strength
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Container(
-                          margin: const EdgeInsets.only(right: 1.5),
-                          width: 3,
-                          height: 10 + (index * 2),
-                          decoration: BoxDecoration(
-                            color: index < 4
-                                ? const Color(0xFF00ff88)
-                                : const Color(0xFF333333),
-                            borderRadius: BorderRadius.circular(1.5),
-                          ),
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Radio Controls
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildRadioControlButton(
-                      icon: _isMuted ? Icons.mic_off : Icons.mic,
-                      label: 'MIC',
-                      isActive: !_isMuted,
-                      onPressed: () {
-                        setState(() {
-                          _isMuted = !_isMuted;
-                        });
-
-                        // Send mic status to backend
-                        final frequencyId = groupData?['frequencyId'];
-                        if (frequencyId != null) {
-                          final wsClient = getIt<WebSocketClient>();
-                          wsClient.toggleMic(frequencyId, _isMuted);
-                          print(
-                            '🎤 [MIC] Toggled: ${_isMuted ? "MUTED" : "UNMUTED"}',
+                        ],
+                      ),
+                      // Signal Strength
+                      Row(
+                        children: List.generate(5, (index) {
+                          return Container(
+                            margin: const EdgeInsets.only(right: 1.5),
+                            width: 3,
+                            height: 10 + (index * 2),
+                            decoration: BoxDecoration(
+                              color: index < 4
+                                  ? const Color(0xFF00ff88)
+                                  : const Color(0xFF333333),
+                              borderRadius: BorderRadius.circular(1.5),
+                            ),
                           );
-                        }
-                      },
-                    ),
-                    _buildRadioControlButton(
-                      icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_down,
-                      label: 'VOL',
-                      isActive: _isSpeakerOn,
-                      onPressed: () {
-                        setState(() {
-                          _isSpeakerOn = !_isSpeakerOn;
-                        });
+                        }),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Radio Controls
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildRadioControlButton(
+                        icon: _isMuted ? Icons.mic_off : Icons.mic,
+                        label: 'MIC',
+                        isActive: !_isMuted,
+                        onPressed: () {
+                          setState(() {
+                            _isMuted = !_isMuted;
+                          });
 
-                        // Send volume status to backend
-                        final frequencyId = groupData?['frequencyId'];
-                        if (frequencyId != null) {
-                          final wsClient = getIt<WebSocketClient>();
-                          wsClient.toggleVolume(frequencyId, _isSpeakerOn);
-                          print(
-                            '🔊 [VOL] Toggled: ${_isSpeakerOn ? "ON" : "OFF"}',
-                          );
-                        }
-                      },
-                    ),
-                    _buildRadioControlButton(
-                      icon: Icons.radio,
-                      label: 'SIG',
-                      isActive: true,
-                      onPressed: () {
-                        // Check signal strength
-                        final frequencyId = groupData?['frequencyId'];
-                        if (frequencyId != null) {
-                          final wsClient = getIt<WebSocketClient>();
-                          wsClient.checkSignal(frequencyId);
-                          print('📡 [SIG] Checking signal...');
-                        } else {
-                          print('❌ [SIG] No frequency ID available');
-                        }
-                      },
-                    ),
-                    _buildRadioControlButton(
-                      icon: Icons.emergency,
-                      label: 'EMG',
-                      isActive: false,
-                      isEmergency: true,
-                      onPressed: () {
-                        // Show emergency confirmation dialog
-                        final frequencyId = groupData?['frequencyId'];
-                        if (frequencyId != null) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              backgroundColor: const Color(0xFF2a2a2a),
-                              title: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFFff4444,
-                                      ).withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8),
+                          // Send mic status to backend
+                          final frequencyId = groupData?['frequencyId'];
+                          if (frequencyId != null) {
+                            final wsClient = getIt<WebSocketClient>();
+                            wsClient.toggleMic(frequencyId, _isMuted);
+                            print(
+                              '🎤 [MIC] Toggled: ${_isMuted ? "MUTED" : "UNMUTED"}',
+                            );
+                          }
+                        },
+                      ),
+                      _buildRadioControlButton(
+                        icon: _isSpeakerOn
+                            ? Icons.volume_up
+                            : Icons.volume_down,
+                        label: 'VOL',
+                        isActive: _isSpeakerOn,
+                        onPressed: () {
+                          setState(() {
+                            _isSpeakerOn = !_isSpeakerOn;
+                          });
+
+                          // Send volume status to backend
+                          final frequencyId = groupData?['frequencyId'];
+                          if (frequencyId != null) {
+                            final wsClient = getIt<WebSocketClient>();
+                            wsClient.toggleVolume(frequencyId, _isSpeakerOn);
+                            print(
+                              '🔊 [VOL] Toggled: ${_isSpeakerOn ? "ON" : "OFF"}',
+                            );
+                          }
+                        },
+                      ),
+                      _buildRadioControlButton(
+                        icon: Icons.radio,
+                        label: 'SIG',
+                        isActive: true,
+                        onPressed: () {
+                          // Check signal strength
+                          final frequencyId = groupData?['frequencyId'];
+                          if (frequencyId != null) {
+                            final wsClient = getIt<WebSocketClient>();
+                            wsClient.checkSignal(frequencyId);
+                            print('📡 [SIG] Checking signal...');
+                          } else {
+                            print('❌ [SIG] No frequency ID available');
+                          }
+                        },
+                      ),
+                      _buildRadioControlButton(
+                        icon: Icons.emergency,
+                        label: 'EMG',
+                        isActive: false,
+                        isEmergency: true,
+                        onPressed: () {
+                          // Show emergency confirmation dialog
+                          final frequencyId = groupData?['frequencyId'];
+                          if (frequencyId != null) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: const Color(0xFF2a2a2a),
+                                title: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFFff4444,
+                                        ).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.emergency,
+                                        color: Color(0xFFff4444),
+                                        size: 24,
+                                      ),
                                     ),
-                                    child: const Icon(
-                                      Icons.emergency,
-                                      color: Color(0xFFff4444),
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Emergency Broadcast',
-                                    style: TextStyle(
-                                      color: Color(0xFFff4444),
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'This will send an emergency alert to ALL users on this frequency.',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFFff4444,
-                                      ).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      '⚠️ Use only in genuine emergency situations',
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      'Emergency Broadcast',
                                       style: TextStyle(
                                         color: Color(0xFFff4444),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'This will send an emergency alert to ALL users on this frequency.',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFFff4444,
+                                        ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        '⚠️ Use only in genuine emergency situations',
+                                        style: TextStyle(
+                                          color: Color(0xFFff4444),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text(
+                                      'CANCEL',
+                                      style: TextStyle(color: Colors.white70),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+
+                                      // Trigger emergency
+                                      final wsClient = getIt<WebSocketClient>();
+                                      wsClient.triggerEmergency(
+                                        frequencyId,
+                                        message:
+                                            '🚨 EMERGENCY BROADCAST - Immediate assistance required!',
+                                      );
+                                      print('🚨 [EMG] Emergency triggered!');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFff4444),
+                                    ),
+                                    child: const Text(
+                                      'SEND EMERGENCY',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text(
-                                    'CANCEL',
-                                    style: TextStyle(color: Colors.white70),
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-
-                                    // Trigger emergency
-                                    final wsClient = getIt<WebSocketClient>();
-                                    wsClient.triggerEmergency(
-                                      frequencyId,
-                                      message:
-                                          '🚨 EMERGENCY BROADCAST - Immediate assistance required!',
-                                    );
-                                    print('🚨 [EMG] Emergency triggered!');
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFff4444),
-                                  ),
-                                  child: const Text(
-                                    'SEND EMERGENCY',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          print('❌ [EMG] No frequency ID available');
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Messages Area - Radio Communications
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1e1e1e),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF333333)),
-              ),
-              child: Column(
-                children: [
-                  // Messages Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2a2a2a),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        topRight: Radius.circular(10),
+                            );
+                          } else {
+                            print('❌ [EMG] No frequency ID available');
+                          }
+                        },
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.radio,
-                          color: Color(0xFF00ff88),
-                          size: 14,
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'RADIO TRANSMISSIONS',
-                          style: TextStyle(
-                            color: Color(0xFF00ff88),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00ff88).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'LIVE',
-                            style: TextStyle(
-                              color: Color(0xFF00ff88),
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Messages List
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final message = _messages[index];
-                        return _buildRadioMessageBubble(message);
-                      },
-                    ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
 
-          // Radio Input Area
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2a2a2a),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF00ff88).withOpacity(0.2),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00ff88).withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+            // Messages Area - Radio Communications
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1e1e1e),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF333333)),
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // PTT Instructions
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1a1a1a),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF555555)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Color(0xFF00ff88),
-                        size: 12,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Hold PTT to record voice message',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Input Row
-                Row(
+                child: Column(
                   children: [
-                    // Push-to-Talk Button
-                    GestureDetector(
-                      onLongPressStart: (_) => _startRecording(),
-                      onLongPressEnd: (_) => _stopRecording(),
-                      child: AnimatedBuilder(
-                        animation: _isRecording
-                            ? _pulseAnimation
-                            : _audioWaveAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _isRecording ? _pulseAnimation.value : 1.0,
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                gradient: _isRecording
-                                    ? const LinearGradient(
-                                        colors: [
-                                          Color(0xFFff4444),
-                                          Color(0xFFdd2222),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      )
-                                    : const LinearGradient(
-                                        colors: [
-                                          Color(0xFF333333),
-                                          Color(0xFF222222),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                borderRadius: BorderRadius.circular(25),
-                                border: Border.all(
-                                  color: _isRecording
-                                      ? const Color(0xFFff4444)
-                                      : const Color(0xFF00ff88),
-                                  width: 2,
-                                ),
-                                boxShadow: _isRecording
-                                    ? [
-                                        BoxShadow(
-                                          color: const Color(
-                                            0xFFff4444,
-                                          ).withOpacity(0.4),
-                                          blurRadius: 12,
-                                          spreadRadius: 1,
-                                        ),
-                                      ]
-                                    : [
-                                        BoxShadow(
-                                          color: const Color(
-                                            0xFF00ff88,
-                                          ).withOpacity(0.15),
-                                          blurRadius: 6,
-                                          spreadRadius: 1,
-                                        ),
-                                      ],
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    _isRecording ? Icons.radio : Icons.push_pin,
-                                    color: _isRecording
-                                        ? Colors.white
-                                        : const Color(0xFF00ff88),
-                                    size: 18,
-                                  ),
-                                  Text(
-                                    'PTT',
-                                    style: TextStyle(
-                                      color: _isRecording
-                                          ? Colors.white
-                                          : const Color(0xFF00ff88),
-                                      fontSize: 7,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
+                    // Messages Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2a2a2a),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(10),
+                          topRight: Radius.circular(10),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.radio,
+                            color: Color(0xFF00ff88),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'RADIO TRANSMISSIONS',
+                            style: TextStyle(
+                              color: Color(0xFF00ff88),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00ff88).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'LIVE',
+                              style: TextStyle(
+                                color: Color(0xFF00ff88),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-
-                    // Message Input
+                    // Messages List
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1e1e1e),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF333333)),
-                        ),
-                        child: TextField(
-                          controller: _messageController,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Type radio message...',
-                            hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.4),
-                              fontSize: 13,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.message,
-                              color: const Color(0xFF00ff88).withOpacity(0.6),
-                              size: 16,
-                            ),
-                          ),
-                          maxLines: null,
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-
-                    // Send Button
-                    GestureDetector(
-                      onTap: _sendMessage,
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00ff88), Color(0xFF00dd77)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF00ff88).withOpacity(0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.send,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          return _buildRadioMessageBubble(message);
+                        },
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+
+            // Radio Input Area
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2a2a2a),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF00ff88).withOpacity(0.2),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00ff88).withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // PTT Instructions
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1a1a1a),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF555555)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF00ff88),
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Hold PTT to record voice message',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Input Row
+                  Row(
+                    children: [
+                      // Push-to-Talk Button
+                      GestureDetector(
+                        onLongPressStart: (_) => _startRecording(),
+                        onLongPressEnd: (_) => _stopRecording(),
+                        child: AnimatedBuilder(
+                          animation: _isRecording
+                              ? _pulseAnimation
+                              : _audioWaveAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: _isRecording ? _pulseAnimation.value : 1.0,
+                              child: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  gradient: _isRecording
+                                      ? const LinearGradient(
+                                          colors: [
+                                            Color(0xFFff4444),
+                                            Color(0xFFdd2222),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : const LinearGradient(
+                                          colors: [
+                                            Color(0xFF333333),
+                                            Color(0xFF222222),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                    color: _isRecording
+                                        ? const Color(0xFFff4444)
+                                        : const Color(0xFF00ff88),
+                                    width: 2,
+                                  ),
+                                  boxShadow: _isRecording
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFFff4444,
+                                            ).withOpacity(0.4),
+                                            blurRadius: 12,
+                                            spreadRadius: 1,
+                                          ),
+                                        ]
+                                      : [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF00ff88,
+                                            ).withOpacity(0.15),
+                                            blurRadius: 6,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _isRecording
+                                          ? Icons.radio
+                                          : Icons.push_pin,
+                                      color: _isRecording
+                                          ? Colors.white
+                                          : const Color(0xFF00ff88),
+                                      size: 18,
+                                    ),
+                                    Text(
+                                      'PTT',
+                                      style: TextStyle(
+                                        color: _isRecording
+                                            ? Colors.white
+                                            : const Color(0xFF00ff88),
+                                        fontSize: 7,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Message Input
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1e1e1e),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF333333)),
+                          ),
+                          child: TextField(
+                            controller: _messageController,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Type radio message...',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.4),
+                                fontSize: 13,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.message,
+                                color: const Color(0xFF00ff88).withOpacity(0.6),
+                                size: 16,
+                              ),
+                            ),
+                            maxLines: null,
+                            onSubmitted: (_) => _sendMessage(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Send Button
+                      GestureDetector(
+                        onTap: _sendMessage,
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00ff88), Color(0xFF00dd77)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF00ff88,
+                                ).withOpacity(0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

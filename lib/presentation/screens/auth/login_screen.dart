@@ -147,286 +147,309 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           child: SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Logo and Welcome Section
-                        Container(
-                          alignment: Alignment.center,
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2a2a2a),
-                                  borderRadius: BorderRadius.circular(50),
-                                  border: Border.all(
-                                    color: const Color(0xFF00ff88),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.radio,
-                                  size: 50,
-                                  color: Color(0xFF00ff88),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              const Text(
-                                'Dhvani Cast',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Connect & Communicate',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white70,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-
-                        // Login Form Card
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2a2a2a),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const Text(
-                                'Welcome Back',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Sign in to continue',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white70,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Mobile Number Field
-                              TextFormField(
-                                controller: _mobileController,
-                                keyboardType: TextInputType.phone,
-                                decoration: InputDecoration(
-                                  labelText: 'Mobile Number',
-                                  labelStyle: const TextStyle(
-                                    color: Colors.white70,
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.phone_android,
-                                    color: Color(0xFF00ff88),
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF555555),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF00ff88),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  filled: true,
-                                  fillColor: const Color(0xFF1a1a1a),
-                                  suffixIcon:
-                                      _mobileController.text.length >= 10 &&
-                                          !_isOtpSent
-                                      ? TextButton(
-                                          onPressed: _isLoading
-                                              ? null
-                                              : _sendOtp,
-                                          child: _isLoading
-                                              ? const SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                      ),
-                                                )
-                                              : const Text('Send OTP'),
-                                        )
-                                      : null,
-                                ),
-                                validator: (v) {
-                                  if (v == null || v.trim().isEmpty)
-                                    return 'Enter mobile number';
-                                  if (v.trim().length < 10)
-                                    return 'Enter valid 10-digit mobile';
-                                  return null;
-                                },
-                                onChanged: (value) {
-                                  setState(() {});
-                                },
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // OTP Field (only show if OTP is sent)
-                              if (_isOtpSent) ...[
-                                TextFormField(
-                                  controller: _otpController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Enter OTP',
-                                    labelStyle: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                    prefixIcon: const Icon(
-                                      Icons.lock_outline,
-                                      color: Color(0xFF00ff88),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF555555),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF00ff88),
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom,
+                ),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Logo and Welcome Section
+                            Container(
+                              alignment: Alignment.center,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2a2a2a),
+                                      borderRadius: BorderRadius.circular(50),
+                                      border: Border.all(
+                                        color: const Color(0xFF00ff88),
                                         width: 2,
                                       ),
                                     ),
-                                    filled: true,
-                                    fillColor: const Color(0xFF1a1a1a),
-                                  ),
-                                  style: const TextStyle(color: Colors.white),
-                                  validator: (v) {
-                                    if (v == null || v.trim().isEmpty)
-                                      return 'Enter OTP';
-                                    if (v.trim().length < 4)
-                                      return 'Enter valid OTP';
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 24),
-                              ],
-
-                              // Login Button
-                              Container(
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF00ff88),
-                                      Color(0xFF00dd77),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFF00ff88,
-                                      ).withOpacity(0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _isOtpSent
-                                      ? _submit
-                                      : (_mobileController.text.length >= 10
-                                            ? _sendOtp
-                                            : null),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    child: const Icon(
+                                      Icons.radio,
+                                      size: 50,
+                                      color: Color(0xFF00ff88),
                                     ),
                                   ),
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : Text(
-                                          _isOtpSent ? 'Sign In' : 'Send OTP',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Sign Up Link
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
+                                  const SizedBox(height: 24),
                                   const Text(
-                                    "Don't have an account? ",
-                                    style: TextStyle(color: Colors.white70),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.pushNamed(context, '/signup');
-                                    },
-                                    child: const Text(
-                                      'Sign Up',
-                                      style: TextStyle(
-                                        color: Color(0xFF00ff88),
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    'Dhvani Cast',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Connect & Communicate',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white70,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 40),
+
+                            // Login Form Card
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2a2a2a),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const Text(
+                                    'Welcome Back',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Sign in to continue',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white70,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  // Mobile Number Field
+                                  TextFormField(
+                                    controller: _mobileController,
+                                    keyboardType: TextInputType.phone,
+                                    decoration: InputDecoration(
+                                      labelText: 'Mobile Number',
+                                      labelStyle: const TextStyle(
+                                        color: Colors.white70,
+                                      ),
+                                      prefixIcon: const Icon(
+                                        Icons.phone_android,
+                                        color: Color(0xFF00ff88),
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF555555),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF00ff88),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFF1a1a1a),
+                                      suffixIcon:
+                                          _mobileController.text.length >= 10 &&
+                                              !_isOtpSent
+                                          ? TextButton(
+                                              onPressed: _isLoading
+                                                  ? null
+                                                  : _sendOtp,
+                                              child: _isLoading
+                                                  ? const SizedBox(
+                                                      width: 16,
+                                                      height: 16,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                  : const Text('Send OTP'),
+                                            )
+                                          : null,
+                                    ),
+                                    validator: (v) {
+                                      if (v == null || v.trim().isEmpty)
+                                        return 'Enter mobile number';
+                                      if (v.trim().length < 10)
+                                        return 'Enter valid 10-digit mobile';
+                                      return null;
+                                    },
+                                    onChanged: (value) {
+                                      setState(() {});
+                                    },
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // OTP Field (only show if OTP is sent)
+                                  if (_isOtpSent) ...[
+                                    TextFormField(
+                                      controller: _otpController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        labelText: 'Enter OTP',
+                                        labelStyle: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                        prefixIcon: const Icon(
+                                          Icons.lock_outline,
+                                          color: Color(0xFF00ff88),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF555555),
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF00ff88),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: const Color(0xFF1a1a1a),
+                                      ),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty)
+                                          return 'Enter OTP';
+                                        if (v.trim().length < 4)
+                                          return 'Enter valid OTP';
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+
+                                  // Login Button
+                                  Container(
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF00ff88),
+                                          Color(0xFF00dd77),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF00ff88,
+                                          ).withOpacity(0.3),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: _isOtpSent
+                                          ? _submit
+                                          : (_mobileController.text.length >= 10
+                                                ? _sendOtp
+                                                : null),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      child: _isLoading
+                                          ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : Text(
+                                              _isOtpSent
+                                                  ? 'Sign In'
+                                                  : 'Send OTP',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Sign Up Link
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        "Don't have an account? ",
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.pushNamed(
+                                            context,
+                                            '/signup',
+                                          );
+                                        },
+                                        child: const Text(
+                                          'Sign Up',
+                                          style: TextStyle(
+                                            color: Color(0xFF00ff88),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

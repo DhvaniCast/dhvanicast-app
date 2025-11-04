@@ -1,0 +1,2 @@
+dependency_overrides:
+  record_linux: ^1.0.0

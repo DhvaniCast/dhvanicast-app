@@ -42,6 +42,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   Map<String, bool> _typingUsers = {};
   bool _isSendingMessage = false;
   String? _currentUserId; // Store current user ID
+  String? _chatStorageKey; // Unique key for storing chat messages
 
   @override
   void initState() {
@@ -92,6 +93,8 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
       // Load chat history
       if (_frequencyId != null) {
+        _chatStorageKey = 'chat_$_frequencyId';
+        _loadChatFromStorage(); // Load from local storage first
         _wsClient.getFrequencyChatHistory(_frequencyId!);
       }
     }
@@ -164,6 +167,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
           print('📋 All messages: $_chatMessages');
         });
 
+        // Save to local storage
+        _saveChatToStorage();
+
         // Auto scroll to bottom
         _scrollChatToBottom();
       } else {
@@ -183,25 +189,48 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         final messages = data['messages'] as List;
         print('📜 Processing ${messages.length} messages...');
 
+        // Convert server messages
+        final serverMessages = messages.map((msg) {
+          final newMsg = {
+            'id': msg['id'],
+            'senderId': msg['sender']['id'],
+            'senderName': msg['sender']['name'],
+            'senderAvatar': msg['sender']['avatar'] ?? '👤',
+            'message': msg['message'],
+            'timestamp': msg['timestamp'],
+            'isMe': msg['sender']['id'] == _getCurrentUserId(),
+          };
+          print('📨 Processed message: $newMsg');
+          return newMsg;
+        }).toList();
+
         setState(() {
-          _chatMessages = messages.map((msg) {
-            final newMsg = {
-              'id': msg['id'],
-              'senderId': msg['sender']['id'],
-              'senderName': msg['sender']['name'],
-              'senderAvatar': msg['sender']['avatar'] ?? '👤',
-              'message': msg['message'],
-              'timestamp': msg['timestamp'],
-              'isMe': msg['sender']['id'] == _getCurrentUserId(),
-            };
-            print('📨 Processed message: $newMsg');
-            return newMsg;
-          }).toList();
+          // Merge with local storage messages (avoid duplicates)
+          final existingIds = _chatMessages.map((m) => m['id']).toSet();
+          final newMessages = serverMessages
+              .where((m) => !existingIds.contains(m['id']))
+              .toList();
+
+          _chatMessages.addAll(newMessages);
+
+          // Sort by timestamp
+          _chatMessages.sort((a, b) {
+            try {
+              final timeA = DateTime.parse(a['timestamp']);
+              final timeB = DateTime.parse(b['timestamp']);
+              return timeA.compareTo(timeB);
+            } catch (e) {
+              return 0;
+            }
+          });
 
           print(
             '✅ Chat history loaded. Total messages: ${_chatMessages.length}',
           );
         });
+
+        // Save merged messages to storage
+        _saveChatToStorage();
 
         // Scroll to bottom after loading history
         Future.delayed(Duration(milliseconds: 100), _scrollChatToBottom);
@@ -366,6 +395,81 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     return userId;
   }
 
+  // Load chat messages from local storage
+  Future<void> _loadChatFromStorage() async {
+    print('💾 [STORAGE] Loading chat from local storage...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final chatKey = _chatStorageKey ?? '';
+
+      if (chatKey.isEmpty) {
+        print('❌ [STORAGE] No storage key available');
+        return;
+      }
+
+      final chatData = prefs.getString(chatKey);
+      print('💾 [STORAGE] Data from key "$chatKey": $chatData');
+
+      if (chatData != null) {
+        final List<dynamic> decodedList = jsonDecode(chatData);
+        setState(() {
+          _chatMessages = decodedList
+              .map((item) => Map<String, dynamic>.from(item as Map))
+              .toList();
+        });
+        print(
+          '✅ [STORAGE] Loaded ${_chatMessages.length} messages from storage',
+        );
+
+        // Scroll to bottom after loading
+        Future.delayed(Duration(milliseconds: 100), _scrollChatToBottom);
+      } else {
+        print('💾 [STORAGE] No saved chat found for this frequency');
+      }
+    } catch (e) {
+      print('❌ [STORAGE] Error loading chat: $e');
+    }
+  }
+
+  // Save chat messages to local storage
+  Future<void> _saveChatToStorage() async {
+    print('💾 [STORAGE] Saving chat to local storage...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final chatKey = _chatStorageKey ?? '';
+
+      if (chatKey.isEmpty) {
+        print('❌ [STORAGE] No storage key available');
+        return;
+      }
+
+      final chatData = jsonEncode(_chatMessages);
+      await prefs.setString(chatKey, chatData);
+      print('✅ [STORAGE] Saved ${_chatMessages.length} messages to storage');
+    } catch (e) {
+      print('❌ [STORAGE] Error saving chat: $e');
+    }
+  }
+
+  // Clear chat from local storage
+  Future<void> _clearChatFromStorage() async {
+    print('🗑️ [STORAGE] Clearing chat from local storage...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final chatKey = _chatStorageKey ?? '';
+
+      if (chatKey.isEmpty) {
+        print('❌ [STORAGE] No storage key available');
+        return;
+      }
+
+      await prefs.remove(chatKey);
+      print('✅ [STORAGE] Chat cleared from storage');
+    } catch (e) {
+      print('❌ [STORAGE] Error clearing chat: $e');
+    }
+  }
+
   void _scrollChatToBottom() {
     if (_chatScrollController.hasClients) {
       _chatScrollController.animateTo(
@@ -518,47 +622,69 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.exit_to_app, color: Color(0xFFff4444), size: 50),
-              const SizedBox(height: 16),
-              const Text(
-                'Leave Channel',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFff4444).withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.exit_to_app,
+                  color: Color(0xFFff4444),
+                  size: 32,
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
-                'Are you sure you want to leave this radio channel?',
+                'Leave Channel?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'All chat messages will be cleared',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 16),
               ),
               const SizedBox(height: 24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context); // Go back to dialer
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFff4444),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ),
-                    child: const Text(
-                      'Leave',
-                      style: TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        // Clear chat from storage
+                        await _clearChatFromStorage();
+
+                        Navigator.pop(context); // Close dialog
+                        Navigator.pop(context); // Leave channel
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFff4444),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Leave',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],

@@ -65,19 +65,25 @@ class HttpClient {
     dynamic body,
   ) {
     if (kDebugMode) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('🌐 HTTP Request: $method $url');
       print('📋 Headers: $headers');
       if (body != null) {
         print('📦 Body: $body');
       }
+      print('🌍 Environment: ${ApiEndpoints.environmentName}');
+      print('🔗 Base URL: ${ApiEndpoints.baseUrl}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     }
   }
 
   // Log response for debugging
   void _logResponse(http.Response response) {
     if (kDebugMode) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       print('📨 HTTP Response: ${response.statusCode}');
       print('📄 Body: ${response.body}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     }
   }
 
@@ -134,24 +140,30 @@ class HttpClient {
         final responseBody = jsonDecode(response.body);
         return ApiResponse.fromJson(responseBody, fromJson);
       } else {
+        print('❌ HTTP Error: ${response.statusCode}');
+        print('❌ Response Body: ${response.body}');
         throw _handleHttpError(response);
       }
-    } on SocketException {
+    } on SocketException catch (e) {
+      print('❌ Socket Exception: $e');
       throw ApiException(
         message: 'No internet connection. Please check your network.',
         statusCode: 0,
       );
-    } on HttpException {
+    } on HttpException catch (e) {
+      print('❌ HTTP Exception: $e');
       throw ApiException(
         message: 'Network error occurred. Please try again.',
         statusCode: 0,
       );
-    } on FormatException {
+    } on FormatException catch (e) {
+      print('❌ Format Exception: $e');
       throw ApiException(
         message: 'Invalid response format received.',
         statusCode: 0,
       );
     } catch (e) {
+      print('❌ Unexpected Error: $e');
       if (e is ApiException) {
         rethrow;
       }

@@ -6,9 +6,10 @@ class ApiEndpoints {
   // 🌍 ENVIRONMENT CONFIGURATION
   // =====================================================
   // ⚡ Change this line to switch between LOCAL and PRODUCTION
-  // static const Environment _currentEnvironment = Environment.production; // Production (Render.com)
   static const Environment _currentEnvironment =
-      Environment.local; // Local Testing
+      Environment.production; // Production (Render.com)
+  // static const Environment _currentEnvironment =
+  //     Environment.local; // Local Testing
 
   // Environment URLs
   static String get baseUrl {
@@ -18,7 +19,7 @@ class ApiEndpoints {
         return 'http://localhost:5000/api'; // Real Device (use your computer's IP for real device)
       // return 'http://192.168.1.X:5000/api'; // Replace X with your computer's IP
       case Environment.production:
-        return 'https://dhvani-cast-radio-backend.onrender.com/api';
+        return 'https://harborleaf-radio-backend.onrender.com/api';
     }
   }
 
@@ -29,7 +30,7 @@ class ApiEndpoints {
         return 'http://localhost:5000'; // Real Device (use your computer's IP for real device)
       // return 'http://192.168.1.X:5000'; // Replace X with your computer's IP
       case Environment.production:
-        return 'https://dhvani-cast-radio-backend.onrender.com';
+        return 'https://harborleaf-radio-backend.onrender.com';
     }
   }
 
@@ -89,7 +90,7 @@ class ApiEndpoints {
       case Environment.local:
         return 'http://10.0.2.2:5000/health';
       case Environment.production:
-        return 'https://dhvani-cast-radio-backend.onrender.com/health';
+        return 'https://harborleaf-radio-backend.onrender.com/health';
     }
   }
 
@@ -99,7 +100,7 @@ class ApiEndpoints {
       case Environment.local:
         return 'http://10.0.2.2:5000/api-docs';
       case Environment.production:
-        return 'https://dhvani-cast-radio-backend.onrender.com/api-docs';
+        return 'https://harborleaf-radio-backend.onrender.com/api-docs';
     }
   }
 

@@ -101,26 +101,6 @@ class _DialerScreenState extends State<DialerScreen>
     super.dispose();
   }
 
-  int _getUsersOnFrequency(double frequency) {
-    // Get users from API data
-    final freq = _dialerService.frequencies.firstWhere(
-      (f) => (f.frequency - frequency).abs() <= 0.5,
-      orElse: () => FrequencyModel(
-        id: '',
-        frequency: frequency,
-        band: _selectedBand,
-        isPublic: true,
-        activeUsers: [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
-    );
-
-    int userCount = freq.activeUsers.length;
-    print('👥 Users on ${frequency.toStringAsFixed(1)} MHz: $userCount');
-    return userCount;
-  }
-
   // Dynamic button functions
   void _toggleAutoTune() {
     setState(() {
@@ -211,7 +191,45 @@ class _DialerScreenState extends State<DialerScreen>
 
   // Missing functions - Add back
   void _showActiveGroupsPopup() {
-    print('👥 Showing ${_dialerService.groups.length} active groups from API');
+    print('👥 [GROUPS] ====== SHOWING GROUPS POPUP ======');
+    print('👥 [GROUPS] Total groups from API: ${_dialerService.groups.length}');
+    print(
+      '👥 [GROUPS] Total frequencies: ${_dialerService.frequencies.length}',
+    );
+
+    // Create frequency-based groups from frequencies with active users
+    List<Map<String, dynamic>> frequencyGroups = [];
+
+    for (var freq in _dialerService.frequencies) {
+      print('🔍 [GROUPS] Checking frequency: ${freq.frequency} MHz');
+      print('🔍 [GROUPS] Active users: ${freq.activeUsers.length}');
+
+      if (freq.activeUsers.isNotEmpty) {
+        print(
+          '✅ [GROUPS] Creating group for ${freq.frequency} MHz with ${freq.activeUsers.length} users',
+        );
+
+        frequencyGroups.add({
+          'id': freq.id,
+          'frequencyId': freq.id,
+          'name': '${freq.frequency.toStringAsFixed(1)} MHz Channel',
+          'frequency': freq.frequency,
+          'members': freq.activeUsers.map((u) => u.userId).toList(),
+          'status': 'active',
+          'icon': Icons.radio,
+          'color': const Color(0xFF00ff88),
+          'type': 'frequency', // Important: to identify it's frequency chat
+          'activeUsers': freq.activeUsers.length,
+        });
+      } else {
+        print('⏭️ [GROUPS] Skipping ${freq.frequency} MHz - no active users');
+      }
+    }
+
+    print(
+      '📊 [GROUPS] Total frequency groups created: ${frequencyGroups.length}',
+    );
+    print('📊 [GROUPS] API groups: ${_dialerService.groups.length}');
 
     showModalBottomSheet(
       context: context,
@@ -234,7 +252,7 @@ class _DialerScreenState extends State<DialerScreen>
                   const Icon(Icons.group, color: Color(0xFF00ff88)),
                   const SizedBox(width: 12),
                   Text(
-                    'Active Groups (${_dialerService.groups.length})',
+                    'Active Channels (${frequencyGroups.length + _dialerService.groups.length})',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -244,25 +262,64 @@ class _DialerScreenState extends State<DialerScreen>
                 ],
               ),
             ),
-            // Use API data instead of static data
-            if (_dialerService.isLoading)
-              const Padding(
-                padding: EdgeInsets.all(20.0),
-                child: CircularProgressIndicator(color: Color(0xFF00ff88)),
-              )
-            else if (_dialerService.groups.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text(
-                  'No active groups found',
-                  style: TextStyle(color: Colors.white70),
+
+            // Section: Frequency Channels
+            if (frequencyGroups.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
                 ),
-              )
-            else
+                child: Row(
+                  children: [
+                    const Icon(Icons.radio, color: Color(0xFF00ff88), size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Frequency Channels (${frequencyGroups.length})',
+                      style: const TextStyle(
+                        color: Color(0xFF888888),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ...frequencyGroups.map((group) {
+                print('🎨 [GROUPS] Building card for: ${group['name']}');
+                return _buildGroupCard(group);
+              }),
+              const SizedBox(height: 12),
+            ],
+
+            // Section: Regular Groups
+            if (_dialerService.groups.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.group, color: Color(0xFF00ff88), size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Your Groups (${_dialerService.groups.length})',
+                      style: const TextStyle(
+                        color: Color(0xFF888888),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               ..._dialerService.groups.map((group) {
+                print('🎨 [GROUPS] Building card for group: ${group.name}');
                 // Convert GroupModel to Map for _buildGroupCard
                 return _buildGroupCard({
                   'id': group.id,
+                  'groupId': group.id,
                   'name': group.name,
                   'members': group.members.map((m) => m.userId).toList(),
                   'status': group.members.any((m) => m.isOnline)
@@ -270,22 +327,58 @@ class _DialerScreenState extends State<DialerScreen>
                       : 'idle',
                   'icon': Icons.group,
                   'color': Colors.blue,
-                  'frequency': 450.0, // Default frequency
+                  'frequency': 450.0,
+                  'type': 'group', // Important: to identify it's group chat
                 });
               }),
+            ],
+
+            // Loading state
+            if (_dialerService.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(color: Color(0xFF00ff88)),
+              ),
+
+            // Empty state
+            if (frequencyGroups.isEmpty &&
+                _dialerService.groups.isEmpty &&
+                !_dialerService.isLoading)
+              const Padding(
+                padding: EdgeInsets.all(20.0),
+                child: Text(
+                  'No active channels found',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
+
+    print('👥 [GROUPS] ====== POPUP DISPLAYED ======');
   }
 
   void _showFrequencyUsersPopup() {
-    final currentUsers = _getUsersOnFrequency(_frequency);
+    print('📞 [USERS] ====== OPENING USERS/CONTACTS POPUP ======');
+    print('📞 [USERS] Current frequency: ${_frequency.toStringAsFixed(1)} MHz');
+
+    // Get users on current frequency from API
+    final usersOnFrequency = _getUsersOnCurrentFrequency();
+    print('📞 [USERS] Users on frequency: ${usersOnFrequency.length}');
+
+    // Generate shareable link
+    final shareableLink = _generateFrequencyShareLink();
+    print('📞 [USERS] Generated link: $shareableLink');
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
         decoration: const BoxDecoration(
           color: Color(0xFF2a2a2a),
           borderRadius: BorderRadius.only(
@@ -294,136 +387,579 @@ class _DialerScreenState extends State<DialerScreen>
           ),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
+            // Header
             Container(
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
                   const Icon(Icons.people, color: Color(0xFF00ff88)),
                   const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Share Frequency',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Send ${_frequency.toStringAsFixed(1)} MHz to users',
+                          style: const TextStyle(
+                            color: Color(0xFF888888),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Share to phone contacts button
+                  IconButton(
+                    onPressed: () {
+                      print('� [USERS] Share to phone contacts clicked');
+                      _shareToPhoneContacts(shareableLink);
+                    },
+                    icon: const Icon(
+                      Icons.contact_phone,
+                      color: Color(0xFF00ff88),
+                    ),
+                    tooltip: 'Share to Phone Contacts',
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      print('�📞 [USERS] Closing contacts popup');
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+
+            // Share Link Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1a1a1a),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF00ff88).withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link, color: Color(0xFF00ff88), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        shareableLink,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        print('📋 [USERS] Copy link clicked');
+                        _copyLinkToClipboard(shareableLink);
+                      },
+                      icon: const Icon(
+                        Icons.copy,
+                        color: Color(0xFF00ff88),
+                        size: 18,
+                      ),
+                      tooltip: 'Copy Link',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Section Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Icon(Icons.radio, color: Color(0xFF00ff88), size: 16),
+                  const SizedBox(width: 8),
                   Text(
-                    'Users on ${_frequency.toStringAsFixed(1)} MHz',
+                    'Users on ${_frequency.toStringAsFixed(1)} MHz (${usersOnFrequency.length})',
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
+                      color: Color(0xFF888888),
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            if (currentUsers > 0) ...[
-              ...List.generate(
-                currentUsers,
-                (index) => GestureDetector(
-                  onTap: () {
-                    // Close the popup first
-                    Navigator.pop(context);
-                    // Navigate to communication screen with user data
-                    Navigator.pushNamed(
-                      context,
-                      '/communication',
-                      arguments: {
-                        'name': 'User ${index + 1}',
-                        'frequency': _frequency,
-                        'type': 'user',
-                        'status': 'active',
-                        'members': ['User ${index + 1}'],
-                        'color': const Color(0xFF00ff88),
-                        'icon': Icons.person,
-                      },
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1a1a1a),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: const Color(0xFF00ff88),
-                          radius: 16,
-                          child: Text(
-                            'U${index + 1}',
+
+            const SizedBox(height: 12),
+
+            // Users List
+            Expanded(
+              child: usersOnFrequency.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 64,
+                            color: Colors.white24,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No users on ${_frequency.toStringAsFixed(1)} MHz',
                             style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF888888),
+                              fontSize: 16,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'User ${index + 1}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Active on ${_frequency.toStringAsFixed(1)} MHz',
-                                style: const TextStyle(
-                                  color: Color(0xFF888888),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00ff88).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'ONLINE',
-                            style: TextStyle(
-                              color: Color(0xFF00ff88),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 8),
+                          Text(
+                            'Share the link to invite others!',
+                            style: const TextStyle(
+                              color: Color(0xFF666666),
+                              fontSize: 14,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white54,
-                          size: 14,
-                        ),
-                      ],
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: usersOnFrequency.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemBuilder: (context, index) {
+                        final user = usersOnFrequency[index];
+                        print('👤 [USERS] Building user card: ${user['name']}');
+
+                        return _buildFrequencyUserCard(user, shareableLink);
+                      },
                     ),
-                  ),
-                ),
-              ),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.all(40),
-                child: const Text(
-                  'No users active on this frequency',
-                  style: TextStyle(color: Color(0xFF888888), fontSize: 16),
-                ),
-              ),
-            ],
+            ),
+
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
+
+    print('📞 [USERS] ====== CONTACTS POPUP DISPLAYED ======');
+  }
+
+  // Get users on current frequency
+  List<Map<String, dynamic>> _getUsersOnCurrentFrequency() {
+    print('🔍 [FREQUENCY-USERS] ====== GETTING USERS ON FREQUENCY ======');
+    print(
+      '🔍 [FREQUENCY-USERS] Target frequency: ${_frequency.toStringAsFixed(1)} MHz',
+    );
+    print(
+      '🔍 [FREQUENCY-USERS] Total frequencies loaded: ${_dialerService.frequencies.length}',
+    );
+
+    // Find the frequency in loaded data
+    final frequencyData = _dialerService.frequencies.firstWhere(
+      (f) => (f.frequency - _frequency).abs() <= 0.5,
+      orElse: () => FrequencyModel(
+        id: '',
+        frequency: _frequency,
+        band: _selectedBand,
+        isPublic: true,
+        activeUsers: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    print('🔍 [FREQUENCY-USERS] Frequency ID: ${frequencyData.id}');
+    print(
+      '🔍 [FREQUENCY-USERS] Active users count: ${frequencyData.activeUsers.length}',
+    );
+
+    // Convert active users to user list
+    final users = frequencyData.activeUsers.map((activeUser) {
+      print('👤 [FREQUENCY-USERS] ====== PROCESSING USER ======');
+      print('👤 [FREQUENCY-USERS] User ID: ${activeUser.userId}');
+      print('👤 [FREQUENCY-USERS] User Name: ${activeUser.userName}');
+      print('👤 [FREQUENCY-USERS] Call Sign: ${activeUser.callSign}');
+      print('👤 [FREQUENCY-USERS] Avatar: ${activeUser.avatar}');
+
+      // Try to get name from multiple sources
+      String displayName;
+      if (activeUser.userName != null && activeUser.userName!.isNotEmpty) {
+        displayName = activeUser.userName!;
+        print('✅ [FREQUENCY-USERS] Using userName: $displayName');
+      } else if (activeUser.callSign != null &&
+          activeUser.callSign!.isNotEmpty) {
+        displayName = activeUser.callSign!;
+        print('✅ [FREQUENCY-USERS] Using callSign: $displayName');
+      } else if (activeUser.avatar != null &&
+          activeUser.avatar!.isNotEmpty &&
+          activeUser.avatar != '📻') {
+        // If avatar is not emoji, use it as name
+        displayName = activeUser.avatar!;
+        print('✅ [FREQUENCY-USERS] Using avatar as name: $displayName');
+      } else {
+        displayName = 'User ${activeUser.userId.substring(0, 8)}';
+        print('⚠️ [FREQUENCY-USERS] Using fallback name: $displayName');
+      }
+
+      // Get avatar text
+      String avatarText;
+      if (activeUser.avatar != null &&
+          activeUser.avatar!.length >= 2 &&
+          activeUser.avatar != '📻') {
+        avatarText = activeUser.avatar!.substring(0, 2).toUpperCase();
+      } else if (displayName.length >= 2) {
+        avatarText = displayName.substring(0, 2).toUpperCase();
+      } else {
+        avatarText = 'U';
+      }
+
+      print('👤 [FREQUENCY-USERS] Final display name: $displayName');
+      print('👤 [FREQUENCY-USERS] Final avatar text: $avatarText');
+
+      return {
+        'id': activeUser.userId,
+        'userId': activeUser.userId,
+        'name': displayName,
+        'avatar': avatarText,
+        'isOnline': true, // They are active on frequency
+        'joinedAt': activeUser.joinedAt.toIso8601String(),
+        'callSign': activeUser.callSign,
+        'isTransmitting': activeUser.isTransmitting,
+      };
+    }).toList();
+
+    print('✅ [FREQUENCY-USERS] Total users to display: ${users.length}');
+    for (var user in users) {
+      print('✅ [FREQUENCY-USERS] - ${user['name']} (${user['userId']})');
+    }
+
+    return users;
+  }
+
+  // Generate shareable frequency link
+  String _generateFrequencyShareLink() {
+    print('🔗 [LINK] ====== GENERATING SHARE LINK ======');
+
+    final frequency = _frequency.toStringAsFixed(1);
+    final band = _selectedBand;
+
+    // Create deep link
+    final link = 'https://dhvanicast.app/join?freq=$frequency&band=$band';
+
+    print('🔗 [LINK] Frequency: $frequency MHz');
+    print('🔗 [LINK] Band: $band');
+    print('🔗 [LINK] Generated link: $link');
+
+    return link;
+  }
+
+  // Copy link to clipboard
+  void _copyLinkToClipboard(String link) {
+    print('📋 [CLIPBOARD] ====== COPYING LINK ======');
+    print('📋 [CLIPBOARD] Link: $link');
+
+    // TODO: Add clipboard package and implement
+    // Clipboard.setData(ClipboardData(text: link));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Link copied to clipboard!'),
+        backgroundColor: Color(0xFF00ff88),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    print('✅ [CLIPBOARD] Link copied successfully');
+  }
+
+  // Share to phone contacts
+  void _shareToPhoneContacts(String link) {
+    print('📱 [PHONE-SHARE] ====== SHARE TO PHONE CONTACTS ======');
+    print('📱 [PHONE-SHARE] Frequency: ${_frequency.toStringAsFixed(1)} MHz');
+    print('📱 [PHONE-SHARE] Link: $link');
+
+    final message =
+        '🎙️ Join me on Dhvani Cast!\n\n'
+        'Frequency: ${_frequency.toStringAsFixed(1)} MHz\n'
+        'Band: $_selectedBand\n\n'
+        'Join now: $link';
+
+    print('📱 [PHONE-SHARE] Message prepared: $message');
+
+    // TODO: Add share_plus package and implement
+    // Share.share(message, subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on Dhvani Cast');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Share to: ${_frequency.toStringAsFixed(1)} MHz'),
+        backgroundColor: const Color(0xFF00ff88),
+        duration: const Duration(seconds: 2),
+        action: SnackBarAction(
+          label: 'COPY',
+          textColor: Colors.black,
+          onPressed: () => _copyLinkToClipboard(link),
+        ),
+      ),
+    );
+
+    print('✅ [PHONE-SHARE] Share dialog opened');
+  }
+
+  // Build frequency user card (users on current frequency)
+  Widget _buildFrequencyUserCard(
+    Map<String, dynamic> user,
+    String shareableLink,
+  ) {
+    print('🎴 [USER-CARD] ====== BUILDING USER CARD ======');
+    print('🎴 [USER-CARD] Name: ${user['name']}');
+    print('🎴 [USER-CARD] User ID: ${user['userId']}');
+
+    final isOnline = user['isOnline'] as bool;
+    final isTransmitting = user['isTransmitting'] as bool? ?? false;
+
+    print('🎴 [USER-CARD] Status: ${isOnline ? 'Online' : 'Offline'}');
+    print('🎴 [USER-CARD] Transmitting: $isTransmitting');
+
+    return GestureDetector(
+      onTap: () {
+        print('💬 [USER-CARD] ====== USER TAPPED ======');
+        print('💬 [USER-CARD] Opening chat with: ${user['name']}');
+        print('💬 [USER-CARD] User ID: ${user['userId']}');
+
+        // Close the popup
+        Navigator.pop(context);
+
+        // Navigate to communication screen to chat with user
+        _openChatWithFrequencyUser(user, shareableLink);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1a1a1a),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isTransmitting
+                ? const Color(0xFF00ff88).withOpacity(0.6)
+                : const Color(0xFF00ff88).withOpacity(0.3),
+            width: isTransmitting ? 2 : 1,
+          ),
+          boxShadow: isTransmitting
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF00ff88).withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            // Avatar with transmitting indicator
+            Stack(
+              children: [
+                CircleAvatar(
+                  backgroundColor: isTransmitting
+                      ? const Color(0xFF00ff88)
+                      : const Color(0xFF444444),
+                  radius: 24,
+                  child: Text(
+                    user['avatar'],
+                    style: TextStyle(
+                      color: isTransmitting ? Colors.black : Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (isOnline)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00ff88),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF1a1a1a),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 12),
+
+            // User Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          user['name'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isTransmitting) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00ff88).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.mic,
+                                size: 10,
+                                color: Color(0xFF00ff88),
+                              ),
+                              SizedBox(width: 2),
+                              Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  color: Color(0xFF00ff88),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    user['callSign'] ??
+                        'On ${_frequency.toStringAsFixed(1)} MHz',
+                    style: const TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Share button
+            IconButton(
+              onPressed: () {
+                print(
+                  '📤 [USER-CARD] Share button clicked for: ${user['name']}',
+                );
+                _shareFrequencyToUser(user, shareableLink);
+              },
+              icon: const Icon(Icons.share, color: Color(0xFF00ff88), size: 20),
+              tooltip: 'Share frequency',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Open chat with frequency user
+  void _openChatWithFrequencyUser(
+    Map<String, dynamic> user,
+    String shareableLink,
+  ) {
+    print('💬 [CHAT] ====== OPENING CHAT WITH FREQUENCY USER ======');
+    print('💬 [CHAT] User: ${user['name']}');
+    print('💬 [CHAT] User ID: ${user['userId']}');
+    print('💬 [CHAT] Frequency: ${_frequency.toStringAsFixed(1)} MHz');
+
+    // Navigate to communication screen with user data
+    final chatArguments = {
+      'name': user['name'],
+      'frequency': _frequency,
+      'type': 'user',
+      'status': 'active',
+      'members': [user['name']],
+      'color': const Color(0xFF00ff88),
+      'icon': Icons.person,
+      'userId': user['userId'],
+      'callSign': user['callSign'],
+    };
+
+    print('💬 [CHAT] Navigation arguments prepared: $chatArguments');
+    print('💬 [CHAT] Navigating to /communication screen...');
+
+    Navigator.pushNamed(
+      context,
+      '/communication',
+      arguments: chatArguments,
+    ).then((_) {
+      print('💬 [CHAT] Returned from communication screen');
+    });
+
+    print('💬 [CHAT] ====== NAVIGATION INITIATED ======');
+  }
+
+  // Share frequency link to specific user
+  void _shareFrequencyToUser(Map<String, dynamic> user, String shareableLink) {
+    print('📤 [SHARE-USER] ====== SHARING TO USER ======');
+    print('📤 [SHARE-USER] Target user: ${user['name']}');
+    print('📤 [SHARE-USER] Link: $shareableLink');
+
+    final message =
+        '🎙️ Join me on ${_frequency.toStringAsFixed(1)} MHz!\n\n'
+        'Band: $_selectedBand\n'
+        'Link: $shareableLink';
+
+    print('📤 [SHARE-USER] Message: $message');
+
+    // Close popup and open chat with pre-filled message
+    Navigator.pop(context);
+
+    final chatArguments = {
+      'name': user['name'],
+      'frequency': _frequency,
+      'type': 'user',
+      'status': 'active',
+      'members': [user['name']],
+      'color': const Color(0xFF00ff88),
+      'icon': Icons.person,
+      'userId': user['userId'],
+      'initialMessage': message,
+      'isFrequencyShare': true,
+    };
+
+    Navigator.pushNamed(context, '/communication', arguments: chatArguments);
+
+    print('✅ [SHARE-USER] Chat opened with pre-filled message');
   }
 
   void _showJoinDialog() async {
@@ -583,10 +1119,24 @@ class _DialerScreenState extends State<DialerScreen>
   }
 
   Widget _buildGroupCard(Map<String, dynamic> group) {
+    print('🎨 [CARD] ====== BUILDING GROUP CARD ======');
+    print('🎨 [CARD] Group: ${group['name']}');
+    print('🎨 [CARD] Type: ${group['type']}');
+    print('🎨 [CARD] Members: ${group['members']?.length ?? 0}');
+    print('🎨 [CARD] Frequency: ${group['frequency']}');
+
     return GestureDetector(
       onTap: () {
+        print('🖱️ [CARD] Card tapped: ${group['name']}');
+        print('🖱️ [CARD] Navigating to communication screen...');
+        print('🖱️ [CARD] Arguments: $group');
+
         // Navigate to communication screen with group data
-        Navigator.pushNamed(context, '/communication', arguments: group);
+        Navigator.pushNamed(context, '/communication', arguments: group).then((
+          _,
+        ) {
+          print('🔙 [CARD] Returned from communication screen');
+        });
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -627,7 +1177,7 @@ class _DialerScreenState extends State<DialerScreen>
                     ),
                   ),
                   Text(
-                    '${group['frequency']} MHz • ${group['members'].length} members',
+                    '${group['frequency'].toStringAsFixed(1)} MHz • ${group['members'].length} members',
                     style: const TextStyle(
                       color: Color(0xFF888888),
                       fontSize: 12,
