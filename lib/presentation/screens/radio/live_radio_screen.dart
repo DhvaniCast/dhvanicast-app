@@ -665,11 +665,62 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        // Clear chat from storage
-                        await _clearChatFromStorage();
+                        print('👋 [LEAVE] ====== LEAVING FREQUENCY ======');
+                        print('👋 [LEAVE] Frequency ID: $_frequencyId');
+                        print('👋 [LEAVE] Frequency: $_frequency MHz');
 
+                        if (_frequencyId != null) {
+                          try {
+                            // 1. Leave frequency via service
+                            print(
+                              '👋 [LEAVE] Step 1: Calling leaveFrequency API...',
+                            );
+                            final success = await _dialerService.leaveFrequency(
+                              _frequencyId!,
+                            );
+
+                            if (success) {
+                              print(
+                                '✅ [LEAVE] Successfully left frequency via API',
+                              );
+                            } else {
+                              print('⚠️ [LEAVE] Leave API returned false');
+                            }
+
+                            // 2. Clear local chat storage
+                            print(
+                              '👋 [LEAVE] Step 2: Clearing local chat storage...',
+                            );
+                            await _clearChatFromStorage();
+                            print('✅ [LEAVE] Chat cleared from local storage');
+
+                            // 3. Clear in-memory chat messages
+                            print(
+                              '👋 [LEAVE] Step 3: Clearing in-memory messages...',
+                            );
+                            setState(() {
+                              _chatMessages.clear();
+                            });
+                            print('✅ [LEAVE] In-memory messages cleared');
+
+                            // 4. Notify via WebSocket
+                            print(
+                              '👋 [LEAVE] Step 4: Notifying via WebSocket...',
+                            );
+                            _wsClient.leaveFrequency(_frequencyId!);
+                            print('✅ [LEAVE] WebSocket notification sent');
+                          } catch (e) {
+                            print('❌ [LEAVE] Error leaving frequency: $e');
+                          }
+                        }
+
+                        // 5. Close dialog and navigate back
+                        print('👋 [LEAVE] Step 5: Navigating back...');
                         Navigator.pop(context); // Close dialog
-                        Navigator.pop(context); // Leave channel
+                        Navigator.pop(context); // Leave channel screen
+                        print(
+                          '✅ [LEAVE] ====== LEFT FREQUENCY SUCCESSFULLY ======',
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFff4444),

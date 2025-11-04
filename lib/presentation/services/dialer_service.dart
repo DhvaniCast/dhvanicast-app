@@ -22,18 +22,35 @@ class DialerService extends ChangeNotifier {
 
   /// Setup automatic WebSocket listeners for frequency updates
   void _setupAutomaticSocketListeners() {
+    print('🔧 [DIALER-SERVICE] ====== SETTING UP WEBSOCKET LISTENERS ======');
+
     // Listen for user joined frequency
     _socketClient.on('user_joined_frequency', (data) {
       try {
+        print('🔔 [WS] ====== USER_JOINED_FREQUENCY EVENT ======');
+        print('🔔 [WS] Raw data: $data');
+
         final frequencyId = data['frequency']?['id'];
+        final frequencyValue = data['frequency']?['frequency'];
+        final user = data['user'];
+
+        print('🔔 [WS] Frequency ID: $frequencyId');
+        print('🔔 [WS] Frequency Value: $frequencyValue MHz');
+        print('🔔 [WS] User Data: $user');
+
         if (frequencyId != null) {
-          print(
-            '🔔 User joined frequency: ${data['frequency']?['frequency']} MHz',
-          );
+          print('🔔 [WS] User joined frequency: $frequencyValue MHz');
+          print('🔔 [WS] Refreshing frequencies to get updated user list...');
+
           // Refresh frequencies to get updated user counts
-          loadFrequencies();
+          loadFrequencies().then((_) {
+            print('✅ [WS] Frequencies refreshed after user join');
+          });
+        } else {
+          print('⚠️ [WS] No frequency ID in event data');
         }
       } catch (e) {
+        print('❌ [WS] Error processing user_joined_frequency: $e');
         if (kDebugMode) {
           print('Error processing user_joined_frequency: $e');
         }
@@ -43,22 +60,76 @@ class DialerService extends ChangeNotifier {
     // Listen for user left frequency
     _socketClient.on('user_left_frequency', (data) {
       try {
+        print('🔔 [WS] ====== USER_LEFT_FREQUENCY EVENT ======');
+        print('🔔 [WS] Raw data: $data');
+
         final frequencyId = data['frequency']?['id'];
+        final frequencyValue = data['frequency']?['frequency'];
+        final userId = data['userId'];
+
+        print('🔔 [WS] Frequency ID: $frequencyId');
+        print('🔔 [WS] Frequency Value: $frequencyValue MHz');
+        print('🔔 [WS] User ID who left: $userId');
+
         if (frequencyId != null) {
-          print(
-            '🔔 User left frequency: ${data['frequency']?['frequency']} MHz',
+          print('🔔 [WS] User left frequency: $frequencyValue MHz');
+
+          // First, immediately remove the user from local state
+          final frequencyIndex = _frequencies.indexWhere(
+            (f) => f.id == frequencyId,
           );
-          // Refresh frequencies to get updated user counts
-          loadFrequencies();
+
+          if (frequencyIndex != -1) {
+            final frequency = _frequencies[frequencyIndex];
+
+            // Remove the user from active users list
+            final updatedActiveUsers = frequency.activeUsers
+                .where((user) => user.userId != userId)
+                .toList();
+
+            print(
+              '🔔 [WS] Before removal: ${frequency.activeUsers.length} users',
+            );
+            print('🔔 [WS] After removal: ${updatedActiveUsers.length} users');
+
+            // Create a new FrequencyModel with updated users
+            _frequencies[frequencyIndex] = FrequencyModel(
+              id: frequency.id,
+              frequency: frequency.frequency,
+              name: frequency.name,
+              description: frequency.description,
+              band: frequency.band,
+              isPublic: frequency.isPublic,
+              isActive: frequency.isActive,
+              createdBy: frequency.createdBy,
+              activeUsers: updatedActiveUsers,
+              userCount: updatedActiveUsers.length,
+              createdAt: frequency.createdAt,
+              updatedAt: frequency.updatedAt,
+              currentTransmitter: frequency.currentTransmitter,
+            );
+
+            print('✅ [WS] Removed user $userId from frequency active users');
+            notifyListeners(); // Notify UI to update immediately
+          }
+
+          // Then refresh from server to ensure consistency
+          print('🔔 [WS] Refreshing frequencies from server...');
+          loadFrequencies().then((_) {
+            print('✅ [WS] Frequencies refreshed after user left');
+          });
+        } else {
+          print('⚠️ [WS] No frequency ID in event data');
         }
       } catch (e) {
+        print('❌ [WS] Error processing user_left_frequency: $e');
         if (kDebugMode) {
           print('Error processing user_left_frequency: $e');
         }
       }
     });
 
-    print('✅ DialerService: Automatic WebSocket listeners setup');
+    print('✅ [DIALER-SERVICE] Automatic WebSocket listeners setup complete');
   }
 
   // Getters
@@ -70,6 +141,10 @@ class DialerService extends ChangeNotifier {
 
   /// Load all frequencies
   Future<void> loadFrequencies({String? band, bool? isPublic}) async {
+    print('📥 [LOAD-FREQ] ====== LOADING FREQUENCIES ======');
+    print('📥 [LOAD-FREQ] Band filter: $band');
+    print('📥 [LOAD-FREQ] Public filter: $isPublic');
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -82,20 +157,39 @@ class DialerService extends ChangeNotifier {
         limit: 100,
       );
 
+      print('📥 [LOAD-FREQ] API Response:');
+      print('📥 [LOAD-FREQ] - Success: ${response.success}');
+      print('📥 [LOAD-FREQ] - Message: ${response.message}');
+      print('📥 [LOAD-FREQ] - Data count: ${response.data?.length ?? 0}');
+
       if (response.success && response.data != null) {
         _frequencies = response.data!;
         _error = null;
+
+        print('✅ [LOAD-FREQ] Loaded ${_frequencies.length} frequencies:');
+        for (var freq in _frequencies) {
+          print('✅ [LOAD-FREQ]   - ${freq.frequency} MHz (ID: ${freq.id})');
+          print('✅ [LOAD-FREQ]     Active Users: ${freq.activeUsers.length}');
+          for (var user in freq.activeUsers) {
+            print(
+              '✅ [LOAD-FREQ]       * ${user.userName ?? user.callSign ?? user.userId}',
+            );
+          }
+        }
       } else {
         _error = response.message;
+        print('❌ [LOAD-FREQ] Error: ${response.message}');
       }
     } catch (e) {
       _error = 'Failed to load frequencies: $e';
+      print('❌ [LOAD-FREQ] Exception: $e');
       if (kDebugMode) {
         print('Error loading frequencies: $e');
       }
     } finally {
       _isLoading = false;
       notifyListeners();
+      print('📥 [LOAD-FREQ] Loading complete. isLoading: $_isLoading');
     }
   }
 

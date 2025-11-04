@@ -64,6 +64,22 @@ class _DialerScreenState extends State<DialerScreen>
     print('📊 Frequencies count: ${_dialerService.frequencies.length}');
     print('👥 Groups count: ${_dialerService.groups.length}');
 
+    // Log frequency details
+    print('📋 ====== FREQUENCIES DETAILS ======');
+    for (var freq in _dialerService.frequencies) {
+      print('📋 Frequency: ${freq.frequency} MHz');
+      print('📋   - ID: ${freq.id}');
+      print('📋   - Band: ${freq.band}');
+      print('📋   - Active Users: ${freq.activeUsers.length}');
+      if (freq.activeUsers.isNotEmpty) {
+        for (var user in freq.activeUsers) {
+          print(
+            '📋     * User: ${user.userName ?? user.callSign ?? user.userId}',
+          );
+        }
+      }
+    }
+
     if (_dialerService.error != null) {
       print('❌ Error: ${_dialerService.error}');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -364,10 +380,30 @@ class _DialerScreenState extends State<DialerScreen>
   void _showFrequencyUsersPopup() {
     print('📞 [USERS] ====== OPENING USERS/CONTACTS POPUP ======');
     print('📞 [USERS] Current frequency: ${_frequency.toStringAsFixed(1)} MHz');
+    print('📞 [USERS] Current band: $_selectedBand');
+    print(
+      '📞 [USERS] Total frequencies in service: ${_dialerService.frequencies.length}',
+    );
 
     // Get users on current frequency from API
     final usersOnFrequency = _getUsersOnCurrentFrequency();
+    print('📞 [USERS] ====== USERS RETRIEVED ======');
     print('📞 [USERS] Users on frequency: ${usersOnFrequency.length}');
+
+    if (usersOnFrequency.isEmpty) {
+      print(
+        '⚠️ [USERS] WARNING: No users found on frequency ${_frequency.toStringAsFixed(1)} MHz',
+      );
+      print('⚠️ [USERS] This could mean:');
+      print('⚠️ [USERS] 1. No one has joined this frequency yet');
+      print('⚠️ [USERS] 2. WebSocket is not receiving user updates');
+      print('⚠️ [USERS] 3. The frequency data is not being loaded properly');
+    } else {
+      print('✅ [USERS] Found ${usersOnFrequency.length} user(s):');
+      for (var user in usersOnFrequency) {
+        print('✅ [USERS]   - "${user['name']}" (${user['userId']})');
+      }
+    }
 
     // Generate shareable link
     final shareableLink = _generateFrequencyShareLink();
@@ -417,10 +453,26 @@ class _DialerScreenState extends State<DialerScreen>
                       ],
                     ),
                   ),
+                  // Refresh button
+                  IconButton(
+                    onPressed: () async {
+                      print('🔄 [USERS] Refresh button clicked');
+                      await _dialerService.loadFrequencies(
+                        band: _selectedBand,
+                        isPublic: true,
+                      );
+                      print('🔄 [USERS] Frequencies reloaded');
+                      // Close and reopen popup to show updated data
+                      Navigator.pop(context);
+                      _showFrequencyUsersPopup();
+                    },
+                    icon: const Icon(Icons.refresh, color: Color(0xFF00ff88)),
+                    tooltip: 'Refresh Users',
+                  ),
                   // Share to phone contacts button
                   IconButton(
                     onPressed: () {
-                      print('� [USERS] Share to phone contacts clicked');
+                      print('📱 [USERS] Share to phone contacts clicked');
                       _shareToPhoneContacts(shareableLink);
                     },
                     icon: const Icon(
@@ -431,7 +483,7 @@ class _DialerScreenState extends State<DialerScreen>
                   ),
                   IconButton(
                     onPressed: () {
-                      print('�📞 [USERS] Closing contacts popup');
+                      print('❌📞 [USERS] Closing contacts popup');
                       Navigator.pop(context);
                     },
                     icon: const Icon(Icons.close, color: Colors.white70),
@@ -569,24 +621,69 @@ class _DialerScreenState extends State<DialerScreen>
       '🔍 [FREQUENCY-USERS] Total frequencies loaded: ${_dialerService.frequencies.length}',
     );
 
+    // Log all available frequencies
+    print('📋 [FREQUENCY-USERS] ====== ALL FREQUENCIES ======');
+    for (var freq in _dialerService.frequencies) {
+      print(
+        '📋 [FREQUENCY-USERS] - Freq: ${freq.frequency} MHz, ID: ${freq.id}, Users: ${freq.activeUsers.length}',
+      );
+    }
+
     // Find the frequency in loaded data
     final frequencyData = _dialerService.frequencies.firstWhere(
-      (f) => (f.frequency - _frequency).abs() <= 0.5,
-      orElse: () => FrequencyModel(
-        id: '',
-        frequency: _frequency,
-        band: _selectedBand,
-        isPublic: true,
-        activeUsers: [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ),
+      (f) {
+        final difference = (f.frequency - _frequency).abs();
+        print(
+          '🔍 [FREQUENCY-USERS] Checking freq ${f.frequency} MHz - Difference: $difference',
+        );
+        return difference <= 0.5;
+      },
+      orElse: () {
+        print(
+          '⚠️ [FREQUENCY-USERS] No matching frequency found! Creating empty model.',
+        );
+        return FrequencyModel(
+          id: '',
+          frequency: _frequency,
+          band: _selectedBand,
+          isPublic: true,
+          activeUsers: [],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      },
     );
 
+    print('🔍 [FREQUENCY-USERS] ====== FOUND FREQUENCY ======');
     print('🔍 [FREQUENCY-USERS] Frequency ID: ${frequencyData.id}');
+    print(
+      '🔍 [FREQUENCY-USERS] Frequency Value: ${frequencyData.frequency} MHz',
+    );
     print(
       '🔍 [FREQUENCY-USERS] Active users count: ${frequencyData.activeUsers.length}',
     );
+
+    print('🔍 [FREQUENCY-USERS] ====== FOUND FREQUENCY ======');
+    print('🔍 [FREQUENCY-USERS] Frequency ID: ${frequencyData.id}');
+    print(
+      '🔍 [FREQUENCY-USERS] Frequency Value: ${frequencyData.frequency} MHz',
+    );
+    print(
+      '🔍 [FREQUENCY-USERS] Active users count: ${frequencyData.activeUsers.length}',
+    );
+
+    // Log each active user details
+    print('👥 [FREQUENCY-USERS] ====== ACTIVE USERS RAW DATA ======');
+    for (var i = 0; i < frequencyData.activeUsers.length; i++) {
+      final user = frequencyData.activeUsers[i];
+      print('👤 [FREQUENCY-USERS] User #$i:');
+      print('   - User ID: ${user.userId}');
+      print('   - User Name: ${user.userName}');
+      print('   - Call Sign: ${user.callSign}');
+      print('   - Avatar: ${user.avatar}');
+      print('   - Is Transmitting: ${user.isTransmitting}');
+      print('   - Joined At: ${user.joinedAt}');
+    }
 
     // Convert active users to user list
     final users = frequencyData.activeUsers.map((activeUser) {
@@ -596,42 +693,54 @@ class _DialerScreenState extends State<DialerScreen>
       print('👤 [FREQUENCY-USERS] Call Sign: ${activeUser.callSign}');
       print('👤 [FREQUENCY-USERS] Avatar: ${activeUser.avatar}');
 
-      // Try to get name from multiple sources
+      // Try to get name from multiple sources with priority
       String displayName;
+
+      print('🔍 [FREQUENCY-USERS] ====== NAME RESOLUTION ======');
+
+      // Priority 1: userName
       if (activeUser.userName != null && activeUser.userName!.isNotEmpty) {
         displayName = activeUser.userName!;
-        print('✅ [FREQUENCY-USERS] Using userName: $displayName');
-      } else if (activeUser.callSign != null &&
-          activeUser.callSign!.isNotEmpty) {
+        print('✅ [FREQUENCY-USERS] Using userName: "$displayName"');
+      }
+      // Priority 2: callSign
+      else if (activeUser.callSign != null && activeUser.callSign!.isNotEmpty) {
         displayName = activeUser.callSign!;
-        print('✅ [FREQUENCY-USERS] Using callSign: $displayName');
-      } else if (activeUser.avatar != null &&
+        print('✅ [FREQUENCY-USERS] Using callSign: "$displayName"');
+      }
+      // Priority 3: avatar (if it's text, not emoji)
+      else if (activeUser.avatar != null &&
           activeUser.avatar!.isNotEmpty &&
           activeUser.avatar != '📻') {
-        // If avatar is not emoji, use it as name
         displayName = activeUser.avatar!;
-        print('✅ [FREQUENCY-USERS] Using avatar as name: $displayName');
-      } else {
+        print('✅ [FREQUENCY-USERS] Using avatar as name: "$displayName"');
+      }
+      // Fallback: Use shortened User ID
+      else {
         displayName = 'User ${activeUser.userId.substring(0, 8)}';
-        print('⚠️ [FREQUENCY-USERS] Using fallback name: $displayName');
+        print('⚠️ [FREQUENCY-USERS] Using fallback name: "$displayName"');
       }
 
-      // Get avatar text
+      // Get avatar text for display
       String avatarText;
       if (activeUser.avatar != null &&
           activeUser.avatar!.length >= 2 &&
           activeUser.avatar != '📻') {
         avatarText = activeUser.avatar!.substring(0, 2).toUpperCase();
+        print('🎨 [FREQUENCY-USERS] Avatar from avatar field: "$avatarText"');
       } else if (displayName.length >= 2) {
         avatarText = displayName.substring(0, 2).toUpperCase();
+        print('🎨 [FREQUENCY-USERS] Avatar from displayName: "$avatarText"');
       } else {
         avatarText = 'U';
+        print('🎨 [FREQUENCY-USERS] Avatar fallback: "$avatarText"');
       }
 
-      print('👤 [FREQUENCY-USERS] Final display name: $displayName');
-      print('👤 [FREQUENCY-USERS] Final avatar text: $avatarText');
+      print('👤 [FREQUENCY-USERS] ====== FINAL USER DATA ======');
+      print('👤 [FREQUENCY-USERS] Final display name: "$displayName"');
+      print('👤 [FREQUENCY-USERS] Final avatar text: "$avatarText"');
 
-      return {
+      final userMap = {
         'id': activeUser.userId,
         'userId': activeUser.userId,
         'name': displayName,
@@ -641,11 +750,19 @@ class _DialerScreenState extends State<DialerScreen>
         'callSign': activeUser.callSign,
         'isTransmitting': activeUser.isTransmitting,
       };
+
+      print('✅ [FREQUENCY-USERS] Created user map: $userMap');
+
+      return userMap;
     }).toList();
 
+    print('✅ [FREQUENCY-USERS] ====== FINAL USERS LIST ======');
     print('✅ [FREQUENCY-USERS] Total users to display: ${users.length}');
-    for (var user in users) {
-      print('✅ [FREQUENCY-USERS] - ${user['name']} (${user['userId']})');
+    for (var i = 0; i < users.length; i++) {
+      final user = users[i];
+      print(
+        '✅ [FREQUENCY-USERS] User #$i: "${user['name']}" (ID: ${user['userId']})',
+      );
     }
 
     return users;
@@ -967,10 +1084,19 @@ class _DialerScreenState extends State<DialerScreen>
       '🔗 Attempting to join frequency: ${_frequency.toStringAsFixed(1)} MHz',
     );
 
+    // First, reload frequencies to ensure we have the latest list (especially for static mode)
+    print('🔄 Reloading frequencies before join...');
+    await _dialerService.loadFrequencies(band: _selectedBand, isPublic: true);
+    print('✅ Frequencies reloaded: ${_dialerService.frequencies.length}');
+
     // Find the frequency in loaded data
     FrequencyModel? frequencyToJoin = _dialerService.frequencies
         .where((f) => (f.frequency - _frequency).abs() <= 0.5)
         .firstOrNull;
+
+    print(
+      '🔍 Frequency search result: ${frequencyToJoin != null ? "FOUND (${frequencyToJoin.id})" : "NOT FOUND"}',
+    );
 
     showDialog(
       context: context,
@@ -1008,7 +1134,7 @@ class _DialerScreenState extends State<DialerScreen>
               const SizedBox(height: 8),
               Text(
                 frequencyToJoin == null
-                    ? 'Creating new frequency...'
+                    ? 'Frequency not available'
                     : 'Connecting to channel...',
                 style: const TextStyle(color: Color(0xFF888888)),
               ),
@@ -1032,39 +1158,25 @@ class _DialerScreenState extends State<DialerScreen>
                     onPressed: () async {
                       print('🎯 JOIN button pressed - Calling API...');
 
-                      // If frequency doesn't exist, create it first
+                      // Check if frequency exists
                       if (frequencyToJoin == null) {
-                        print('📝 Creating new frequency...');
-                        final newFrequency = await _dialerService.createFrequency(
-                          frequency: _frequency,
-                          name: '${_frequency.toStringAsFixed(1)} MHz',
-                          band: _selectedBand,
-                          description:
-                              'Public ${_selectedBand} frequency at ${_frequency.toStringAsFixed(1)} MHz',
-                          isPublic: true,
-                        );
-
-                        if (newFrequency == null) {
-                          Navigator.pop(context);
-                          print('❌ Failed to create frequency');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Failed to create frequency: ${_dialerService.error}',
-                              ),
-                              backgroundColor: Colors.red,
+                        Navigator.pop(context);
+                        print('❌ Frequency not found in static list');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Frequency ${_frequency.toStringAsFixed(1)} MHz is not available.\nPlease restart the backend server.',
                             ),
-                          );
-                          return;
-                        }
-
-                        frequencyToJoin = newFrequency;
-                        print('✅ Frequency created: ${newFrequency.id}');
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                        return;
                       }
 
                       // Now join the frequency
                       final success = await _dialerService.joinFrequency(
-                        frequencyToJoin!.id,
+                        frequencyToJoin.id,
                         userInfo: {
                           'frequency': _frequency,
                           'band': _selectedBand,
@@ -1087,7 +1199,7 @@ class _DialerScreenState extends State<DialerScreen>
                           arguments: {
                             'frequency': _frequency.toStringAsFixed(1),
                             'name': 'Dhvani Cast Live',
-                            'frequencyId': frequencyToJoin!.id,
+                            'frequencyId': frequencyToJoin.id,
                           },
                         );
                       } else {
