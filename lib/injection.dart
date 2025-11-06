@@ -1,14 +1,15 @@
 ﻿import 'package:get_it/get_it.dart';
 
-import 'data/repositories/auth_repository.dart';
-import 'data/repositories/frequency_repository.dart';
-import 'data/repositories/group_repository.dart';
-import 'data/repositories/communication_repository.dart';
-import 'data/network/websocket_client.dart';
-import 'core/services/http_client.dart';
-import 'presentation/state/auth/auth_bloc.dart';
-import 'presentation/services/dialer_service.dart';
-import 'presentation/services/communication_service.dart';
+import 'core/auth_repository.dart';
+import 'core/frequency_repository.dart';
+import 'core/group_repository.dart';
+import 'core/communication_repository.dart';
+import 'core/websocket_client.dart';
+import 'shared/services/http_client.dart';
+import 'providers/auth_bloc.dart';
+import 'shared/services/dialer_service.dart';
+import 'shared/services/communication_service.dart';
+import 'shared/services/audio_service.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -32,6 +33,7 @@ void setupServiceLocator() {
   getIt.registerLazySingleton<CommunicationService>(
     () => CommunicationService(),
   );
+  getIt.registerLazySingleton<AudioService>(() => AudioService());
 
   // Register AuthBloc as factory (new instance each time)
   getIt.registerFactory<AuthBloc>(

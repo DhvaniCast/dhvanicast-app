@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'injection.dart';
-import 'presentation/screens/auth/login_screen.dart';
-import 'presentation/screens/auth/signup_screen.dart';
-import 'presentation/screens/dialer/dialer_screen.dart';
-import 'presentation/screens/communication/communication_screen.dart';
-import 'presentation/screens/profile/profile_screen.dart';
-import 'presentation/screens/radio/live_radio_screen.dart';
-import 'presentation/state/auth/auth_bloc.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/signup_screen.dart';
+import 'features/dialer/screens/dialer_screen.dart';
+import 'features/communication/screens/communication_screen.dart';
+import 'features/profile/screens/profile_screen.dart';
+import 'features/radio/screens/live_radio_screen.dart';
+import 'providers/auth_bloc.dart';
 
 void main() {
   // Setup dependency injection
