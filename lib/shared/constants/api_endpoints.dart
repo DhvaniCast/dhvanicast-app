@@ -6,18 +6,45 @@ class ApiEndpoints {
   // 🌍 ENVIRONMENT CONFIGURATION
   // =====================================================
   // ⚡ Change this line to switch between LOCAL and PRODUCTION
-  static const Environment _currentEnvironment =
-      Environment.local; // Local Testing
   // static const Environment _currentEnvironment =
-  //     Environment.production; // Production (Render.com)
+  //     Environment.local; // Local Testing
+  static const Environment _currentEnvironment =
+      Environment.production; // Production (Render.com)
+
+  // =====================================================
+  // 📱 DEVICE CONFIGURATION
+  // =====================================================
+  // 🔧 Set this to true for EMULATOR, false for REAL DEVICE
+  static const bool _useEmulator = false; // Change to true for emulator
+
+  // 🌐 Your Computer IP (for real device testing)
+  static const String _computerIP = '192.168.31.80'; // Your WiFi IP
+
+  // Platform detection helper
+  static bool get _isWeb {
+    try {
+      return identical(0, 0.0); // This is false on native, true on web
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Smart URL selector based on device type
+  static String get _localServerUrl {
+    if (_isWeb) {
+      return 'http://localhost:5000'; // Web browser
+    } else if (_useEmulator) {
+      return 'http://10.0.2.2:5000'; // Android Emulator
+    } else {
+      return 'http://$_computerIP:5000'; // Real Device
+    }
+  }
 
   // Environment URLs
   static String get baseUrl {
     switch (_currentEnvironment) {
       case Environment.local:
-        return 'http://10.0.2.2:5000/api'; // Android Emulator
-      // return 'http://localhost:5000/api'; // Real Device (use your computer's IP for real device)
-      // return 'http://192.168.1.X:5000/api'; // Replace X with your computer's IP
+        return '$_localServerUrl/api';
       case Environment.production:
         return 'https://harborleaf-radio-backend.onrender.com/api';
     }
@@ -26,9 +53,7 @@ class ApiEndpoints {
   static String get socketUrl {
     switch (_currentEnvironment) {
       case Environment.local:
-        return 'http://10.0.2.2:5000'; // Android Emulator
-      // return 'http://localhost:5000'; // Real Device (use your computer's IP for real device)
-      // return 'http://192.168.1.X:5000'; // Replace X with your computer's IP
+        return _localServerUrl;
       case Environment.production:
         return 'https://harborleaf-radio-backend.onrender.com';
     }

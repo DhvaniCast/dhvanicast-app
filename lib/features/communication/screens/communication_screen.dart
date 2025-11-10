@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../../injection.dart';
 import '../../../shared/services/communication_service.dart';
 import '../../../core/websocket_client.dart';
@@ -178,11 +180,16 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       final verifyData = prefs.getString(chatKey);
       print('✅ [CLEAR] Verification - Data exists: ${verifyData != null}');
 
-      // Also clear messages in memory
-      setState(() {
-        _messages.clear();
-      });
-      print('✅ [CLEAR] Cleared ${_messages.length} messages from memory');
+      // Also clear messages in memory - ONLY if still mounted
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+        });
+        print('✅ [CLEAR] Cleared ${_messages.length} messages from memory');
+      } else {
+        print('⚠️ [CLEAR] Widget not mounted, skipping setState');
+        _messages.clear(); // Clear without setState
+      }
     } catch (e, stackTrace) {
       print('❌ [CLEAR] Error clearing chat: $e');
       print('❌ [CLEAR] Stack trace: $stackTrace');
@@ -294,25 +301,65 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
     // Setup frequency-specific listeners
     wsClient.on('frequency_chat_message', (data) {
-      print('💬 [FREQUENCY] Received chat message: $data');
+      print('💬 [FREQUENCY] ====== RECEIVED CHAT MESSAGE ======');
+      print('💬 [FREQUENCY] Full data: $data');
+
       if (mounted) {
-        final currentUserId = _getCurrentUserId();
         final messageType = data['messageType'] ?? 'text';
+        final messageId = data['id'];
+        final messageText = data['message'] ?? data['text'] ?? '';
+        final senderId = data['sender']?['id'] ?? '';
+        final senderName = data['sender']?['name'] ?? 'Unknown';
 
-        print('💬 [FREQUENCY] Message type: $messageType');
+        print('💬 [FREQUENCY] Message ID: $messageId');
+        print('💬 [FREQUENCY] Message Type: $messageType');
+        print('💬 [FREQUENCY] Message Text: $messageText');
+        print('💬 [FREQUENCY] Sender ID: $senderId');
+        print('💬 [FREQUENCY] Sender Name: $senderName');
 
+        // Check if this message already exists (avoid duplicates from optimistic updates)
+        // Check by comparing recent messages with same text (last 5 messages)
+        final recentMessages = _messages.length > 5
+            ? _messages.sublist(_messages.length - 5)
+            : _messages;
+
+        final isDuplicateByText = recentMessages.any(
+          (msg) =>
+              msg['message'] == messageText &&
+              msg['isMe'] == true &&
+              DateTime.parse(
+                        msg['timestamp'] ?? DateTime.now().toIso8601String(),
+                      )
+                      .difference(DateTime.parse(data['timestamp']))
+                      .inSeconds
+                      .abs() <
+                  5,
+        );
+
+        if (isDuplicateByText) {
+          print(
+            '⚠️ [FREQUENCY] 🚫 DUPLICATE DETECTED - This is my own message coming back from server',
+          );
+          print('⚠️ [FREQUENCY] 🚫 Skipping to avoid showing on left side');
+          return;
+        }
+
+        print('✅ [FREQUENCY] ✅ NOT DUPLICATE - This is from another user');
+        print('✅ [FREQUENCY] ✅ Adding to LEFT side');
+
+        // This is a message from another user, add it to the left side
         setState(() {
           final newMessage = {
             'id': data['id'],
-            'senderId': data['sender']['id'],
-            'sender': data['sender']['name'],
-            'senderName': data['sender']['name'],
-            'message': data['message'],
-            'text': data['message'],
+            'senderId': senderId,
+            'sender': senderName,
+            'senderName': senderName,
+            'message': messageText,
+            'text': messageText,
             'timestamp': data['timestamp'],
             'time': _formatTime(data['timestamp']),
             'type': messageType,
-            'isMe': data['sender']['id'] == currentUserId,
+            'isMe': false, // Messages from server are always from other users
           };
 
           // Add audio-specific fields
@@ -326,6 +373,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           }
 
           _messages.add(newMessage);
+          print('✅ [FREQUENCY] Added message from other user: $senderName');
         });
 
         // Save to local storage
@@ -333,6 +381,8 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
         _scrollToBottom();
       }
+
+      print('💬 [FREQUENCY] ====== MESSAGE PROCESSING COMPLETE ======');
     });
 
     wsClient.on('frequency_chat_history', (data) {
@@ -874,8 +924,38 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
   // Pick image from gallery
   void _pickFromGallery() async {
-    Navigator.pop(context); // Close the bottom sheet
     print('📷 Opening gallery...');
+
+    // Request photos permission (Android 13+) or storage permission (older Android)
+    PermissionStatus status;
+
+    if (await Permission.photos.isGranted) {
+      status = PermissionStatus.granted;
+    } else {
+      // Try photos permission first (Android 13+)
+      status = await Permission.photos.request();
+
+      // If photos not available, try storage (older Android)
+      if (status.isDenied || status.isPermanentlyDenied) {
+        status = await Permission.storage.request();
+      }
+    }
+
+    if (status.isDenied || status.isPermanentlyDenied) {
+      print('❌ Gallery permission denied: $status');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gallery permission is required to select photos'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    print('✅ Gallery permission granted');
 
     try {
       final ImagePicker picker = ImagePicker();
@@ -897,19 +977,36 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       }
     } catch (e) {
       print('❌ Error picking from gallery: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error selecting image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   // Open camera
   void _openCamera() async {
-    Navigator.pop(context); // Close the bottom sheet
     print('📸 Opening camera...');
+
+    // Request camera permission
+    final status = await Permission.camera.request();
+
+    if (status.isDenied) {
+      print('❌ Camera permission denied');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera permission is required to take photos'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     try {
       final ImagePicker picker = ImagePicker();
@@ -931,12 +1028,14 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       }
     } catch (e) {
       print('❌ Error capturing photo: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error capturing photo: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error capturing photo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -995,23 +1094,84 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
   // Send image message
   Future<void> _sendImageMessage(XFile image) async {
-    print('� Sending image message...');
+    print('📤 [SEND IMAGE] ===== SENDING IMAGE MESSAGE =====');
 
-    // TODO: Upload image to backend first
-    // For now, just show a placeholder message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Image sending feature - Backend upload needed'),
-        backgroundColor: Color(0xFF00ff88),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      // Read image file
+      final File imageFile = File(image.path);
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
 
-    // Once backend is ready, implement:
-    // 1. Upload image to backend /api/images/upload
-    // 2. Get imageUrl from response
-    // 3. Send WebSocket message with messageType: 'image', imageUrl: url
-    // 4. Add to local messages optimistically
+      print('📷 [SEND IMAGE] Image path: ${image.path}');
+      print('📏 [SEND IMAGE] Image size: ${bytes.length} bytes');
+      print('🔤 [SEND IMAGE] Base64 length: ${base64Image.length}');
+
+      // Get frequency ID
+      final frequencyId = groupData?['frequencyId'] as String?;
+
+      if (frequencyId == null) {
+        print('❌ [SEND IMAGE] No frequency ID found');
+        return;
+      }
+
+      print('📡 [SEND IMAGE] Frequency ID: $frequencyId');
+
+      // Create optimistic message for immediate UI update
+      final currentUserId = _getCurrentUserId();
+      final timestamp = DateTime.now().toIso8601String();
+      final messageId =
+          'msg_${DateTime.now().millisecondsSinceEpoch}_${(base64Image.hashCode).toRadixString(36)}';
+
+      final optimisticMessage = {
+        'id': messageId,
+        'senderId': currentUserId,
+        'sender': 'You',
+        'senderName': 'You',
+        'message': 'Image',
+        'messageType': 'image',
+        'imageData': base64Image, // Store base64 for display
+        'timestamp': timestamp,
+        'time': _formatTime(timestamp),
+        'isMe': true,
+      };
+
+      // Add to UI immediately (optimistic update)
+      if (mounted) {
+        setState(() {
+          _messages.add(optimisticMessage);
+        });
+        print('✅ [SEND IMAGE] Added image to local messages');
+        _saveChatToStorage();
+        _scrollToBottom();
+      }
+
+      // Send via WebSocket
+      final wsClient = getIt<WebSocketClient>();
+      wsClient.sendFrequencyChat(frequencyId, 'Image', messageType: 'image');
+
+      print('📡 [SEND IMAGE] WebSocket message sent');
+      print('✅ [SEND IMAGE] ===== IMAGE MESSAGE SENT =====');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image sent successfully!'),
+            backgroundColor: Color(0xFF00ff88),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [SEND IMAGE] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Create poll
@@ -1051,13 +1211,48 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
     if (type == 'frequency' && frequencyId != null) {
       // Send frequency chat message via WebSocket
-      print('📡 Sending FREQUENCY chat message...');
+      print('📡 ====== SENDING FREQUENCY CHAT MESSAGE ======');
+      print('📡 Message: $message');
+
+      // Add optimistic message for immediate UI feedback
+      final currentUserId = _getCurrentUserId();
+      final timestamp = DateTime.now().toIso8601String();
+      final messageId =
+          'msg_${DateTime.now().millisecondsSinceEpoch}_${message.hashCode.toRadixString(36)}';
+
+      print('📡 Generated Message ID: $messageId');
+      print('📡 Current User ID: $currentUserId');
+      print('📡 Timestamp: $timestamp');
+
+      final optimisticMessage = {
+        'id': messageId,
+        'senderId': currentUserId,
+        'sender': 'You',
+        'senderName': 'You',
+        'message': message,
+        'text': message,
+        'messageType': 'text',
+        'timestamp': timestamp,
+        'time': _formatTime(timestamp),
+        'isMe': true,
+      };
+
+      if (mounted) {
+        setState(() {
+          _messages.add(optimisticMessage);
+        });
+        print(
+          '✅ [SEND MSG] ✅ Added OPTIMISTIC message to RIGHT side (isMe: true)',
+        );
+        print('✅ [SEND MSG] Total messages now: ${_messages.length}');
+        _saveChatToStorage();
+      }
+
+      // Send via WebSocket
       final wsClient = getIt<WebSocketClient>();
       wsClient.sendFrequencyChat(frequencyId, message);
-      print('✅ Frequency chat message sent to backend');
-
-      // Note: Don't add message here, wait for server response to add it
-      // This ensures proper sender info and prevents duplicates
+      print('✅ [SEND MSG] Message sent to backend via WebSocket');
+      print('📡 ====== SEND MESSAGE COMPLETE ======');
     } else if (groupId != null) {
       // Send group chat message
       print('📡 Sending GROUP chat message...');
@@ -1106,8 +1301,9 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // DON'T clear chat on back - only on leave
-        print('🔙 [BACK] Back button pressed - Chat will be saved');
+        // Clear chat when user leaves the frequency screen
+        print('🔙 [BACK] Back button pressed - Clearing chat');
+        await _clearChatFromStorage();
         return true;
       },
       child: Scaffold(
@@ -1116,9 +1312,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           backgroundColor: const Color(0xFF1a1a1a),
           elevation: 0,
           leading: IconButton(
-            onPressed: () {
-              // DON'T clear chat on back - only on leave
-              print('🔙 [BACK] Back arrow pressed - Chat will be saved');
+            onPressed: () async {
+              // Clear chat when user leaves the frequency screen
+              print('🔙 [BACK] Back arrow pressed - Clearing chat');
+              await _clearChatFromStorage();
               Navigator.pop(context);
             },
             icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -1775,8 +1972,12 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                       ]
                     : null,
               ),
-              child: message['type'] == 'audio'
+              child:
+                  message['type'] == 'audio' ||
+                      message['messageType'] == 'audio'
                   ? _buildAudioMessage(message, isMe)
+                  : message['messageType'] == 'image'
+                  ? _buildImageMessage(message, isMe)
                   : _buildTextMessage(message, isMe),
             ),
             // Time for sent messages
@@ -1808,6 +2009,112 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         fontSize: 14,
         height: 1.4,
         fontWeight: isMe ? FontWeight.w500 : FontWeight.normal,
+      ),
+    );
+  }
+
+  Widget _buildImageMessage(Map<String, dynamic> message, bool isMe) {
+    final imageData = message['imageData'] as String?;
+
+    if (imageData == null || imageData.isEmpty) {
+      return const Text(
+        'Image (loading...)',
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
+    try {
+      // Decode base64 image
+      final bytes = base64Decode(imageData);
+
+      return GestureDetector(
+        onTap: () {
+          // Show full screen image
+          _showFullScreenImage(bytes);
+        },
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 250, maxHeight: 300),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              bytes,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                print('❌ [IMAGE] Error displaying image: $error');
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.broken_image,
+                        color: isMe ? Colors.black54 : Colors.white54,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Image unavailable',
+                        style: TextStyle(
+                          color: isMe ? Colors.black54 : Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      print('❌ [IMAGE] Error decoding base64: $e');
+      return Text(
+        'Image (error)',
+        style: TextStyle(
+          color: isMe ? Colors.black54 : Colors.white54,
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+  }
+
+  void _showFullScreenImage(Uint8List bytes) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          children: [
+            // Full screen image
+            Center(
+              child: InteractiveViewer(
+                panEnabled: true,
+                boundaryMargin: const EdgeInsets.all(20),
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image.memory(bytes, fit: BoxFit.contain),
+              ),
+            ),
+            // Close button
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

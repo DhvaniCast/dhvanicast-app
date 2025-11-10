@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
 import '../../../injection.dart';
 import '../../../core/websocket_client.dart';
+import '../../../models/user.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -86,6 +89,26 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  /// Save user data and token to SharedPreferences for LiveKit initialization
+  Future<void> _saveUserDataToPrefs(User user, String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Save user data as JSON (using toJson method from User model)
+      final userData = jsonEncode(user.toJson());
+      await prefs.setString('user', userData);
+
+      // Save token
+      await prefs.setString('token', token);
+
+      print('💾 [Storage] User data and token saved to SharedPreferences');
+      print('👤 [Storage] User: ${user.name}');
+      print('🔑 [Storage] Token: ${token.substring(0, 20)}...');
+    } catch (e) {
+      print('❌ [Storage] Failed to save user data: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -112,6 +135,9 @@ class _LoginScreenState extends State<LoginScreen>
           print('✅ Login Success!');
           print('🔑 Token: ${state.token}');
           print('👤 User: ${state.user.name}');
+
+          // Save user data and token to SharedPreferences for LiveKit
+          _saveUserDataToPrefs(state.user, state.token);
 
           // Initialize WebSocket connection with token
           final wsClient = getIt<WebSocketClient>();

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
+import '../../../models/user.dart';
+import '../../../injection.dart';
+import '../../../core/websocket_client.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -178,7 +183,7 @@ class _SignupScreenState extends State<SignupScreen>
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/login');
+                    Navigator.pushReplacementNamed(context, '/dialer');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF667eea),
@@ -187,7 +192,7 @@ class _SignupScreenState extends State<SignupScreen>
                     ),
                   ),
                   child: const Text(
-                    'Continue to Login',
+                    'Continue',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -197,6 +202,26 @@ class _SignupScreenState extends State<SignupScreen>
         ),
       ),
     );
+  }
+
+  /// Save user data and token to SharedPreferences for LiveKit initialization
+  Future<void> _saveUserDataToPrefs(User user, String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Save user data as JSON (using toJson method from User model)
+      final userData = jsonEncode(user.toJson());
+      await prefs.setString('user', userData);
+
+      // Save token
+      await prefs.setString('token', token);
+
+      print('💾 [Storage] User data and token saved to SharedPreferences');
+      print('👤 [Storage] User: ${user.name}');
+      print('🔑 [Storage] Token: ${token.substring(0, 20)}...');
+    } catch (e) {
+      print('❌ [Storage] Failed to save user data: $e');
+    }
   }
 
   @override
@@ -223,6 +248,14 @@ class _SignupScreenState extends State<SignupScreen>
             ),
           );
         } else if (state is AuthSuccess) {
+          // Save user data and token to SharedPreferences for LiveKit
+          _saveUserDataToPrefs(state.user, state.token);
+
+          // Initialize WebSocket connection with token
+          final wsClient = getIt<WebSocketClient>();
+          print('🔌 Initializing WebSocket connection...');
+          wsClient.connect(state.token);
+
           _showSuccessDialog();
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(

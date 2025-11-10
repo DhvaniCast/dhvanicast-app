@@ -53,6 +53,9 @@ dependencies:
   # JSON annotation for serialization
   json_annotation: ^4.8.1
   
+  # LiveKit for real-time voice calls
+  livekit_client: ^2.4.0
+  
   # Audio recording and playback
   record: ^5.0.4
   audioplayers: ^5.2.1

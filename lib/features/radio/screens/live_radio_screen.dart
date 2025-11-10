@@ -5,6 +5,7 @@ import '../../../injection.dart';
 import '../../../models/frequency_model.dart';
 import '../../../core/websocket_client.dart';
 import '../../../shared/services/dialer_service.dart';
+import '../../../shared/services/livekit_service.dart';
 
 class LiveRadioScreen extends StatefulWidget {
   final Map<String, dynamic>? groupData;
@@ -23,6 +24,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   late Animation<double> _pulseAnimation;
   late DialerService _dialerService;
   late WebSocketClient _wsClient;
+  late LiveKitService _livekitService;
 
   bool _isMuted = false;
   bool _isConnected = true;
@@ -50,11 +52,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
     _dialerService = getIt<DialerService>();
     _wsClient = getIt<WebSocketClient>();
+    _livekitService = getIt<LiveKitService>();
 
     print('🚀 LiveRadioScreen: Initializing...');
-
-    // Load current user ID
-    _loadCurrentUserId();
 
     _waveController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -101,6 +101,46 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
     _dialerService.addListener(_onServiceUpdate);
     _setupWebSocketListeners();
+
+    // Initialize LiveKit voice call after frequency join
+    _initializeLiveKit();
+  }
+
+  Future<void> _initializeLiveKit() async {
+    if (_frequencyId == null) {
+      print('⚠️ [LiveKit] Cannot initialize - missing frequencyId');
+      return;
+    }
+
+    try {
+      // Get user info from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user');
+      final token = prefs.getString('token');
+
+      if (userDataString == null || token == null) {
+        print('⚠️ [LiveKit] Cannot initialize - missing user data or token');
+        return;
+      }
+
+      final userData = jsonDecode(userDataString);
+      final userName = userData['name'] ?? 'User';
+
+      print('🎙️ [LiveKit] Initializing for frequency: $_frequencyId');
+      print('👤 [LiveKit] User: $userName');
+
+      // Connect to LiveKit
+      await _livekitService.connectToFrequency(_frequencyId!, userName, token);
+
+      // Update mute state from service
+      setState(() {
+        _isMuted = _livekitService.isMuted;
+      });
+
+      print('✅ [LiveKit] Initialization complete');
+    } catch (e) {
+      print('❌ [LiveKit] Initialization error: $e');
+    }
   }
 
   void _setupWebSocketListeners() {
@@ -359,34 +399,24 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     _chatScrollController.dispose();
     _waveController.dispose();
     _pulseController.dispose();
+
+    // Disconnect from LiveKit
+    _livekitService.disconnect();
+
     super.dispose();
   }
 
   // ===== HELPER METHODS =====
 
-  Future<void> _loadCurrentUserId() async {
-    print('👤 [USER ID] Loading current user ID...');
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userDataString = prefs.getString('user');
+  void _toggleMute() async {
+    // Toggle LiveKit microphone
+    await _livekitService.toggleMute();
 
-      print('👤 [USER ID] User data from storage: $userDataString');
+    setState(() {
+      _isMuted = _livekitService.isMuted;
+    });
 
-      if (userDataString != null) {
-        final userData = Map<String, dynamic>.from(
-          jsonDecode(userDataString) as Map,
-        );
-        setState(() {
-          _currentUserId = userData['id'] ?? userData['_id'];
-        });
-        print('✅ [USER ID] Current User ID loaded: $_currentUserId');
-        print('✅ [USER ID] User Name: ${userData['name']}');
-      } else {
-        print('❌ [USER ID] No user data found in storage');
-      }
-    } catch (e) {
-      print('❌ [USER ID] Error loading current user ID: $e');
-    }
+    print('🎤 [LiveKit] Mic ${_isMuted ? 'muted' : 'unmuted'}');
   }
 
   String _getCurrentUserId() {
@@ -533,13 +563,6 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       // Scroll to bottom when opening chat
       Future.delayed(Duration(milliseconds: 100), _scrollChatToBottom);
     }
-  }
-
-  void _toggleMute() {
-    setState(() {
-      _isMuted = !_isMuted;
-    });
-    print('🎤 Mic ${_isMuted ? "muted" : "unmuted"}');
   }
 
   void _shareFrequency() {
