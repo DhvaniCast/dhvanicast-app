@@ -19,7 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _mobileController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
 
   late AnimationController _animationController;
@@ -55,20 +55,20 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _animationController.dispose();
-    _mobileController.dispose();
+    _emailController.dispose();
     _otpController.dispose();
     super.dispose();
   }
 
   void _sendOtp() async {
-    if (_mobileController.text.trim().length >= 10) {
+    if (_emailController.text.trim().isNotEmpty) {
       setState(() {
         _isLoading = true;
       });
 
       // Send OTP via API
       context.read<AuthBloc>().add(
-        AuthLoginRequested(mobile: _mobileController.text.trim()),
+        AuthLoginRequested(email: _emailController.text.trim()),
       );
     }
   }
@@ -82,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen>
       // Verify OTP via API
       context.read<AuthBloc>().add(
         AuthOtpVerifyRequested(
-          mobile: _mobileController.text.trim(),
+          email: _emailController.text.trim(),
           otp: _otpController.text.trim(),
         ),
       );
@@ -276,17 +276,17 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                   const SizedBox(height: 32),
 
-                                  // Mobile Number Field
+                                  // Email Field
                                   TextFormField(
-                                    controller: _mobileController,
-                                    keyboardType: TextInputType.phone,
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
                                     decoration: InputDecoration(
-                                      labelText: 'Mobile Number',
+                                      labelText: 'Email Address',
                                       labelStyle: const TextStyle(
                                         color: Colors.white70,
                                       ),
                                       prefixIcon: const Icon(
-                                        Icons.phone_android,
+                                        Icons.email,
                                         color: Color(0xFF00ff88),
                                       ),
                                       border: OutlineInputBorder(
@@ -305,7 +305,9 @@ class _LoginScreenState extends State<LoginScreen>
                                       filled: true,
                                       fillColor: const Color(0xFF1a1a1a),
                                       suffixIcon:
-                                          _mobileController.text.length >= 10 &&
+                                          _emailController.text
+                                                  .trim()
+                                                  .isNotEmpty &&
                                               !_isOtpSent
                                           ? TextButton(
                                               onPressed: _isLoading
@@ -326,9 +328,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                                     validator: (v) {
                                       if (v == null || v.trim().isEmpty)
-                                        return 'Enter mobile number';
-                                      if (v.trim().length < 10)
-                                        return 'Enter valid 10-digit mobile';
+                                        return 'Enter email address';
+                                      if (!RegExp(
+                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                      ).hasMatch(v.trim()))
+                                        return 'Enter valid email';
                                       return null;
                                     },
                                     onChanged: (value) {
@@ -410,7 +414,9 @@ class _LoginScreenState extends State<LoginScreen>
                                     child: ElevatedButton(
                                       onPressed: _isOtpSent
                                           ? _submit
-                                          : (_mobileController.text.length >= 10
+                                          : (_emailController.text
+                                                    .trim()
+                                                    .isNotEmpty
                                                 ? _sendOtp
                                                 : null),
                                       style: ElevatedButton.styleFrom(

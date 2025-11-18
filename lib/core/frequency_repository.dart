@@ -12,6 +12,8 @@ class FrequencyRepository {
     String? band,
     bool? isPublic,
     String? search,
+    double? minFrequency,
+    double? maxFrequency,
   }) async {
     try {
       print('🔍 Step 1: Building query parameters...');
@@ -21,6 +23,8 @@ class FrequencyRepository {
         if (band != null) 'band': band,
         if (isPublic != null) 'isPublic': isPublic,
         if (search != null) 'search': search,
+        if (minFrequency != null) 'minFrequency': minFrequency,
+        if (maxFrequency != null) 'maxFrequency': maxFrequency,
       };
       print('📋 Query params: $queryParams');
 

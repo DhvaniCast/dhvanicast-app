@@ -21,6 +21,8 @@ class _SignupScreenState extends State<SignupScreen>
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
 
@@ -101,13 +103,17 @@ class _SignupScreenState extends State<SignupScreen>
     _animationController.dispose();
     _nameController.dispose();
     _stateController.dispose();
+    _emailController.dispose();
+    _ageController.dispose();
     _mobileController.dispose();
     _otpController.dispose();
     super.dispose();
   }
 
   void _sendOtp() async {
-    if (_mobileController.text.trim().length >= 10 &&
+    if (_emailController.text.trim().isNotEmpty &&
+        _ageController.text.trim().isNotEmpty &&
+        _mobileController.text.trim().isNotEmpty &&
         _nameController.text.trim().isNotEmpty &&
         _selectedState != null &&
         _selectedState!.isNotEmpty) {
@@ -115,12 +121,16 @@ class _SignupScreenState extends State<SignupScreen>
         _isLoading = true;
       });
 
+      final age = int.tryParse(_ageController.text.trim()) ?? 0;
+
       // Register user via API
       context.read<AuthBloc>().add(
         AuthRegisterRequested(
           name: _nameController.text.trim(),
-          mobile: _mobileController.text.trim(),
+          email: _emailController.text.trim(),
+          age: age,
           state: _selectedState!,
+          mobile: _mobileController.text.trim(),
         ),
       );
     }
@@ -135,7 +145,7 @@ class _SignupScreenState extends State<SignupScreen>
       // Verify OTP via API
       context.read<AuthBloc>().add(
         AuthOtpVerifyRequested(
-          mobile: _mobileController.text.trim(),
+          email: _emailController.text.trim(),
           otp: _otpController.text.trim(),
         ),
       );
@@ -418,7 +428,44 @@ class _SignupScreenState extends State<SignupScreen>
                                     _buildStateDropdown(),
                                     const SizedBox(height: 20),
 
-                                    // Mobile Number Field
+                                    // Email Field
+                                    _buildTextField(
+                                      controller: _emailController,
+                                      label: 'Email Address',
+                                      icon: Icons.email,
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty)
+                                          return 'Enter email address';
+                                        if (!RegExp(
+                                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                        ).hasMatch(v.trim()))
+                                          return 'Enter valid email';
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Age Field
+                                    _buildTextField(
+                                      controller: _ageController,
+                                      label: 'Age',
+                                      icon: Icons.cake,
+                                      keyboardType: TextInputType.number,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty)
+                                          return 'Enter your age';
+                                        final age = int.tryParse(v.trim());
+                                        if (age == null ||
+                                            age < 13 ||
+                                            age > 120)
+                                          return 'Age must be between 13-120';
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Mobile Number Field (Required)
                                     _buildTextField(
                                       controller: _mobileController,
                                       label: 'Mobile Number',
@@ -427,8 +474,12 @@ class _SignupScreenState extends State<SignupScreen>
                                       validator: (v) {
                                         if (v == null || v.trim().isEmpty)
                                           return 'Enter mobile number';
-                                        if (v.trim().length < 10)
-                                          return 'Enter valid 10-digit mobile';
+                                        if (v.trim().length != 10)
+                                          return 'Mobile must be 10 digits';
+                                        if (!RegExp(
+                                          r'^[0-9]{10}$',
+                                        ).hasMatch(v.trim()))
+                                          return 'Enter valid mobile number';
                                         return null;
                                       },
                                     ),
@@ -465,10 +516,12 @@ class _SignupScreenState extends State<SignupScreen>
                                                     _selectedState != null &&
                                                     _selectedState!
                                                         .isNotEmpty &&
-                                                    _mobileController.text
-                                                            .trim()
-                                                            .length >=
-                                                        10) {
+                                                    _emailController.text
+                                                        .trim()
+                                                        .isNotEmpty &&
+                                                    _ageController.text
+                                                        .trim()
+                                                        .isNotEmpty) {
                                                   _sendOtp();
                                                 } else {
                                                   ScaffoldMessenger.of(
@@ -476,7 +529,7 @@ class _SignupScreenState extends State<SignupScreen>
                                                   ).showSnackBar(
                                                     const SnackBar(
                                                       content: Text(
-                                                        'Please fill all fields and select your state',
+                                                        'Please fill all fields',
                                                       ),
                                                       backgroundColor:
                                                           Colors.red,
@@ -530,7 +583,7 @@ class _SignupScreenState extends State<SignupScreen>
                                           ),
                                           const SizedBox(height: 16),
                                           const Text(
-                                            'OTP sent to your mobile',
+                                            'OTP sent to your email',
                                             style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
@@ -538,7 +591,7 @@ class _SignupScreenState extends State<SignupScreen>
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            _mobileController.text,
+                                            _emailController.text,
                                             style: const TextStyle(
                                               color: Color(0xFF718096),
                                             ),

@@ -9,13 +9,13 @@ class AuthInitial extends AuthState {}
 class AuthLoading extends AuthState {}
 
 class AuthOtpSent extends AuthState {
-  final String mobile;
+  final String email;
   final String userId;
   final DateTime expiresAt;
   final String message;
 
   AuthOtpSent({
-    required this.mobile,
+    required this.email,
     required this.userId,
     required this.expiresAt,
     required this.message,

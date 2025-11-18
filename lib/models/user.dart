@@ -1,7 +1,9 @@
 class User {
   final String id;
   final String name;
-  final String mobile;
+  final String email;
+  final int age;
+  final String? mobile;
   final String state;
   final bool isVerified;
   final String role;
@@ -11,7 +13,9 @@ class User {
   User({
     required this.id,
     required this.name,
-    required this.mobile,
+    required this.email,
+    required this.age,
+    this.mobile,
     required this.state,
     required this.isVerified,
     required this.role,
@@ -23,7 +27,9 @@ class User {
     return User(
       id: json['id'] ?? json['_id'] ?? '',
       name: json['name'] ?? '',
-      mobile: json['mobile'] ?? '',
+      email: json['email'] ?? '',
+      age: json['age'] ?? 0,
+      mobile: json['mobile'],
       state: json['state'] ?? '',
       isVerified: json['isVerified'] ?? false,
       role: json['role'] ?? 'user',
@@ -40,7 +46,9 @@ class User {
     return {
       'id': id,
       'name': name,
-      'mobile': mobile,
+      'email': email,
+      'age': age,
+      if (mobile != null) 'mobile': mobile,
       'state': state,
       'isVerified': isVerified,
       'role': role,
@@ -52,6 +60,8 @@ class User {
   User copyWith({
     String? id,
     String? name,
+    String? email,
+    int? age,
     String? mobile,
     String? state,
     bool? isVerified,
@@ -62,6 +72,8 @@ class User {
     return User(
       id: id ?? this.id,
       name: name ?? this.name,
+      email: email ?? this.email,
+      age: age ?? this.age,
       mobile: mobile ?? this.mobile,
       state: state ?? this.state,
       isVerified: isVerified ?? this.isVerified,
@@ -73,6 +85,6 @@ class User {
 
   @override
   String toString() {
-    return 'User(id: $id, name: $name, mobile: $mobile, state: $state, isVerified: $isVerified, role: $role)';
+    return 'User(id: $id, name: $name, email: $email, age: $age, state: $state, isVerified: $isVerified, role: $role)';
   }
 }

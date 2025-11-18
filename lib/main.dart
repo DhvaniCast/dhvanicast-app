@@ -7,15 +7,13 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
 import 'features/auth/screens/permission_screen.dart';
 import 'features/dialer/screens/dialer_screen.dart';
+import 'features/dialer/screens/private_frequency_screen.dart';
 import 'features/communication/screens/communication_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'features/radio/screens/live_radio_screen.dart';
 import 'providers/auth_bloc.dart';
 
 void main() async {
-  // Ensure Flutter bindings are initialized
-  WidgetsFlutterBinding.ensureInitialized();
-
   // Setup error handling
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -23,19 +21,27 @@ void main() async {
     debugPrint('Stack trace: ${details.stack}');
   };
 
-  // Setup dependency injection
-  try {
-    setupServiceLocator();
-    debugPrint('✅ Service locator initialized');
-  } catch (e, stack) {
-    debugPrint('❌ Error initializing service locator: $e');
-    debugPrint('Stack: $stack');
-  }
+  runZonedGuarded(
+    () async {
+      // Ensure Flutter bindings are initialized
+      WidgetsFlutterBinding.ensureInitialized();
 
-  runZonedGuarded(() => runApp(const MyApp()), (error, stack) {
-    debugPrint('🔴 Uncaught Error: $error');
-    debugPrint('Stack trace: $stack');
-  });
+      // Setup dependency injection
+      try {
+        setupServiceLocator();
+        debugPrint('✅ Service locator initialized');
+      } catch (e, stack) {
+        debugPrint('❌ Error initializing service locator: $e');
+        debugPrint('Stack: $stack');
+      }
+
+      runApp(const MyApp());
+    },
+    (error, stack) {
+      debugPrint('🔴 Uncaught Error: $error');
+      debugPrint('Stack trace: $stack');
+    },
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -59,6 +65,7 @@ class MyApp extends StatelessWidget {
           '/signup': (context) => const SignupScreen(),
           '/permissions': (context) => const PermissionScreen(),
           '/dialer': (context) => const DialerScreen(),
+          '/private-frequency': (context) => const PrivateFrequencyScreen(),
           '/communication': (context) => const CommunicationScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/live_radio': (context) {

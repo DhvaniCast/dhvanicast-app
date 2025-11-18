@@ -9,22 +9,28 @@ class AuthService {
   /// Register a new user
   ///
   /// [name] - Full name of the user
-  /// [mobile] - 10-digit mobile number
+  /// [email] - Email address
+  /// [age] - Age of the user
   /// [state] - State name
+  /// [mobile] - Mobile number (required, no OTP sent)
   ///
   /// Returns [ApiResponse<OtpResponse>] with OTP details
   Future<ApiResponse<OtpResponse>> register({
     required String name,
-    required String mobile,
+    required String email,
+    required int age,
     required String state,
+    required String mobile,
   }) async {
     try {
       final response = await _httpClient.post<OtpResponse>(
         ApiEndpoints.register,
         body: {
           'name': name.trim(),
-          'mobile': mobile.trim(),
+          'email': email.trim(),
+          'age': age,
           'state': state.trim(),
+          'mobile': mobile.trim(),
         },
         fromJson: (json) => OtpResponse.fromJson(json),
       );
@@ -37,16 +43,16 @@ class AuthService {
 
   /// Send OTP for login
   ///
-  /// [mobile] - 10-digit mobile number
+  /// [email] - Email address
   ///
   /// Returns [ApiResponse<OtpResponse>] with OTP details
   Future<ApiResponse<OtpResponse>> sendOtpForLogin({
-    required String mobile,
+    required String email,
   }) async {
     try {
       final response = await _httpClient.post<OtpResponse>(
         ApiEndpoints.sendOtp,
-        body: {'mobile': mobile.trim()},
+        body: {'email': email.trim()},
         fromJson: (json) => OtpResponse.fromJson(json),
       );
 
@@ -58,18 +64,18 @@ class AuthService {
 
   /// Verify OTP and complete login/registration
   ///
-  /// [mobile] - 10-digit mobile number
+  /// [email] - Email address
   /// [otp] - 6-digit OTP code
   ///
   /// Returns [ApiResponse<AuthResponse>] with JWT token and user details
   Future<ApiResponse<AuthResponse>> verifyOtp({
-    required String mobile,
+    required String email,
     required String otp,
   }) async {
     try {
       final response = await _httpClient.post<AuthResponse>(
         ApiEndpoints.verifyOtp,
-        body: {'mobile': mobile.trim(), 'otp': otp.trim()},
+        body: {'email': email.trim(), 'otp': otp.trim()},
         fromJson: (json) => AuthResponse.fromJson(json),
       );
 
@@ -165,6 +171,21 @@ class AuthService {
   /// Returns true if server is running
   Future<bool> checkServerHealth() async {
     return await _httpClient.checkHealth();
+  }
+
+  /// Validate email format
+  ///
+  /// Returns true if email is valid
+  bool isValidEmail(String email) {
+    final trimmedEmail = email.trim();
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmedEmail);
+  }
+
+  /// Validate age
+  ///
+  /// Returns true if age is between 13 and 120
+  bool isValidAge(int age) {
+    return age >= 13 && age <= 120;
   }
 
   /// Validate mobile number format

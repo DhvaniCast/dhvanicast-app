@@ -31,24 +31,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     try {
-      // Validate mobile number
-      if (!_authService.isValidMobile(event.mobile)) {
+      // Validate email
+      if (!_authService.isValidEmail(event.email)) {
         emit(
           AuthError(
-            message: 'Please enter a valid 10-digit mobile number',
-            field: 'mobile',
+            message: 'Please enter a valid email address',
+            field: 'email',
             statusCode: 400,
           ),
         );
         return;
       }
 
-      final response = await _authService.sendOtpForLogin(mobile: event.mobile);
+      final response = await _authService.sendOtpForLogin(email: event.email);
 
       if (response.success && response.data != null) {
         emit(
           AuthOtpSent(
-            mobile: response.data!.mobile,
+            email: response.data!.email,
             userId: response.data!.userId,
             expiresAt: response.data!.otpExpiresAt,
             message: response.message,
@@ -101,11 +101,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      if (!_authService.isValidMobile(event.mobile)) {
+      if (!_authService.isValidEmail(event.email)) {
         emit(
           AuthError(
-            message: 'Please enter a valid 10-digit mobile number',
-            field: 'mobile',
+            message: 'Please enter a valid email address',
+            field: 'email',
+            statusCode: 400,
+          ),
+        );
+        return;
+      }
+
+      if (!_authService.isValidAge(event.age)) {
+        emit(
+          AuthError(
+            message: 'Age must be between 13 and 120',
+            field: 'age',
             statusCode: 400,
           ),
         );
@@ -125,14 +136,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final response = await _authService.register(
         name: event.name,
-        mobile: event.mobile,
+        email: event.email,
+        age: event.age,
         state: event.state,
+        mobile: event.mobile,
       );
 
       if (response.success && response.data != null) {
         emit(
           AuthOtpSent(
-            mobile: response.data!.mobile,
+            email: response.data!.email,
             userId: response.data!.userId,
             expiresAt: response.data!.otpExpiresAt,
             message: response.message,
@@ -173,11 +186,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       // Validate inputs
-      if (!_authService.isValidMobile(event.mobile)) {
+      if (!_authService.isValidEmail(event.email)) {
         emit(
           AuthError(
-            message: 'Invalid mobile number',
-            field: 'mobile',
+            message: 'Invalid email address',
+            field: 'email',
             statusCode: 400,
           ),
         );
@@ -196,7 +209,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
 
       final response = await _authService.verifyOtp(
-        mobile: event.mobile,
+        email: event.email,
         otp: event.otp,
       );
 

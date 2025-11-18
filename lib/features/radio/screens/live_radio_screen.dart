@@ -56,6 +56,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
     print('🚀 LiveRadioScreen: Initializing...');
 
+    // Load current user ID
+    _loadCurrentUserId();
+
     _waveController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -81,13 +84,36 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
     // Load frequency data if available
     if (widget.groupData != null) {
-      _frequency = widget.groupData!['frequency']?.toString() ?? _frequency;
-      _stationName = widget.groupData!['name'] ?? _stationName;
-      _frequencyId = widget.groupData!['frequencyId'];
+      // Check if it's a private frequency
+      final isPrivate = widget.groupData!['isPrivate'] ?? false;
 
-      print('📡 Frequency: $_frequency MHz');
-      print('📻 Station: $_stationName');
-      print('🆔 Frequency ID: $_frequencyId');
+      if (isPrivate) {
+        // Private frequency data
+        _frequency =
+            widget.groupData!['frequencyValue']?.toString() ??
+            widget.groupData!['frequencyNumber']?.toString() ??
+            _frequency;
+        _stationName =
+            widget.groupData!['frequencyName'] ??
+            widget.groupData!['name'] ??
+            'Private ${_frequency} MHz';
+        _frequencyId = 'private_${widget.groupData!['frequencyNumber']}';
+
+        print('🔒 PRIVATE FREQUENCY JOINED');
+        print('📡 Frequency: $_frequency MHz');
+        print('📻 Station: $_stationName');
+        print('🔑 Frequency Number: ${widget.groupData!['frequencyNumber']}');
+      } else {
+        // Public frequency data
+        _frequency = widget.groupData!['frequency']?.toString() ?? _frequency;
+        _stationName = widget.groupData!['name'] ?? _stationName;
+        _frequencyId = widget.groupData!['frequencyId'];
+
+        print('📡 PUBLIC FREQUENCY JOINED');
+        print('📡 Frequency: $_frequency MHz');
+        print('📻 Station: $_stationName');
+        print('🆔 Frequency ID: $_frequencyId');
+      }
 
       _loadFrequencyData();
 
@@ -306,7 +332,8 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   Future<void> _refreshFrequencyData() async {
     if (_frequencyId != null) {
       try {
-        await _dialerService.loadFrequencies();
+        // Load just the current frequency by id to avoid loading the full list
+        await _dialerService.loadFrequencyById(_frequencyId!);
         _loadFrequencyData();
       } catch (e) {
         print('❌ Error refreshing frequency data: $e');
@@ -364,18 +391,30 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
       if (_currentFrequency != null &&
           _currentFrequency!.activeUsers.isNotEmpty) {
-        print('👥 Active users details:');
-        for (var user in _currentFrequency!.activeUsers) {
-          print(
-            '   - User: ${user.callSign ?? user.userName}, Avatar: ${user.avatar}',
-          );
+        print('👥 [DEBUG] Active users details:');
+        for (var i = 0; i < _currentFrequency!.activeUsers.length; i++) {
+          final user = _currentFrequency!.activeUsers[i];
+          print('   [User $i]');
+          print('      userId: ${user.userId}');
+          print('      userName: ${user.userName}');
+          print('      callSign: ${user.callSign}');
+          print('      avatar: ${user.avatar}');
+          print('      isTransmitting: ${user.isTransmitting}');
+          print('      signalStrength: ${user.signalStrength}');
         }
       }
 
       // Convert activeUsers to connectedUsers format for display
       _connectedUsers = _currentFrequency!.activeUsers.map((user) {
+        // Prefer userName over callSign for display
+        final displayName = user.userName ?? user.callSign ?? 'Unknown';
+        print(
+          '🔄 [MAPPING] userId: ${user.userId} → displayName: $displayName',
+        );
+        print('   userName: ${user.userName}, callSign: ${user.callSign}');
+
         return {
-          'name': user.callSign ?? user.userName ?? 'Unknown',
+          'name': displayName,
           'avatar': user.avatar ?? '📻',
           'isActive': user.isTransmitting,
           'signalStrength': user.signalStrength,
@@ -407,6 +446,31 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   }
 
   // ===== HELPER METHODS =====
+
+  Future<void> _loadCurrentUserId() async {
+    print('👤 [USER ID] Loading current user ID...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user');
+
+      print('👤 [USER ID] User data from storage: $userDataString');
+
+      if (userDataString != null) {
+        final userData = Map<String, dynamic>.from(
+          jsonDecode(userDataString) as Map,
+        );
+        setState(() {
+          _currentUserId = userData['id'] ?? userData['_id'];
+        });
+        print('✅ [USER ID] Current User ID loaded: $_currentUserId');
+        print('✅ [USER ID] User Name: ${userData['name']}');
+      } else {
+        print('❌ [USER ID] No user data found in storage');
+      }
+    } catch (e) {
+      print('❌ [USER ID] Error loading current user ID: $e');
+    }
+  }
 
   void _toggleMute() async {
     // Toggle LiveKit microphone
@@ -442,10 +506,26 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
       if (chatData != null) {
         final List<dynamic> decodedList = jsonDecode(chatData);
+
+        // Ensure current user ID is loaded
+        final currentUserId = _getCurrentUserId();
+        print('💾 [STORAGE] Current User ID for comparison: $currentUserId');
+
         setState(() {
-          _chatMessages = decodedList
-              .map((item) => Map<String, dynamic>.from(item as Map))
-              .toList();
+          _chatMessages = decodedList.map((item) {
+            final msg = Map<String, dynamic>.from(item as Map);
+
+            // Verify and fix the isMe flag based on current user ID
+            final senderId = msg['senderId'] ?? '';
+            final isMe = senderId == currentUserId;
+            msg['isMe'] = isMe;
+
+            print(
+              '💾 [STORAGE] Message from ${msg['senderName']}: isMe=$isMe (senderId=$senderId)',
+            );
+
+            return msg;
+          }).toList();
         });
         print(
           '✅ [STORAGE] Loaded ${_chatMessages.length} messages from storage',
@@ -845,7 +925,8 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                             crossAxisCount: 4,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
-                            childAspectRatio: 1,
+                            childAspectRatio:
+                                0.8, // Adjusted to fit name below avatar
                           ),
                       itemCount: _connectedUsers.length,
                       itemBuilder: (context, index) {
@@ -1253,28 +1334,51 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
   Widget _buildUserAvatar(Map<String, dynamic> user) {
     final isActive = user['isActive'] as bool;
+    final userName = user['name'] ?? 'Unknown';
 
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isActive
-              ? [
-                  const Color(0xFF00ff88).withOpacity(0.3),
-                  const Color(0xFF00aaff).withOpacity(0.3),
-                ]
-              : [const Color(0xFF333333), const Color(0xFF444444)],
+    print('🎨 [UI DISPLAY] Building avatar for: $userName');
+    print('   Full user data: $user');
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isActive
+                  ? [
+                      const Color(0xFF00ff88).withOpacity(0.3),
+                      const Color(0xFF00aaff).withOpacity(0.3),
+                    ]
+                  : [const Color(0xFF333333), const Color(0xFF444444)],
+            ),
+            border: Border.all(
+              color: isActive
+                  ? const Color(0xFF00ff88)
+                  : const Color(0xFF555555),
+              width: 2,
+            ),
+          ),
+          child: Center(
+            child: Text(user['avatar'], style: const TextStyle(fontSize: 24)),
+          ),
         ),
-        border: Border.all(
-          color: isActive ? const Color(0xFF00ff88) : const Color(0xFF555555),
-          width: 2,
+        const SizedBox(height: 4),
+        Text(
+          userName,
+          style: TextStyle(
+            color: isActive ? const Color(0xFF00ff88) : Colors.white60,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-      ),
-      child: Center(
-        child: Text(user['avatar'], style: const TextStyle(fontSize: 24)),
-      ),
+      ],
     );
   }
 

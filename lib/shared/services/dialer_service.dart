@@ -408,6 +408,93 @@ class DialerService extends ChangeNotifier {
     }
   }
 
+  /// Load a single frequency by its ID from backend and update local state
+  Future<void> loadFrequencyById(String id) async {
+    print('📥 [LOAD-FREQ] Loading single frequency by ID: $id');
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _frequencyRepo.getFrequencyById(id);
+      if (response.success && response.data != null) {
+        _currentFrequency = response.data!;
+
+        // update or insert into _frequencies
+        final index = _frequencies.indexWhere((f) => f.id == id);
+        if (index != -1) {
+          _frequencies[index] = _currentFrequency!;
+        } else {
+          _frequencies.add(_currentFrequency!);
+        }
+
+        print(
+          '✅ [LOAD-FREQ] Loaded frequency ${_currentFrequency!.frequency} MHz (id: ${_currentFrequency!.id})',
+        );
+      } else {
+        _error = response.message;
+        print(
+          '❌ [LOAD-FREQ] Failed to load frequency by id: ${response.message}',
+        );
+      }
+    } catch (e) {
+      _error = 'Failed to load frequency by id: $e';
+      if (kDebugMode) {
+        print('❌ Error loading frequency by id: $e');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Load a single frequency by exact value (uses min/max filters to request a tight range)
+  Future<void> loadFrequencyByValue(double frequencyValue) async {
+    print('📥 [LOAD-FREQ] Loading single frequency by value: $frequencyValue');
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Use minFrequency and maxFrequency equal to requested value to ask server for an exact match
+      final response = await _frequencyRepo.getAllFrequencies(
+        page: 1,
+        limit: 1,
+        minFrequency: frequencyValue,
+        maxFrequency: frequencyValue,
+      );
+
+      if (response.success &&
+          response.data != null &&
+          response.data!.isNotEmpty) {
+        final freq = response.data!.first;
+        _currentFrequency = freq;
+
+        final index = _frequencies.indexWhere((f) => f.id == freq.id);
+        if (index != -1) {
+          _frequencies[index] = freq;
+        } else {
+          _frequencies.add(freq);
+        }
+
+        print(
+          '✅ [LOAD-FREQ] Loaded frequency by value: ${freq.frequency} MHz (id: ${freq.id})',
+        );
+      } else {
+        _error = response.message;
+        print('❌ [LOAD-FREQ] Frequency not found for value $frequencyValue');
+      }
+    } catch (e) {
+      _error = 'Failed to load frequency by value: $e';
+      if (kDebugMode) {
+        print('❌ Error loading frequency by value: $e');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Get user count on frequency
   int getUserCountOnFrequency(double frequencyValue) {
     final freq = getFrequencyByValue(frequencyValue);

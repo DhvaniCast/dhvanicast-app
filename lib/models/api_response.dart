@@ -93,19 +93,19 @@ class AuthResponse {
 
 class OtpResponse {
   final String userId;
-  final String mobile;
+  final String email;
   final DateTime otpExpiresAt;
 
   OtpResponse({
     required this.userId,
-    required this.mobile,
+    required this.email,
     required this.otpExpiresAt,
   });
 
   factory OtpResponse.fromJson(Map<String, dynamic> json) {
     return OtpResponse(
       userId: json['userId'] ?? '',
-      mobile: json['mobile'] ?? '',
+      email: json['email'] ?? '',
       otpExpiresAt: DateTime.parse(json['otpExpiresAt']),
     );
   }
@@ -113,7 +113,7 @@ class OtpResponse {
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,
-      'mobile': mobile,
+      'email': email,
       'otpExpiresAt': otpExpiresAt.toIso8601String(),
     };
   }

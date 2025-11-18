@@ -17,12 +17,12 @@ class _DialerScreenState extends State<DialerScreen>
   late AnimationController _dialController;
   late DialerService _dialerService;
 
-  double _frequency = 450.0; // Changed to 320-650 range
+  double _frequency = 450.0; // Changed to 350-650 range
   bool _isConnected = false;
   bool _isAutoTune = false;
   bool _isRecording = false;
   double _volume = 0.7;
-  String _selectedBand = 'UHF'; // UHF for 320-650 MHz range
+  String _selectedBand = 'UHF'; // UHF for 350-650 MHz range
 
   @override
   void initState() {
@@ -34,7 +34,7 @@ class _DialerScreenState extends State<DialerScreen>
     print('🚀 DialerScreen: Initializing...');
 
     // Ensure frequency is within valid range
-    if (_frequency < 320.0 || _frequency > 650.0) {
+    if (_frequency < 350.0 || _frequency > 650.0) {
       _frequency = 450.0; // Reset to default UHF frequency
     }
 
@@ -145,9 +145,9 @@ class _DialerScreenState extends State<DialerScreen>
   void _switchBand() {
     setState(() {
       _selectedBand = _selectedBand == 'UHF' ? 'VHF' : 'UHF';
-      // Keep frequency within valid slider range (320-650 MHz)
+      // Keep frequency within valid slider range (350-650 MHz)
       if (_selectedBand == 'VHF') {
-        _frequency = 320.0; // Lowest UHF frequency for now
+        _frequency = 350.0; // Lowest UHF frequency for now
       } else {
         _frequency = 450.0; // UHF range
       }
@@ -197,7 +197,7 @@ class _DialerScreenState extends State<DialerScreen>
   void _quickFrequencySet(double freq) {
     setState(() {
       // Ensure frequency is within valid UHF range
-      if (freq >= 320.0 && freq <= 650.0) {
+      if (freq >= 350.0 && freq <= 650.0) {
         _frequency = freq;
       } else {
         _frequency = 450.0; // Default UHF frequency
@@ -629,14 +629,15 @@ class _DialerScreenState extends State<DialerScreen>
       );
     }
 
-    // Find the frequency in loaded data
+    // Find the frequency in loaded data with exact match (0.05 tolerance)
     final frequencyData = _dialerService.frequencies.firstWhere(
       (f) {
         final difference = (f.frequency - _frequency).abs();
         print(
           '🔍 [FREQUENCY-USERS] Checking freq ${f.frequency} MHz - Difference: $difference',
         );
-        return difference <= 0.5;
+        return difference <=
+            0.05; // Changed from 0.5 to 0.05 for exact 0.1 increments
       },
       orElse: () {
         print(
@@ -1084,19 +1085,55 @@ class _DialerScreenState extends State<DialerScreen>
       '🔗 Attempting to join frequency: ${_frequency.toStringAsFixed(1)} MHz',
     );
 
-    // First, reload frequencies to ensure we have the latest list (especially for static mode)
-    print('🔄 Reloading frequencies before join...');
-    await _dialerService.loadFrequencies(band: _selectedBand, isPublic: true);
-    print('✅ Frequencies reloaded: ${_dialerService.frequencies.length}');
+    // Load only the selected frequency by value (avoid fetching full list)
+    print('🔄 Loading single frequency by value before join...');
+    await _dialerService.loadFrequencyByValue(_frequency);
+    print(
+      '✅ loadFrequencyByValue complete. Frequencies in service: ${_dialerService.frequencies.length}',
+    );
 
-    // Find the frequency in loaded data
-    FrequencyModel? frequencyToJoin = _dialerService.frequencies
-        .where((f) => (f.frequency - _frequency).abs() <= 0.5)
-        .firstOrNull;
+    // Try currentFrequency first (service may have loaded exact item)
+    FrequencyModel? frequencyToJoin = _dialerService.currentFrequency;
+
+    // If not present, try to find by value in the cached list (small fallback)
+    if (frequencyToJoin == null) {
+      frequencyToJoin = _dialerService.frequencies
+          .where((f) => (f.frequency - _frequency).abs() <= 0.05)
+          .firstOrNull;
+    }
 
     print(
-      '🔍 Frequency search result: ${frequencyToJoin != null ? "FOUND (${frequencyToJoin.id})" : "NOT FOUND"}',
+      '🔍 Frequency search: Looking for ${_frequency.toStringAsFixed(1)} MHz',
     );
+    print(
+      '🔍 Frequency search result: ${frequencyToJoin != null ? "FOUND (${frequencyToJoin.id}, ${frequencyToJoin.frequency} MHz)" : "NOT FOUND"}',
+    );
+
+    // If not found with exact match, try to find closest frequency
+    if (frequencyToJoin == null && _dialerService.frequencies.isNotEmpty) {
+      print('⚠️ Exact match not found, searching for closest frequency...');
+
+      // Find the closest frequency
+      double minDiff = double.infinity;
+      FrequencyModel? closestFreq;
+
+      for (var freq in _dialerService.frequencies) {
+        double diff = (freq.frequency - _frequency).abs();
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestFreq = freq;
+        }
+      }
+
+      if (closestFreq != null && minDiff <= 0.5) {
+        frequencyToJoin = closestFreq;
+        print(
+          '✅ Using closest frequency: ${closestFreq.frequency} MHz (diff: $minDiff)',
+        );
+      } else {
+        print('❌ No suitable frequency found within 0.5 MHz range');
+      }
+    }
 
     showDialog(
       context: context,
@@ -1161,11 +1198,34 @@ class _DialerScreenState extends State<DialerScreen>
                       // Check if frequency exists
                       if (frequencyToJoin == null) {
                         Navigator.pop(context);
-                        print('❌ Frequency not found in static list');
+                        print('❌ Frequency not found in backend');
+                        print(
+                          '❌ Requested: ${_frequency.toStringAsFixed(1)} MHz',
+                        );
+                        print(
+                          '❌ Available frequencies: ${_dialerService.frequencies.length}',
+                        );
+
+                        // Show first few available frequencies for debugging
+                        if (_dialerService.frequencies.isNotEmpty) {
+                          print('📋 First 5 available:');
+                          for (
+                            var i = 0;
+                            i < 5 && i < _dialerService.frequencies.length;
+                            i++
+                          ) {
+                            print(
+                              '   - ${_dialerService.frequencies[i].frequency} MHz (${_dialerService.frequencies[i].id})',
+                            );
+                          }
+                        }
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Frequency ${_frequency.toStringAsFixed(1)} MHz is not available.\nPlease restart the backend server.',
+                              'Frequency ${_frequency.toStringAsFixed(1)} MHz not found.\n'
+                              'Available: ${_dialerService.frequencies.length} frequencies\n'
+                              'Backend may need restart.',
                             ),
                             backgroundColor: Colors.red,
                             duration: const Duration(seconds: 4),
@@ -1173,6 +1233,10 @@ class _DialerScreenState extends State<DialerScreen>
                         );
                         return;
                       }
+
+                      print(
+                        '✅ Joining frequency: ${frequencyToJoin.frequency} MHz (ID: ${frequencyToJoin.id})',
+                      );
 
                       // Now join the frequency
                       final success = await _dialerService.joinFrequency(
@@ -1630,111 +1694,170 @@ class _DialerScreenState extends State<DialerScreen>
                       ),
                       const SizedBox(height: 20),
 
-                      // Custom Frequency Scale
+                      // Horizontal Scrollable Frequency List
                       Container(
-                        height: 80,
+                        height: 200,
                         decoration: BoxDecoration(
                           color: const Color(0xFF1a1a1a),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF00ff88).withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
-                        child: CustomPaint(
-                          painter: AdvancedFrequencyScalePainter(_frequency),
-                          size: const Size(double.infinity, 80),
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount:
+                              3001, // 350.0 to 650.0 with 0.1 steps = 3001 items
+                          itemBuilder: (context, index) {
+                            final freq = 350.0 + (index * 0.1);
+                            final isSelected = (_frequency - freq).abs() < 0.05;
+                            final isMajor = freq % 10 == 0; // Every 10 MHz
+                            final isHalfMajor = freq % 5 == 0; // Every 5 MHz
+
+                            return GestureDetector(
+                              onTap: () {
+                                print(
+                                  '🎯 [FREQ] Selected: ${freq.toStringAsFixed(1)} MHz',
+                                );
+                                setState(() {
+                                  _frequency = freq;
+                                });
+                              },
+                              child: Container(
+                                width: 60,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFF00ff88)
+                                      : isMajor
+                                      ? const Color(0xFF2a2a2a)
+                                      : isHalfMajor
+                                      ? const Color(0xFF252525)
+                                      : const Color(0xFF1a1a1a),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF00ff88)
+                                        : isMajor
+                                        ? const Color(
+                                            0xFF00ff88,
+                                          ).withOpacity(0.3)
+                                        : const Color(
+                                            0xFF444444,
+                                          ).withOpacity(0.2),
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF00ff88,
+                                            ).withOpacity(0.4),
+                                            blurRadius: 10,
+                                            spreadRadius: 2,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // Frequency value
+                                    Text(
+                                      freq.toStringAsFixed(1),
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.black
+                                            : isMajor
+                                            ? const Color(0xFF00ff88)
+                                            : Colors.white70,
+                                        fontSize: isSelected
+                                            ? 18
+                                            : isMajor
+                                            ? 16
+                                            : 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : isMajor
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    // MHz label
+                                    Text(
+                                      'MHz',
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.black54
+                                            : const Color(0xFF888888),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Visual indicator bar
+                                    Container(
+                                      height: isMajor
+                                          ? 40
+                                          : isHalfMajor
+                                          ? 30
+                                          : 20,
+                                      width: 3,
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? Colors.black
+                                            : isMajor
+                                            ? const Color(0xFF00ff88)
+                                            : const Color(0xFF666666),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
 
                       const SizedBox(height: 20),
 
-                      // Circular Frequency Dial
-                      Container(
-                        height: 180,
-                        width: 180,
+                      // JOIN Button
+                      Center(
                         child: GestureDetector(
-                          onPanStart: (details) {
-                            // Store initial position for better tracking
-                          },
-                          onPanUpdate: (details) {
-                            // Get the center position of the dial widget
-                            RenderBox? box =
-                                context.findRenderObject() as RenderBox?;
-                            if (box == null) return;
-
-                            // Get the global position of the container
-                            Offset globalPosition = box.localToGlobal(
-                              Offset.zero,
-                            );
-
-                            // Calculate center of the dial in global coordinates
-                            double centerX =
-                                globalPosition.dx + 90; // Half of 180
-                            double centerY =
-                                globalPosition.dy + 90; // Half of 180
-
-                            // Calculate angle from center using global coordinates
-                            double dx = details.globalPosition.dx - centerX;
-                            double dy = details.globalPosition.dy - centerY;
-
-                            // Check if touch is within reasonable distance from center
-                            double distance = math.sqrt(dx * dx + dy * dy);
-                            if (distance < 30 || distance > 90)
-                              return; // Expanded touch area
-
-                            // Calculate angle - adjust for dial starting position
-                            double angle = math.atan2(dy, dx);
-                            // Convert to 0-360 degrees, starting from top (12 o'clock position)
-                            angle =
-                                angle +
-                                math.pi / 2; // Adjust for starting at top
-                            if (angle < 0) angle += 2 * math.pi;
-                            if (angle > 2 * math.pi) angle -= 2 * math.pi;
-
-                            // Convert angle to frequency (320-650 MHz range)
-                            double normalizedAngle = angle / (2 * math.pi);
-                            double newFrequency =
-                                320.0 + (normalizedAngle * 330.0);
-
-                            setState(() {
-                              _frequency = newFrequency.clamp(320.0, 650.0);
-                            });
-                          },
-                          child: CustomPaint(
-                            painter: CircularDialPainter(_frequency),
-                            child: Center(
-                              child: GestureDetector(
-                                onTap: _showJoinDialog,
-                                child: Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF00ff88),
-                                        Color(0xFF00cc6a),
-                                      ],
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF00ff88,
-                                        ).withOpacity(0.3),
-                                        blurRadius: 8,
-                                        spreadRadius: 1,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      'JOIN',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
+                          onTap: _showJoinDialog,
+                          child: Container(
+                            width: double.infinity,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF00ff88), Color(0xFF00cc6a)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF00ff88,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'JOIN FREQUENCY',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
                                 ),
                               ),
                             ),
@@ -1770,16 +1893,83 @@ class _DialerScreenState extends State<DialerScreen>
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _buildQuickFreqButton('350', 350.0)),
-                          const SizedBox(width: 10),
-                          Expanded(child: _buildQuickFreqButton('450', 450.0)),
-                          const SizedBox(width: 10),
-                          Expanded(child: _buildQuickFreqButton('550', 550.0)),
-                          const SizedBox(width: 10),
-                          Expanded(child: _buildQuickFreqButton('630', 630.0)),
-                        ],
+                      // Horizontal scrollable frequency list
+                      SizedBox(
+                        height: 70,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 3001, // 350.0 to 650.0 with 0.1 steps
+                          itemBuilder: (context, index) {
+                            final freq = 350.0 + (index * 0.1);
+                            final isSelected = (_frequency - freq).abs() < 0.05;
+
+                            return GestureDetector(
+                              onTap: () {
+                                print(
+                                  '🎯 [QUICK] Selected: ${freq.toStringAsFixed(1)} MHz',
+                                );
+                                _quickFrequencySet(freq);
+                              },
+                              child: Container(
+                                width: 65,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFF00ff88)
+                                      : const Color(0xFF333333),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF00ff88)
+                                        : const Color(0xFF555555),
+                                    width: 2,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF00ff88,
+                                            ).withOpacity(0.3),
+                                            blurRadius: 8,
+                                            spreadRadius: 1,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      freq.toStringAsFixed(1),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.black
+                                            : Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'MHz',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.black54
+                                            : Colors.white54,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -1787,7 +1977,7 @@ class _DialerScreenState extends State<DialerScreen>
 
                 const SizedBox(height: 20),
 
-                // Bottom Action Buttons (GROUPS, USERS)
+                // Bottom Action Buttons (GROUPS, USERS, PRIVATE FREQUENCY)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -1798,36 +1988,68 @@ class _DialerScreenState extends State<DialerScreen>
                       width: 1,
                     ),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _showActiveGroupsPopup,
-                          icon: const Icon(Icons.group, size: 18),
-                          label: const Text('GROUPS'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF444444),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            textStyle: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _showActiveGroupsPopup,
+                              icon: const Icon(Icons.group, size: 18),
+                              label: const Text('GROUPS'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF444444),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _showFrequencyUsersPopup,
+                              icon: const Icon(Icons.people, size: 18),
+                              label: const Text('USERS'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF444444),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
+                      const SizedBox(height: 12),
+                      // Private Frequency Button
+                      SizedBox(
+                        width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: _showFrequencyUsersPopup,
-                          icon: const Icon(Icons.people, size: 18),
-                          label: const Text('USERS'),
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/private-frequency');
+                          },
+                          icon: const Icon(Icons.lock, size: 18),
+                          label: const Text('PRIVATE FREQUENCY'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF444444),
-                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0xFF00ff88),
+                            foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             textStyle: const TextStyle(
                               fontSize: 14,
@@ -1851,63 +2073,9 @@ class _DialerScreenState extends State<DialerScreen>
       ),
     );
   }
-
-  Widget _buildQuickFreqButton(String label, double frequency) {
-    final isSelected = (_frequency - frequency).abs() < 1.0;
-
-    return GestureDetector(
-      onTap: () => _quickFrequencySet(frequency),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF00ff88) : const Color(0xFF333333),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF00ff88)
-                : const Color(0xFF555555),
-            width: 2,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF00ff88).withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isSelected ? Colors.black : Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'MHz',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isSelected ? Colors.black54 : Colors.white54,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
-// Advanced Frequency Scale Painter
+// Advanced Frequency Scale Painter (not used anymore, can be removed)
 class AdvancedFrequencyScalePainter extends CustomPainter {
   final double frequency;
 
@@ -1926,16 +2094,16 @@ class AdvancedFrequencyScalePainter extends CustomPainter {
         ..strokeWidth = 1,
     );
 
-    // Draw frequency scale from 320 to 650 MHz (UHF range)
-    const minFreq = 320;
-    const maxFreq = 650;
+    // Draw frequency scale from 350 to 650 MHz (UHF range)
+    const minFreq = 350.0;
+    const maxFreq = 650.0;
     const freqRange = maxFreq - minFreq;
 
-    // Calculate current frequency position to avoid overlapping text
+    // Calculate current frequency position
     final currentPos = ((frequency - minFreq) / freqRange) * size.width;
 
-    // Major marks every 50 MHz, minor marks every 10 MHz
-    for (int freq = minFreq; freq <= maxFreq; freq += 10) {
+    // Draw marks every 10 MHz (major) and every 1 MHz (minor visible only near current)
+    for (double freq = minFreq; freq <= maxFreq; freq += 10) {
       final position = ((freq - minFreq) / freqRange) * size.width;
       final isMajor = freq % 50 == 0;
 
@@ -1948,26 +2116,65 @@ class AdvancedFrequencyScalePainter extends CustomPainter {
           ..strokeWidth = isMajor ? 2 : 1,
       );
 
-      if (isMajor) {
-        // Check if this green label would overlap with red current frequency label
-        final distanceFromCurrent = (position - currentPos).abs();
+      // Distance from current position
+      final distanceFromCurrent = (position - currentPos).abs();
 
-        // Only draw green label if it's far enough from the red current frequency label
-        if (distanceFromCurrent > 30) {
-          // 30 pixels minimum distance
-          // Frequency numbers for major marks
+      if (isMajor && distanceFromCurrent > 40) {
+        // Draw major frequency labels (only if far from current)
+        textPainter.text = TextSpan(
+          text: freq.toInt().toString(),
+          style: const TextStyle(
+            color: Color(0xFF00ff88),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(position - textPainter.width / 2, size.height - 70),
+        );
+      }
+    }
+
+    // Draw fine marks (0.1 MHz increments) only near current frequency
+    // Show range: current - 2.0 MHz to current + 2.0 MHz (with fade effect)
+    for (double freq = frequency - 2.0; freq <= frequency + 2.0; freq += 0.1) {
+      if (freq < minFreq || freq > maxFreq) continue;
+
+      final position = ((freq - minFreq) / freqRange) * size.width;
+      final distanceFromCurrent = (freq - frequency).abs();
+
+      // Fade effect based on distance (stronger fade as you go further)
+      final opacity = (1.0 - (distanceFromCurrent / 2.0)).clamp(0.0, 1.0);
+
+      if (opacity > 0.05) {
+        // Draw the tick mark
+        final tickHeight = distanceFromCurrent < 0.5 ? 25.0 : 22.0;
+        canvas.drawLine(
+          Offset(position, size.height - tickHeight),
+          Offset(position, size.height - 20),
+          Paint()
+            ..color = Color(0xFF888888).withOpacity(opacity * 0.7)
+            ..strokeWidth = 1,
+        );
+
+        // Draw frequency label for every 0.5 MHz near current
+        if (freq % 0.5 == 0 &&
+            distanceFromCurrent <= 1.5 &&
+            distanceFromCurrent > 0.2) {
           textPainter.text = TextSpan(
-            text: freq.toString(),
-            style: const TextStyle(
-              color: Color(0xFF00ff88),
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+            text: freq.toStringAsFixed(1),
+            style: TextStyle(
+              color: Color(0xFF888888).withOpacity(opacity * 0.8),
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
             ),
           );
           textPainter.layout();
           textPainter.paint(
             canvas,
-            Offset(position - textPainter.width / 2, size.height - 70),
+            Offset(position - textPainter.width / 2, size.height - 60),
           );
         }
       }
@@ -2028,8 +2235,8 @@ class CircularDialPainter extends CustomPainter {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
     // Draw major frequency marks (every 50 MHz)
-    for (int freq = 320; freq <= 650; freq += 50) {
-      double angle = ((freq - 320) / 330) * 2 * math.pi - math.pi / 2;
+    for (int freq = 350; freq <= 650; freq += 50) {
+      double angle = ((freq - 350) / 300) * 2 * math.pi - math.pi / 2;
 
       // Major mark line
       double x1 = center.dx + (radius - 12) * math.cos(angle);
@@ -2063,10 +2270,10 @@ class CircularDialPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    for (int freq = 320; freq <= 650; freq += 10) {
-      if ((freq - 320) % 50 != 0) {
+    for (int freq = 350; freq <= 650; freq += 10) {
+      if ((freq - 350) % 50 != 0) {
         // Skip major marks
-        double angle = ((freq - 320) / 330) * 2 * math.pi - math.pi / 2;
+        double angle = ((freq - 350) / 300) * 2 * math.pi - math.pi / 2;
 
         double x1 = center.dx + (radius - 6) * math.cos(angle);
         double y1 = center.dy + (radius - 6) * math.sin(angle);
@@ -2078,7 +2285,7 @@ class CircularDialPainter extends CustomPainter {
     }
 
     // Draw current frequency indicator
-    double currentAngle = ((frequency - 320) / 330) * 2 * math.pi - math.pi / 2;
+    double currentAngle = ((frequency - 350) / 300) * 2 * math.pi - math.pi / 2;
 
     // Indicator line
     final indicatorPaint = Paint()

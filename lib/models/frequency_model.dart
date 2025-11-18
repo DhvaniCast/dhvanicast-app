@@ -30,8 +30,25 @@ class FrequencyModel {
   });
 
   factory FrequencyModel.fromJson(Map<String, dynamic> json) {
+    print('🔍 [FrequencyModel.fromJson] ==== PARSING FREQUENCY ====');
+    print('🔍 [FrequencyModel.fromJson] Frequency: ${json['frequency']} MHz');
+    print('🔍 [FrequencyModel.fromJson] ID: ${json['_id'] ?? json['id']}');
+
     // Backend returns 'connectedUsers', frontend uses 'activeUsers'
     final usersData = json['connectedUsers'] ?? json['activeUsers'];
+    print(
+      '🔍 [FrequencyModel.fromJson] Users data type: ${usersData?.runtimeType}',
+    );
+    print(
+      '🔍 [FrequencyModel.fromJson] Users count: ${usersData is List ? usersData.length : 0}',
+    );
+
+    if (usersData is List && usersData.isNotEmpty) {
+      print('🔍 [FrequencyModel.fromJson] RAW USERS DATA:');
+      for (var i = 0; i < usersData.length; i++) {
+        print('   [User $i] Raw JSON: ${usersData[i]}');
+      }
+    }
 
     return FrequencyModel(
       id: json['_id'] ?? json['id'] ?? '',
@@ -106,13 +123,44 @@ class FrequencyUser {
   });
 
   factory FrequencyUser.fromJson(Map<String, dynamic> json) {
+    print('🔍 [FrequencyUser.fromJson] Raw JSON: $json');
+
     final user = json['user'];
+    print('🔍 [FrequencyUser.fromJson] Extracted user: $user');
+    print('🔍 [FrequencyUser.fromJson] user is String: ${user is String}');
+    print('🔍 [FrequencyUser.fromJson] user is Map: ${user is Map}');
+
+    // Extract userId
+    final userId = user is String ? user : user?['_id'] ?? json['userId'] ?? '';
+
+    // Extract userName - check multiple sources in priority order:
+    // 1. Direct userName field (from backend activeUsers transformation)
+    // 2. user.name (if user is populated object)
+    // 3. fallback to null
+    String? userName = json['userName'];
+    if (userName == null && user is Map) {
+      userName = user['name'];
+    }
+
+    // Extract avatar - check both direct field and nested user object
+    String? avatar = json['avatar'];
+    if (avatar == null && user is Map) {
+      avatar = user['avatar'] ?? user['profile']?['avatar'];
+    }
+
+    final callSign = json['callSign'];
+
+    print('🔍 [FrequencyUser.fromJson] Parsed userId: $userId');
+    print('🔍 [FrequencyUser.fromJson] Parsed userName: $userName');
+    print('🔍 [FrequencyUser.fromJson] Parsed callSign: $callSign');
+    print('🔍 [FrequencyUser.fromJson] Parsed avatar: $avatar');
+
     return FrequencyUser(
-      userId: user is String ? user : user?['_id'] ?? json['userId'] ?? '',
-      userName: user is Map ? user['name'] : json['userName'],
-      callSign: json['callSign'],
+      userId: userId,
+      userName: userName,
+      callSign: callSign,
       location: json['location'],
-      avatar: json['avatar'],
+      avatar: avatar,
       signalStrength: json['signalStrength'] ?? 3,
       isTransmitting: json['isTransmitting'] ?? false,
       joinedAt: json['joinedAt'] != null

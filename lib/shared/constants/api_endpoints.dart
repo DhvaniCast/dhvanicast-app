@@ -46,7 +46,7 @@ class ApiEndpoints {
       case Environment.local:
         return '$_localServerUrl/api';
       case Environment.production:
-        return 'https://harborleaf-radio-backend.onrender.com/api';
+        return 'https://dhvanicast-backend-522772414506.europe-west1.run.app/api';
     }
   }
 

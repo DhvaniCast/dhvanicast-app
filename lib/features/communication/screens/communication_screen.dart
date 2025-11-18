@@ -104,14 +104,28 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         final List<dynamic> decodedList = jsonDecode(chatData);
         print('💾 [STORAGE] Decoded ${decodedList.length} messages');
 
+        // Ensure current user ID is loaded
+        final currentUserId = _getCurrentUserId();
+        print('💾 [STORAGE] Current User ID for comparison: $currentUserId');
+
         setState(() {
-          _messages = decodedList
-              .map((item) => Map<String, dynamic>.from(item as Map))
-              .toList();
+          _messages = decodedList.map((item) {
+            final msg = Map<String, dynamic>.from(item as Map);
+
+            // Verify and fix the isMe flag based on current user ID
+            final senderId = msg['senderId'] ?? '';
+            final isMe = senderId == currentUserId;
+            msg['isMe'] = isMe;
+
+            print(
+              '💾 [STORAGE] Message from ${msg['senderName']}: isMe=$isMe (senderId=$senderId)',
+            );
+
+            return msg;
+          }).toList();
         });
 
         print('✅ [STORAGE] Loaded ${_messages.length} messages from storage');
-        print('📋 [STORAGE] Messages: $_messages');
 
         // Scroll to bottom after loading
         Future.delayed(Duration(milliseconds: 100), _scrollToBottom);
@@ -271,7 +285,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         print('💬 Setting up FREQUENCY CHAT');
         _chatStorageKey = 'chat_$frequencyId';
         print('🔑 [STORAGE KEY] Set to: $_chatStorageKey');
-        _loadChatFromStorage(); // Load from local storage first
+
+        // Ensure user ID is loaded before loading chat
+        _ensureUserIdAndLoadChat();
+
         _setupFrequencyChat(frequencyId);
         _isInitialized = true;
         print('✅ [INIT] Frequency chat initialized');
@@ -279,7 +296,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         print('💬 Setting up GROUP CHAT');
         _chatStorageKey = 'chat_group_$groupId';
         print('🔑 [STORAGE KEY] Set to: $_chatStorageKey');
-        _loadChatFromStorage(); // Load from local storage first
+
+        // Ensure user ID is loaded before loading chat
+        _ensureUserIdAndLoadChat();
+
         _loadGroupData(groupId);
         _isInitialized = true;
         print('✅ [INIT] Group chat initialized');
@@ -287,6 +307,22 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         print('⚠️ No valid chat target found!');
       }
     }
+  }
+
+  // Ensure user ID is loaded before loading chat from storage
+  Future<void> _ensureUserIdAndLoadChat() async {
+    print('🔄 [ENSURE] Ensuring user ID is loaded...');
+
+    // If user ID is not loaded yet, wait for it
+    if (_currentUserId == null || _currentUserId!.isEmpty) {
+      print('⏳ [ENSURE] User ID not loaded yet, loading now...');
+      await _loadCurrentUserId();
+    }
+
+    print('✅ [ENSURE] User ID confirmed: $_currentUserId');
+
+    // Now load chat with correct user ID
+    await _loadChatFromStorage();
   }
 
   // Setup frequency chat
@@ -794,11 +830,8 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   void dispose() {
     print('🚪 [DISPOSE] CommunicationScreen disposing...');
 
-    // Clear chat from local storage when leaving frequency (fire and forget)
-    if (_chatStorageKey != null) {
-      print('🗑️ [DISPOSE] Clearing chat data for key: $_chatStorageKey');
-      _clearChatFromStorage();
-    }
+    // DON'T clear chat from local storage on dispose
+    // Messages will be cleared only when explicitly leaving the channel
 
     // Remove service listener
     _commService.removeListener(_onServiceUpdate);
@@ -1301,9 +1334,8 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Clear chat when user leaves the frequency screen
-        print('🔙 [BACK] Back button pressed - Clearing chat');
-        await _clearChatFromStorage();
+        // Don't clear chat when going back - messages will persist
+        print('🔙 [BACK] Back button pressed - Chat messages will be saved');
         return true;
       },
       child: Scaffold(
@@ -1312,10 +1344,11 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           backgroundColor: const Color(0xFF1a1a1a),
           elevation: 0,
           leading: IconButton(
-            onPressed: () async {
-              // Clear chat when user leaves the frequency screen
-              print('🔙 [BACK] Back arrow pressed - Clearing chat');
-              await _clearChatFromStorage();
+            onPressed: () {
+              // Don't clear chat when going back - messages will persist
+              print(
+                '🔙 [BACK] Back arrow pressed - Chat messages will be saved',
+              );
               Navigator.pop(context);
             },
             icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -1350,7 +1383,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
               margin: const EdgeInsets.only(right: 4),
               child: IconButton(
                 onPressed: () {
-                  // Emergency broadcast
+                  // Emergency broadcast - functionality already in EMG button below
                 },
                 icon: Container(
                   padding: const EdgeInsets.all(6),
@@ -1364,6 +1397,102 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                   ),
                   child: const Icon(
                     Icons.emergency,
+                    color: Color(0xFFff4444),
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+            // Leave Channel Button
+            Container(
+              margin: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                onPressed: () async {
+                  // Show confirmation dialog before leaving channel
+                  final shouldLeave = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: const Color(0xFF2a2a2a),
+                      title: const Row(
+                        children: [
+                          Icon(
+                            Icons.exit_to_app,
+                            color: Color(0xFFff4444),
+                            size: 24,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Leave Channel',
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
+                        ],
+                      ),
+                      content: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Are you sure you want to leave this channel?',
+                            style: TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '⚠️ All chat messages will be cleared',
+                            style: TextStyle(
+                              color: Color(0xFFffaa00),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text(
+                            'CANCEL',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFff4444),
+                          ),
+                          child: const Text(
+                            'LEAVE CHANNEL',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (shouldLeave == true) {
+                    print(
+                      '🔙 [LEAVE] User confirmed leaving channel - Clearing chat',
+                    );
+                    await _clearChatFromStorage();
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
+                },
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFff4444).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: const Color(0xFFff4444),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.exit_to_app,
                     color: Color(0xFFff4444),
                     size: 16,
                   ),

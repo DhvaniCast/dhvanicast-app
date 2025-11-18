@@ -39,11 +39,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (state is AuthProfileLoaded) {
       _nameController.text = state.user.name;
       _stateController.text = state.user.state;
-      _mobileController.text = state.user.mobile;
+      _mobileController.text = state.user.mobile ?? '';
     } else if (state is AuthSuccess) {
       _nameController.text = state.user.name;
       _stateController.text = state.user.state;
-      _mobileController.text = state.user.mobile;
+      _mobileController.text = state.user.mobile ?? '';
     }
   }
 
