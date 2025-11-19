@@ -16,12 +16,13 @@ class _DialerScreenState extends State<DialerScreen>
   late AnimationController _pulseController;
   late AnimationController _dialController;
   late DialerService _dialerService;
+  final ScrollController _frequencySelectorController = ScrollController();
+  final ScrollController _quickSelectController = ScrollController();
 
   double _frequency = 450.0; // Changed to 350-650 range
   bool _isConnected = false;
   bool _isAutoTune = false;
   bool _isRecording = false;
-  double _volume = 0.7;
   String _selectedBand = 'UHF'; // UHF for 350-650 MHz range
 
   @override
@@ -57,6 +58,11 @@ class _DialerScreenState extends State<DialerScreen>
 
     // Load initial data from API
     _loadInitialData();
+
+    // Scroll to current frequency after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentFrequency();
+    });
   }
 
   void _onServiceUpdate() {
@@ -114,7 +120,44 @@ class _DialerScreenState extends State<DialerScreen>
     _dialerService.removeListener(_onServiceUpdate);
     _pulseController.dispose();
     _dialController.dispose();
+    _frequencySelectorController.dispose();
+    _quickSelectController.dispose();
     super.dispose();
+  }
+
+  // Scroll to current frequency in the selector
+  void _scrollToCurrentFrequency() {
+    if (!_frequencySelectorController.hasClients ||
+        !_quickSelectController.hasClients)
+      return;
+
+    // Calculate the index of current frequency
+    final index = ((_frequency - 350.0) / 0.1).round();
+    final itemWidth = 64.0; // 60 width + 4 margin
+    final scrollPosition =
+        (index * itemWidth) -
+        (MediaQuery.of(context).size.width / 2) +
+        (itemWidth / 2);
+
+    // Scroll main selector
+    _frequencySelectorController.animateTo(
+      scrollPosition.clamp(
+        0.0,
+        _frequencySelectorController.position.maxScrollExtent,
+      ),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+
+    // Scroll quick select
+    _quickSelectController.animateTo(
+      scrollPosition.clamp(
+        0.0,
+        _quickSelectController.position.maxScrollExtent,
+      ),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
   }
 
   // Dynamic button functions
@@ -203,6 +246,8 @@ class _DialerScreenState extends State<DialerScreen>
         _frequency = 450.0; // Default UHF frequency
       }
     });
+    // Scroll to new frequency
+    _scrollToCurrentFrequency();
   }
 
   // Missing functions - Add back
@@ -1389,74 +1434,6 @@ class _DialerScreenState extends State<DialerScreen>
     );
   }
 
-  void _showVolumeControl() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: const Color(0xFF2a2a2a),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.volume_up, color: Color(0xFF00ff88)),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Volume Control',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Text('Volume:', style: TextStyle(color: Colors.white)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Slider(
-                      value: _volume,
-                      onChanged: (value) {
-                        setState(() {
-                          _volume = value;
-                        });
-                      },
-                      activeColor: const Color(0xFF00ff88),
-                      inactiveColor: const Color(0xFF444444),
-                    ),
-                  ),
-                  Text(
-                    '${(_volume * 100).round()}%',
-                    style: const TextStyle(color: Color(0xFF00ff88)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Close',
-                      style: TextStyle(color: Color(0xFF00ff88)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1556,7 +1533,7 @@ class _DialerScreenState extends State<DialerScreen>
 
                 const SizedBox(height: 20),
 
-                // Audio Controls Row
+                // Audio Controls Row (3 buttons - removed VOL button)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -1612,26 +1589,6 @@ class _DialerScreenState extends State<DialerScreen>
                             backgroundColor: _isRecording
                                 ? const Color(0xFFff4444)
                                 : const Color(0xFF444444),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _showVolumeControl,
-                          icon: const Icon(Icons.volume_up, size: 18),
-                          label: const Text('VOL'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF444444),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             textStyle: const TextStyle(
@@ -1706,6 +1663,7 @@ class _DialerScreenState extends State<DialerScreen>
                           ),
                         ),
                         child: ListView.builder(
+                          controller: _frequencySelectorController,
                           scrollDirection: Axis.horizontal,
                           itemCount:
                               3001, // 350.0 to 650.0 with 0.1 steps = 3001 items
@@ -1723,6 +1681,7 @@ class _DialerScreenState extends State<DialerScreen>
                                 setState(() {
                                   _frequency = freq;
                                 });
+                                _scrollToCurrentFrequency();
                               },
                               child: Container(
                                 width: 60,
@@ -1897,6 +1856,7 @@ class _DialerScreenState extends State<DialerScreen>
                       SizedBox(
                         height: 70,
                         child: ListView.builder(
+                          controller: _quickSelectController,
                           scrollDirection: Axis.horizontal,
                           itemCount: 3001, // 350.0 to 650.0 with 0.1 steps
                           itemBuilder: (context, index) {

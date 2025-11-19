@@ -35,6 +35,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   List<Map<String, dynamic>> _messages = [];
   List<Map<String, dynamic>> _activeUsers = [];
 
+  // Signal strength tracking
+  int _signalBars = 3;
+  String _signalQuality = 'Good';
+
   @override
   void initState() {
     super.initState();
@@ -569,6 +573,12 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           '✅ [SIG] Signal: ${data['signalBars']}/5 bars (${data['signalQuality']})',
         );
         print('✅ [SIG] Active users: ${data['activeUsers']}');
+
+        // Update signal state
+        setState(() {
+          _signalBars = data['signalBars'] ?? 3;
+          _signalQuality = data['signalQuality'] ?? 'Good';
+        });
 
         // Show signal info dialog
         showDialog(
@@ -1367,13 +1377,43 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                   fontSize: 16,
                 ),
               ),
-              Text(
-                '${_activeUsers.length} Active Units • Signal Strong',
-                style: const TextStyle(
-                  color: Color(0xFF00ff88),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${_activeUsers.length} Active Unit${_activeUsers.length != 1 ? 's' : ''}',
+                    style: const TextStyle(
+                      color: Color(0xFF00ff88),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.circle, size: 3, color: Colors.white54),
+                  const SizedBox(width: 6),
+                  ...List.generate(5, (index) {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 1.5),
+                      width: 2.5,
+                      height: 8 + (index * 1.5),
+                      decoration: BoxDecoration(
+                        color: index < _signalBars
+                            ? const Color(0xFF00ff88)
+                            : const Color(0xFF555555),
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    );
+                  }),
+                  const SizedBox(width: 4),
+                  Text(
+                    _signalQuality,
+                    style: const TextStyle(
+                      color: Color(0xFF00ff88),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

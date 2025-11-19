@@ -183,6 +183,7 @@ class WebSocketClient {
     String messageType = 'text',
     String? duration,
     String? audioUrl,
+    String? imageData,
   }) {
     if (kDebugMode) {
       print('\n💬 ===== SENDING FREQUENCY CHAT =====');
@@ -196,6 +197,9 @@ class WebSocketClient {
       }
       if (audioUrl != null) {
         print('🔗 Audio URL: $audioUrl');
+      }
+      if (imageData != null) {
+        print('🖼️ Image Data Length: ${imageData.length}');
       }
     }
 
@@ -213,6 +217,7 @@ class WebSocketClient {
       'messageType': messageType,
       if (duration != null) 'duration': duration,
       if (audioUrl != null) 'audioUrl': audioUrl,
+      if (imageData != null) 'imageData': imageData,
     };
 
     if (kDebugMode) {

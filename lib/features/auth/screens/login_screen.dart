@@ -304,27 +304,6 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                                       filled: true,
                                       fillColor: const Color(0xFF1a1a1a),
-                                      suffixIcon:
-                                          _emailController.text
-                                                  .trim()
-                                                  .isNotEmpty &&
-                                              !_isOtpSent
-                                          ? TextButton(
-                                              onPressed: _isLoading
-                                                  ? null
-                                                  : _sendOtp,
-                                              child: _isLoading
-                                                  ? const SizedBox(
-                                                      width: 16,
-                                                      height: 16,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                          ),
-                                                    )
-                                                  : const Text('Send OTP'),
-                                            )
-                                          : null,
                                     ),
                                     validator: (v) {
                                       if (v == null || v.trim().isEmpty)
@@ -334,9 +313,6 @@ class _LoginScreenState extends State<LoginScreen>
                                       ).hasMatch(v.trim()))
                                         return 'Enter valid email';
                                       return null;
-                                    },
-                                    onChanged: (value) {
-                                      setState(() {});
                                     },
                                     style: const TextStyle(color: Colors.white),
                                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../injection.dart';
 import '../../../models/frequency_model.dart';
 import '../../../core/websocket_client.dart';
@@ -28,11 +29,16 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
   bool _isMuted = false;
   bool _isConnected = true;
-  double _volume = 0.8;
+  bool _isSpeakerOn =
+      true; // Speaker output mode (true = loudspeaker, false = earpiece)
   String _frequency = "505.1";
   String _stationName = "Dhvani Cast Station";
   String? _frequencyId;
   bool _showChat = false;
+
+  // Signal strength tracking
+  int _signalBars = 3;
+  String _signalQuality = 'Good';
 
   FrequencyModel? _currentFrequency;
   List<Map<String, dynamic>> _connectedUsers = [];
@@ -155,6 +161,16 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       print('🎙️ [LiveKit] Initializing for frequency: $_frequencyId');
       print('👤 [LiveKit] User: $userName');
 
+      // Enable wakelock to keep audio working when screen is off
+      try {
+        await WakelockPlus.enable();
+        print(
+          '🔓 [LiveKit] Wakelock enabled - audio will work with screen off',
+        );
+      } catch (e) {
+        print('⚠️ [LiveKit] Could not enable wakelock: $e');
+      }
+
       // Connect to LiveKit
       await _livekitService.connectToFrequency(_frequencyId!, userName, token);
 
@@ -222,6 +238,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
             'senderName': data['sender']['name'],
             'senderAvatar': data['sender']['avatar'] ?? '👤',
             'message': data['message'],
+            'imageData': data['imageData'], // Add image data support
             'timestamp': data['timestamp'],
             'isMe': isMe,
           };
@@ -263,6 +280,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
             'senderName': msg['sender']['name'],
             'senderAvatar': msg['sender']['avatar'] ?? '👤',
             'message': msg['message'],
+            'imageData': msg['imageData'], // Add image data support
             'timestamp': msg['timestamp'],
             'isMe': msg['sender']['id'] == _getCurrentUserId(),
           };
@@ -421,6 +439,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         };
       }).toList();
 
+      // Update signal strength based on user count and average strength
+      _updateSignalStrength();
+
       print(
         '✅ Current frequency users: ${_currentFrequency?.activeUsers.length ?? 0}',
       );
@@ -428,6 +449,28 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       setState(() {});
     } else {
       print('❌ Frequency ID is null!');
+    }
+  }
+
+  void _updateSignalStrength() {
+    if (_connectedUsers.isEmpty) {
+      _signalBars = 1;
+      _signalQuality = 'Poor';
+    } else if (_connectedUsers.length == 1) {
+      _signalBars = 1;
+      _signalQuality = 'Poor';
+    } else if (_connectedUsers.length == 2) {
+      _signalBars = 2;
+      _signalQuality = 'Fair';
+    } else if (_connectedUsers.length == 3) {
+      _signalBars = 3;
+      _signalQuality = 'Good';
+    } else if (_connectedUsers.length == 4) {
+      _signalBars = 4;
+      _signalQuality = 'Strong';
+    } else {
+      _signalBars = 5;
+      _signalQuality = 'Excellent';
     }
   }
 
@@ -441,6 +484,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
     // Disconnect from LiveKit
     _livekitService.disconnect();
+
+    // Disable wakelock when leaving
+    WakelockPlus.disable();
 
     super.dispose();
   }
@@ -481,6 +527,32 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     });
 
     print('🎤 [LiveKit] Mic ${_isMuted ? 'muted' : 'unmuted'}');
+  }
+
+  void _toggleSpeaker() async {
+    // Toggle speaker output between loudspeaker and earpiece
+    await _livekitService.setSpeakerPhone(!_isSpeakerOn);
+
+    setState(() {
+      _isSpeakerOn = !_isSpeakerOn;
+    });
+
+    print(
+      '🔊 [LiveKit] Audio output: ${_isSpeakerOn ? 'Loudspeaker' : 'Earpiece'}',
+    );
+
+    // Show feedback to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isSpeakerOn
+              ? '🔊 Switched to Loudspeaker'
+              : '📱 Switched to Earpiece',
+        ),
+        duration: Duration(seconds: 1),
+        backgroundColor: Color(0xFF00aaff),
+      ),
+    );
   }
 
   String _getCurrentUserId() {
@@ -891,12 +963,54 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
           onPressed: _leaveChannel,
           icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
-        title: Text(
-          'Radio Frequency $_frequency',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Column(
+          children: [
+            Text(
+              'Radio Frequency $_frequency',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${_connectedUsers.length} Active User${_connectedUsers.length != 1 ? 's' : ''}',
+                  style: const TextStyle(
+                    color: Color(0xFF00ff88),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.circle, size: 4, color: Colors.white54),
+                const SizedBox(width: 8),
+                ...List.generate(5, (index) {
+                  return Container(
+                    margin: const EdgeInsets.only(right: 1.5),
+                    width: 2.5,
+                    height: 8 + (index * 1.5),
+                    decoration: BoxDecoration(
+                      color: index < _signalBars
+                          ? const Color(0xFF00ff88)
+                          : const Color(0xFF555555),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 4),
+                Text(
+                  _signalQuality,
+                  style: const TextStyle(
+                    color: Color(0xFF00ff88),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         centerTitle: true,
         actions: [
@@ -1082,16 +1196,18 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                             onPressed: _openChat,
                           ),
                           _buildControlButton(
-                            icon: Icons.volume_up,
-                            label: 'Volume',
+                            icon: _isSpeakerOn
+                                ? Icons.volume_up
+                                : Icons.phone_in_talk,
+                            label: _isSpeakerOn ? 'Speaker' : 'Earpiece',
                             color: const Color(0xFF00aaff),
-                            onPressed: _showVolumeControl,
+                            onPressed: _toggleSpeaker,
                           ),
                           _buildControlButton(
-                            icon: Icons.settings,
-                            label: 'Settings',
-                            color: const Color(0xFFffaa00),
-                            onPressed: _showSettings,
+                            icon: Icons.exit_to_app,
+                            label: 'Disconnect',
+                            color: const Color(0xFFff4444),
+                            onPressed: _leaveChannel,
                           ),
                         ],
                       ),
@@ -1416,150 +1532,6 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     );
   }
 
-  void _showVolumeControl() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: const Color(0xFF2a2a2a),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.volume_up, color: Color(0xFF00aaff)),
-                  SizedBox(width: 12),
-                  Text(
-                    'Volume Control',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Text('Volume:', style: TextStyle(color: Colors.white)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Slider(
-                      value: _volume,
-                      onChanged: (value) {
-                        setState(() {
-                          _volume = value;
-                        });
-                      },
-                      activeColor: const Color(0xFF00aaff),
-                      inactiveColor: const Color(0xFF555555),
-                    ),
-                  ),
-                  Text(
-                    '${(_volume * 100).round()}%',
-                    style: const TextStyle(color: Color(0xFF00aaff)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Close',
-                      style: TextStyle(color: Color(0xFF00aaff)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showSettings() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: const Color(0xFF2a2a2a),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.settings, color: Color(0xFFffaa00)),
-                  SizedBox(width: 12),
-                  Text(
-                    'Radio Settings',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(
-                  Icons.notifications,
-                  color: Color(0xFFffaa00),
-                ),
-                title: const Text(
-                  'Notifications',
-                  style: TextStyle(color: Colors.white),
-                ),
-                trailing: Switch(
-                  value: true,
-                  onChanged: (value) {},
-                  activeColor: const Color(0xFFffaa00),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.record_voice_over,
-                  color: Color(0xFFffaa00),
-                ),
-                title: const Text(
-                  'Auto Voice Detection',
-                  style: TextStyle(color: Colors.white),
-                ),
-                trailing: Switch(
-                  value: false,
-                  onChanged: (value) {},
-                  activeColor: const Color(0xFFffaa00),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Close',
-                      style: TextStyle(color: Color(0xFFffaa00)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // Build chat message bubble
   Widget _buildChatMessage(Map<String, dynamic> message) {
     print('🎨 [BUILD MESSAGE] Building message bubble...');
@@ -1570,6 +1542,8 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     final String senderAvatar = message['senderAvatar'] ?? '👤';
     final String messageText = message['message'] ?? '';
     final String timestamp = message['timestamp'] ?? '';
+    final String? imageData = message['imageData'];
+    final bool hasImage = imageData != null && imageData.isNotEmpty;
 
     print('🎨 [BUILD MESSAGE] isMe: $isMe');
     print('🎨 [BUILD MESSAGE] senderName: $senderName');
@@ -1671,10 +1645,36 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        messageText,
-                        style: TextStyle(color: Colors.white, fontSize: 15),
-                      ),
+                      // Display image if present
+                      if (hasImage) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.memory(
+                            base64Decode(imageData),
+                            width: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 200,
+                                height: 150,
+                                color: Colors.grey[800],
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey[600],
+                                  size: 48,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        if (messageText.isNotEmpty) SizedBox(height: 8),
+                      ],
+                      // Display text message
+                      if (messageText.isNotEmpty)
+                        Text(
+                          messageText,
+                          style: TextStyle(color: Colors.white, fontSize: 15),
+                        ),
                       if (timeString.isNotEmpty) ...[
                         SizedBox(height: 4),
                         Text(

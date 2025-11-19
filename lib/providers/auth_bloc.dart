@@ -189,7 +189,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (!_authService.isValidEmail(event.email)) {
         emit(
           AuthError(
-            message: 'Invalid email address',
+            message: 'Invalid credentials',
             field: 'email',
             statusCode: 400,
           ),
@@ -200,7 +200,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (!_authService.isValidOtp(event.otp)) {
         emit(
           AuthError(
-            message: 'Please enter a valid 6-digit OTP',
+            message: 'Invalid credentials',
             field: 'otp',
             statusCode: 400,
           ),
@@ -223,13 +223,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
       } else {
         emit(
-          AuthError(message: response.message, statusCode: response.statusCode),
+          AuthError(
+            message: 'Invalid credentials',
+            statusCode: response.statusCode,
+          ),
         );
       }
     } on ApiException catch (e) {
+      // Don't auto-logout on 401 - just show error message
       emit(
         AuthError(
-          message: e.userFriendlyMessage,
+          message: e.statusCode == 401 || e.statusCode == 400
+              ? 'Invalid credentials'
+              : e.userFriendlyMessage,
           statusCode: e.statusCode,
           errors: e.errors,
         ),

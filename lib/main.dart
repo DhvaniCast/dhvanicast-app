@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
     return BlocProvider<AuthBloc>(
       create: (context) => getIt<AuthBloc>(),
       child: MaterialApp(
-        title: 'Harborleaf Radio',
+        title: 'Dhvanicast',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF667eea)),
           useMaterial3: true,

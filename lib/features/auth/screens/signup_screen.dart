@@ -321,7 +321,7 @@ class _SignupScreenState extends State<SignupScreen>
                               ),
                               const SizedBox(height: 16),
                               const Text(
-                                'Join HarborLeaf',
+                                'Join Dhvanicast',
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,

@@ -300,6 +300,19 @@ class LiveKitService {
     }
   }
 
+  /// Set speaker phone mode (loudspeaker vs earpiece)
+  Future<void> setSpeakerPhone(bool enabled) async {
+    try {
+      // Use Hardware API to control speaker phone
+      await Hardware.instance.setSpeakerphoneOn(enabled);
+      print(
+        '🔊 [LiveKit] Speaker phone ${enabled ? 'enabled (loudspeaker)' : 'disabled (earpiece)'}',
+      );
+    } catch (e) {
+      print('❌ [LiveKit] Set speaker phone error: $e');
+    }
+  }
+
   /// Disconnect from LiveKit
   Future<void> disconnect() async {
     try {

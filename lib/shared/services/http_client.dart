@@ -267,7 +267,7 @@ class ApiException implements Exception {
       case 400:
         return 'Invalid request. Please check your input.';
       case 401:
-        return 'Session expired. Please login again.';
+        return 'Please check your connection and try again.'; // Changed to avoid auto-logout
       case 403:
         return 'You are not authorized to perform this action.';
       case 404:

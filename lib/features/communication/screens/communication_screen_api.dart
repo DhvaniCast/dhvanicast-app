@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:harborleaf_radio_app/injection.dart';
 import 'package:harborleaf_radio_app/shared/services/communication_service.dart';
 import 'package:harborleaf_radio_app/shared/services/audio_service.dart';
@@ -640,6 +641,95 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     _scrollToBottom();
   }
 
+  // Pick and send image
+  Future<void> _pickAndSendImage() async {
+    print('📷 [IMAGE] Picking image...');
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        print('📷 [IMAGE] Image selected: ${image.path}');
+        await _sendImageMessage(image);
+      } else {
+        print('📷 [IMAGE] No image selected');
+      }
+    } catch (e) {
+      print('❌ [IMAGE] Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Send image message
+  Future<void> _sendImageMessage(XFile image) async {
+    print('📤 [SEND IMAGE] ===== SENDING IMAGE MESSAGE =====');
+
+    try {
+      // Read image file
+      final File imageFile = File(image.path);
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      print('📷 [SEND IMAGE] Image path: ${image.path}');
+      print('📏 [SEND IMAGE] Image size: ${bytes.length} bytes');
+      print('🔤 [SEND IMAGE] Base64 length: ${base64Image.length}');
+
+      // Get frequency ID
+      final type = groupData?['type'] as String?;
+      final frequencyId = groupData?['frequencyId'] as String?;
+
+      if (type != 'frequency' || frequencyId == null) {
+        print('❌ [SEND IMAGE] Not a frequency chat or no frequency ID');
+        return;
+      }
+
+      print('📡 [SEND IMAGE] Frequency ID: $frequencyId');
+
+      // Send via WebSocket with image data
+      final wsClient = getIt<WebSocketClient>();
+      wsClient.sendFrequencyChat(
+        frequencyId,
+        'Image',
+        messageType: 'image',
+        imageData: base64Image,
+      );
+
+      print('📡 [SEND IMAGE] WebSocket message sent with image data');
+      print('✅ [SEND IMAGE] ===== IMAGE MESSAGE SENT =====');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image sent successfully!'),
+            backgroundColor: Color(0xFF00ff88),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [SEND IMAGE] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -1123,6 +1213,29 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                           ),
                           maxLines: null,
                           onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // Image Attachment Button
+                    GestureDetector(
+                      onTap: _pickAndSendImage,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2a2a2a),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: const Color(0xFF00aaff).withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.image,
+                          color: Color(0xFF00aaff),
+                          size: 20,
                         ),
                       ),
                     ),

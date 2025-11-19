@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'dart:async';
 import '../services/private_frequency_service.dart';
 
 class PrivateFrequencyScreen extends StatefulWidget {
@@ -12,6 +13,45 @@ class PrivateFrequencyScreen extends StatefulWidget {
 
 class _PrivateFrequencyScreenState extends State<PrivateFrequencyScreen> {
   String? _selectedOption; // 'create' ya 'join'
+  List<Map<String, dynamic>> _activeFrequencies = [];
+  bool _isLoadingFrequencies = true;
+  final PrivateFrequencyService _apiService = PrivateFrequencyService();
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActiveFrequencies();
+    // Refresh every minute to update countdown
+    _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) _loadActiveFrequencies();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadActiveFrequencies() async {
+    try {
+      final frequencies = await _apiService.getMyFrequencies();
+      if (mounted) {
+        setState(() {
+          _activeFrequencies = frequencies;
+          _isLoadingFrequencies = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading active frequencies: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingFrequencies = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,29 +81,60 @@ class _PrivateFrequencyScreenState extends State<PrivateFrequencyScreen> {
 
   // Initial option selection screen
   Widget _buildOptionSelection() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Active Frequencies Section
+          if (_activeFrequencies.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.radio, color: Color(0xFF00ff88), size: 24),
+                const SizedBox(width: 12),
+                const Text(
+                  'Active Frequencies',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ..._activeFrequencies.map(
+              (freq) => _buildActiveFrequencyCard(freq),
+            ),
+            const SizedBox(height: 32),
+            const Divider(color: Color(0xFF333333), thickness: 1),
+            const SizedBox(height: 32),
+          ],
+
           // Header
-          const Icon(Icons.lock, size: 80, color: Color(0xFF00ff88)),
-          const SizedBox(height: 24),
-          const Text(
-            'Private Frequency',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          Center(
+            child: Column(
+              children: [
+                const Icon(Icons.lock, size: 80, color: Color(0xFF00ff88)),
+                const SizedBox(height: 24),
+                const Text(
+                  'Private Frequency',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Create your own secure frequency or join an existing one',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(height: 48),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Create your own secure frequency or join an existing one',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 48),
 
           // Create Frequency Button
           _buildOptionCard(
@@ -90,6 +161,175 @@ class _PrivateFrequencyScreenState extends State<PrivateFrequencyScreen> {
                 _selectedOption = 'join';
               });
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build active frequency card with countdown timer
+  Widget _buildActiveFrequencyCard(Map<String, dynamic> freq) {
+    // Calculate remaining time
+    final expiresAt = DateTime.parse(freq['expiresAt']);
+    final now = DateTime.now();
+    final remaining = expiresAt.difference(now);
+
+    final hours = remaining.inHours;
+    final minutes = remaining.inMinutes % 60;
+
+    final isExpired = remaining.isNegative;
+    final timeString = isExpired
+        ? 'Expired'
+        : '${hours}h ${minutes}m remaining';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isExpired
+              ? [const Color(0xFF2a2a2a), const Color(0xFF1a1a1a)]
+              : [
+                  const Color(0xFF00ff88).withOpacity(0.1),
+                  const Color(0xFF00aaff).withOpacity(0.1),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isExpired
+              ? const Color(0xFF444444)
+              : const Color(0xFF00ff88).withOpacity(0.5),
+          width: 2,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Frequency Icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isExpired
+                  ? const Color(0xFF444444).withOpacity(0.3)
+                  : const Color(0xFF00ff88).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.lock,
+              color: isExpired
+                  ? const Color(0xFF666666)
+                  : const Color(0xFF00ff88),
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // Frequency Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  freq['name'] ?? 'Private Frequency',
+                  style: TextStyle(
+                    color: isExpired ? Colors.white60 : Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${freq['frequencyValue']} MHz',
+                  style: TextStyle(
+                    color: isExpired ? Colors.white38 : const Color(0xFF00ff88),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '#${freq['frequencyNumber']}',
+                  style: TextStyle(
+                    color: isExpired ? Colors.white30 : Colors.white54,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Timer and Join Button
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isExpired
+                      ? const Color(0xFF444444).withOpacity(0.3)
+                      : const Color(0xFF00ff88).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isExpired ? Icons.timer_off : Icons.timer,
+                      color: isExpired
+                          ? const Color(0xFF666666)
+                          : const Color(0xFF00ff88),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      timeString,
+                      style: TextStyle(
+                        color: isExpired
+                            ? const Color(0xFF666666)
+                            : const Color(0xFF00ff88),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (!isExpired)
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to live radio with this frequency
+                    Navigator.pushNamed(
+                      context,
+                      '/live_radio',
+                      arguments: {
+                        'frequencyNumber': freq['frequencyNumber'],
+                        'frequencyValue': freq['frequencyValue'],
+                        'frequencyName': freq['name'],
+                        'isPrivate': true,
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'JOIN',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
