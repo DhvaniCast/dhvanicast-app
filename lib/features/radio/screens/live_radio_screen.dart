@@ -52,6 +52,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   String? _currentUserId; // Store current user ID
   String? _chatStorageKey; // Unique key for storing chat messages
 
+  // Private frequency users list
+  List<FrequencyUser> _privateFrequencyUsers = [];
+
   @override
   void initState() {
     super.initState();
@@ -94,21 +97,66 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       final isPrivate = widget.groupData!['isPrivate'] ?? false;
 
       if (isPrivate) {
-        // Private frequency data
+        // ================= PRIVATE FREQUENCY INITIALIZATION =================
+        print('🔒 [PRIVATE INIT] Starting private frequency initialization');
+        // Prefer explicit backend id if provided by API response
+        final backendId =
+            widget.groupData!['frequencyId'] ?? widget.groupData!['_id'];
+        final frequencyNumber = widget.groupData!['frequencyNumber'];
         _frequency =
             widget.groupData!['frequencyValue']?.toString() ??
-            widget.groupData!['frequencyNumber']?.toString() ??
+            frequencyNumber?.toString() ??
             _frequency;
         _stationName =
             widget.groupData!['frequencyName'] ??
             widget.groupData!['name'] ??
             'Private ${_frequency} MHz';
-        _frequencyId = 'private_${widget.groupData!['frequencyNumber']}';
+        // Use backend id when available; otherwise synthetic id with prefix
+        _frequencyId = backendId != null
+            ? backendId.toString()
+            : 'private_${frequencyNumber}';
 
-        print('🔒 PRIVATE FREQUENCY JOINED');
-        print('📡 Frequency: $_frequency MHz');
-        print('📻 Station: $_stationName');
-        print('🔑 Frequency Number: ${widget.groupData!['frequencyNumber']}');
+        print('🔒 [PRIVATE INIT] frequencyNumber: $frequencyNumber');
+        print('🔒 [PRIVATE INIT] backendId: $backendId');
+        print('🔒 [PRIVATE INIT] assigned _frequencyId: $_frequencyId');
+        print('📡 [PRIVATE INIT] Frequency: $_frequency MHz');
+        print('📻 [PRIVATE INIT] Station: $_stationName');
+
+        // Initialize private users if available in groupData
+        if (widget.groupData!['members'] != null) {
+          try {
+            final membersRaw = widget.groupData!['members'];
+            print(
+              '👥 [PRIVATE INIT] Raw members data type: ${membersRaw.runtimeType}',
+            );
+            final members = membersRaw as List;
+            _privateFrequencyUsers = members.map((m) {
+              // Handle both GroupMember JSON and simple user JSON
+              final user = m is Map ? (m['user'] ?? m) : {};
+              final uid = user['_id'] ?? user['id'] ?? '';
+              final uname = user['name'] ?? user['userName'] ?? 'Unknown';
+              final avatar = user['avatar'] ?? '📻';
+              print(
+                '🔄 [PRIVATE INIT] Mapping member -> userId=$uid name=$uname avatar=$avatar',
+              );
+              return FrequencyUser(
+                userId: uid,
+                userName: uname,
+                avatar: avatar,
+                joinedAt: DateTime.now(),
+                isTransmitting: false,
+                signalStrength: 3,
+              );
+            }).toList();
+            print(
+              '👥 [PRIVATE INIT] Mapped ${_privateFrequencyUsers.length} private users',
+            );
+          } catch (e) {
+            print('❌ [PRIVATE INIT] Error initializing private users: $e');
+          }
+        } else {
+          print('⚠️ [PRIVATE INIT] No members array found in groupData');
+        }
       } else {
         // Public frequency data
         _frequency = widget.groupData!['frequency']?.toString() ?? _frequency;
@@ -188,19 +236,54 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   void _setupWebSocketListeners() {
     final wsClient = getIt<WebSocketClient>();
 
+    bool _isSameFrequency(dynamic freqData) {
+      if (freqData == null) return false;
+      final dataId = freqData['id'] ?? freqData['_id'];
+      final dataNumber = freqData['frequencyNumber'];
+      final matchesId = (dataId != null && dataId.toString() == _frequencyId);
+      // For synthetic private id (private_<number>) also allow matching by number
+      final isSyntheticPrivate = _frequencyId?.startsWith('private_') ?? false;
+      final syntheticNumber = isSyntheticPrivate
+          ? _frequencyId!.replaceFirst('private_', '')
+          : null;
+      final matchesNumber =
+          isSyntheticPrivate &&
+          dataNumber != null &&
+          dataNumber.toString() == syntheticNumber;
+      final result = matchesId || matchesNumber;
+      print(
+        '🧪 [FREQ MATCH] dataId=$dataId dataNumber=$dataNumber synthetic=$syntheticNumber -> result=$result',
+      );
+      return result;
+    }
+
     // Listen for user joined events
     wsClient.on('user_joined_frequency', (data) {
-      print('🔔 User joined frequency: $data');
-      if (data['frequency']?['id'] == _frequencyId) {
+      print('🔔 [WS] User joined frequency event: $data');
+      if (_isSameFrequency(data['frequency'])) {
+        print('✅ [WS] Event matches current frequency');
+        if (_frequencyId != null && _frequencyId!.startsWith('private_')) {
+          _handlePrivateUserJoin(data);
+        }
         _refreshFrequencyData();
+      } else {
+        print('⛔ [WS] Event does not match current frequencyId=$_frequencyId');
       }
     });
 
     // Listen for user left events
     wsClient.on('user_left_frequency', (data) {
-      print('🔔 User left frequency: $data');
-      if (data['frequency']?['id'] == _frequencyId) {
+      print('🔔 [WS] User left frequency event: $data');
+      if (_isSameFrequency(data['frequency'])) {
+        print('✅ [WS] Leave event matches current frequency');
+        if (_frequencyId != null && _frequencyId!.startsWith('private_')) {
+          _handlePrivateUserLeave(data);
+        }
         _refreshFrequencyData();
+      } else {
+        print(
+          '⛔ [WS] Leave event does not match current frequencyId=$_frequencyId',
+        );
       }
     });
 
@@ -349,6 +432,12 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
   Future<void> _refreshFrequencyData() async {
     if (_frequencyId != null) {
+      // For private frequencies, we don't fetch from API as they might not be in the public list
+      if (_frequencyId!.startsWith('private_')) {
+        _loadFrequencyData();
+        return;
+      }
+
       try {
         // Load just the current frequency by id to avoid loading the full list
         await _dialerService.loadFrequencyById(_frequencyId!);
@@ -389,13 +478,18 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
           return f.id == _frequencyId;
         },
         orElse: () {
-          print('❌ Frequency not found in service! Creating fallback...');
+          print(
+            '❌ [LOAD] Frequency not found in service! Creating private/public fallback model',
+          );
+          final activeUsers = _frequencyId!.startsWith('private_')
+              ? _privateFrequencyUsers
+              : <FrequencyUser>[];
           return FrequencyModel(
             id: _frequencyId!,
             frequency: double.tryParse(_frequency) ?? 505.1,
             band: 'UHF',
-            isPublic: true,
-            activeUsers: [],
+            isPublic: !_frequencyId!.startsWith('private_'),
+            activeUsers: activeUsers,
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           );
@@ -474,6 +568,49 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     }
   }
 
+  void _handlePrivateUserJoin(dynamic data) {
+    try {
+      final user = data['user'];
+      if (user != null) {
+        final newUser = FrequencyUser(
+          userId: user['_id'] ?? user['id'] ?? '',
+          userName: user['name'] ?? 'Unknown',
+          avatar: user['avatar'],
+          joinedAt: DateTime.now(),
+          isTransmitting: false,
+          signalStrength: 3,
+        );
+
+        // Check if user already exists
+        final index = _privateFrequencyUsers.indexWhere(
+          (u) => u.userId == newUser.userId,
+        );
+        if (index == -1) {
+          setState(() {
+            _privateFrequencyUsers.add(newUser);
+          });
+          print('✅ Added user to private list: ${newUser.userName}');
+        }
+      }
+    } catch (e) {
+      print('❌ Error handling private user join: $e');
+    }
+  }
+
+  void _handlePrivateUserLeave(dynamic data) {
+    try {
+      final userId = data['userId'];
+      if (userId != null) {
+        setState(() {
+          _privateFrequencyUsers.removeWhere((u) => u.userId == userId);
+        });
+        print('✅ Removed user from private list: $userId');
+      }
+    } catch (e) {
+      print('❌ Error handling private user leave: $e');
+    }
+  }
+
   @override
   void dispose() {
     _dialerService.removeListener(_onServiceUpdate);
@@ -510,6 +647,29 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         });
         print('✅ [USER ID] Current User ID loaded: $_currentUserId');
         print('✅ [USER ID] User Name: ${userData['name']}');
+
+        // If we're in a private frequency and we have no members list from server, add self
+        if (_frequencyId != null && _frequencyId!.startsWith('private_')) {
+          final alreadyExists = _privateFrequencyUsers.any(
+            (u) => u.userId == _currentUserId,
+          );
+          if (!alreadyExists) {
+            final selfUser = FrequencyUser(
+              userId: _currentUserId ?? 'unknown_self',
+              userName: userData['name'] ?? 'Me',
+              avatar: '📻',
+              joinedAt: DateTime.now(),
+              isTransmitting: false,
+              signalStrength: 3,
+            );
+            _privateFrequencyUsers.add(selfUser);
+            print('👤 [PRIVATE SELF ADD] Added current user to private list');
+            // Reload mapping so avatar appears immediately
+            await _loadFrequencyData();
+          } else {
+            print('👤 [PRIVATE SELF ADD] Current user already in private list');
+          }
+        }
       } else {
         print('❌ [USER ID] No user data found in storage');
       }
@@ -850,16 +1010,25 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                             print(
                               '👋 [LEAVE] Step 1: Calling leaveFrequency API...',
                             );
-                            final success = await _dialerService.leaveFrequency(
-                              _frequencyId!,
-                            );
 
-                            if (success) {
+                            // Check if it's a private frequency
+                            if (_frequencyId!.startsWith('private_')) {
                               print(
-                                '✅ [LEAVE] Successfully left frequency via API',
+                                '🔒 [LEAVE] Private frequency detected. Skipping standard API call.',
                               );
+                              // For private frequencies, we just notify via socket if needed,
+                              // but don't call the standard leave endpoint which expects a MongoDB ID
                             } else {
-                              print('⚠️ [LEAVE] Leave API returned false');
+                              final success = await _dialerService
+                                  .leaveFrequency(_frequencyId!);
+
+                              if (success) {
+                                print(
+                                  '✅ [LEAVE] Successfully left frequency via API',
+                                );
+                              } else {
+                                print('⚠️ [LEAVE] Leave API returned false');
+                              }
                             }
 
                             // 2. Clear local chat storage
@@ -1178,38 +1347,44 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                       const SizedBox(height: 24),
 
                       // Control Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildControlButton(
-                            icon: _isMuted ? Icons.mic_off : Icons.mic,
-                            label: _isMuted ? 'Unmute' : 'Mute',
-                            color: _isMuted
-                                ? const Color(0xFFff4444)
-                                : const Color(0xFF00ff88),
-                            onPressed: _toggleMute,
-                          ),
-                          _buildControlButton(
-                            icon: Icons.chat,
-                            label: 'Chat',
-                            color: const Color(0xFF9c27b0),
-                            onPressed: _openChat,
-                          ),
-                          _buildControlButton(
-                            icon: _isSpeakerOn
-                                ? Icons.volume_up
-                                : Icons.phone_in_talk,
-                            label: _isSpeakerOn ? 'Speaker' : 'Earpiece',
-                            color: const Color(0xFF00aaff),
-                            onPressed: _toggleSpeaker,
-                          ),
-                          _buildControlButton(
-                            icon: Icons.exit_to_app,
-                            label: 'Disconnect',
-                            color: const Color(0xFFff4444),
-                            onPressed: _leaveChannel,
-                          ),
-                        ],
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildControlButton(
+                              icon: _isMuted ? Icons.mic_off : Icons.mic,
+                              label: _isMuted ? 'Unmute' : 'Mute',
+                              color: _isMuted
+                                  ? const Color(0xFFff4444)
+                                  : const Color(0xFF00ff88),
+                              onPressed: _toggleMute,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildControlButton(
+                              icon: Icons.chat,
+                              label: 'Chat',
+                              color: const Color(0xFF9c27b0),
+                              onPressed: _openChat,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildControlButton(
+                              icon: _isSpeakerOn
+                                  ? Icons.volume_up
+                                  : Icons.phone_in_talk,
+                              label: _isSpeakerOn ? 'Speaker' : 'Earpiece',
+                              color: const Color(0xFF00aaff),
+                              onPressed: _toggleSpeaker,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildControlButton(
+                              icon: Icons.exit_to_app,
+                              label: 'Disconnect',
+                              color: const Color(0xFFff4444),
+                              onPressed: _leaveChannel,
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 16),
@@ -1449,50 +1624,59 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   }
 
   Widget _buildUserAvatar(Map<String, dynamic> user) {
-    final isActive = user['isActive'] as bool;
-    final userName = user['name'] ?? 'Unknown';
+    final isActive = (user['isActive'] as bool?) ?? false;
+    final userName = (user['name'] ?? 'Unknown').toString();
+    final avatar = (user['avatar'] ?? '📻').toString();
 
-    print('🎨 [UI DISPLAY] Building avatar for: $userName');
-    print('   Full user data: $user');
+    print(
+      '🎨 [AVATAR] Building avatar widget -> name="$userName" active=$isActive avatar=$avatar full=$user',
+    );
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isActive
-                  ? [
-                      const Color(0xFF00ff88).withOpacity(0.3),
-                      const Color(0xFF00aaff).withOpacity(0.3),
-                    ]
-                  : [const Color(0xFF333333), const Color(0xFF444444)],
+        SizedBox(
+          width: 56,
+          height: 56,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isActive
+                    ? [
+                        const Color(0xFF00ff88).withOpacity(0.35),
+                        const Color(0xFF00aaff).withOpacity(0.35),
+                      ]
+                    : [const Color(0xFF333333), const Color(0xFF444444)],
+              ),
+              border: Border.all(
+                color: isActive
+                    ? const Color(0xFF00ff88)
+                    : const Color(0xFF555555),
+                width: 2,
+              ),
             ),
-            border: Border.all(
-              color: isActive
-                  ? const Color(0xFF00ff88)
-                  : const Color(0xFF555555),
-              width: 2,
+            child: Center(
+              child: Text(avatar, style: const TextStyle(fontSize: 26)),
             ),
-          ),
-          child: Center(
-            child: Text(user['avatar'], style: const TextStyle(fontSize: 24)),
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          userName,
-          style: TextStyle(
-            color: isActive ? const Color(0xFF00ff88) : Colors.white60,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+        SizedBox(
+          width: 70,
+          child: Text(
+            userName,
+            style: TextStyle(
+              color: isActive ? const Color(0xFF00ff88) : Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

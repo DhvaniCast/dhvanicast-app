@@ -167,6 +167,15 @@ class HttpClient {
       if (e is ApiException) {
         rethrow;
       }
+
+      // Handle connection closed specifically
+      if (e.toString().contains('Connection closed')) {
+        throw ApiException(
+          message: 'Server connection closed unexpectedly. Please try again.',
+          statusCode: 503,
+        );
+      }
+
       throw ApiException(
         message: 'An unexpected error occurred: ${e.toString()}',
         statusCode: 0,

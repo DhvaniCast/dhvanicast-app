@@ -21,7 +21,6 @@ class _DialerScreenState extends State<DialerScreen>
 
   double _frequency = 450.0; // Changed to 350-650 range
   bool _isConnected = false;
-  bool _isAutoTune = false;
   bool _isRecording = false;
   String _selectedBand = 'UHF'; // UHF for 350-650 MHz range
 
@@ -160,16 +159,6 @@ class _DialerScreenState extends State<DialerScreen>
     );
   }
 
-  // Dynamic button functions
-  void _toggleAutoTune() {
-    setState(() {
-      _isAutoTune = !_isAutoTune;
-    });
-    if (_isAutoTune) {
-      _autoTuneToStrongestSignal();
-    }
-  }
-
   void _toggleRecording() {
     setState(() {
       _isRecording = !_isRecording;
@@ -200,36 +189,6 @@ class _DialerScreenState extends State<DialerScreen>
       SnackBar(
         content: Text(
           'Switched to $_selectedBand band - ${_frequency.toStringAsFixed(1)} MHz',
-        ),
-        backgroundColor: const Color(0xFF00ff88),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _autoTuneToStrongestSignal() {
-    // Find frequency with most users from API data
-    if (_dialerService.frequencies.isEmpty) {
-      print('⚠️ No frequencies available for auto-tune');
-      return;
-    }
-
-    final strongestFreq = _dialerService.frequencies.reduce(
-      (a, b) => a.activeUsers.length > b.activeUsers.length ? a : b,
-    );
-
-    setState(() {
-      _frequency = strongestFreq.frequency;
-    });
-
-    print(
-      '🎯 Auto-tuned to ${strongestFreq.frequency.toStringAsFixed(1)} MHz with ${strongestFreq.activeUsers.length} users',
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Auto-tuned to ${strongestFreq.frequency.toStringAsFixed(1)} MHz (${strongestFreq.activeUsers.length} users)',
         ),
         backgroundColor: const Color(0xFF00ff88),
         duration: const Duration(seconds: 2),
@@ -1533,7 +1492,7 @@ class _DialerScreenState extends State<DialerScreen>
 
                 const SizedBox(height: 20),
 
-                // Audio Controls Row (3 buttons - removed VOL button)
+                // Audio Controls Row (Recording + Band)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -1546,35 +1505,6 @@ class _DialerScreenState extends State<DialerScreen>
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _toggleAutoTune,
-                          icon: Icon(
-                            _isAutoTune
-                                ? Icons.auto_awesome
-                                : Icons.auto_awesome_outlined,
-                            size: 18,
-                          ),
-                          label: const Text('AUTO'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isAutoTune
-                                ? const Color(0xFF00ff88)
-                                : const Color(0xFF444444),
-                            foregroundColor: _isAutoTune
-                                ? Colors.black
-                                : Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            textStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _toggleRecording,
@@ -1601,7 +1531,7 @@ class _DialerScreenState extends State<DialerScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _switchBand,

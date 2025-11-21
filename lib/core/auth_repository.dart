@@ -2,6 +2,7 @@ import '../models/api_response.dart';
 import '../models/user.dart';
 import '../shared/constants/api_endpoints.dart';
 import '../shared/services/http_client.dart';
+import 'auth_storage_service.dart';
 
 class AuthService {
   final HttpClient _httpClient = HttpClient();
@@ -151,10 +152,14 @@ class AuthService {
       // Clear the auth token from http client
       _httpClient.clearAuthToken();
 
+      // Clear saved auth data (token, user, timestamp)
+      await AuthStorageService.clearAuthData();
+
       return response;
     } catch (e) {
-      // Even if API call fails, clear local token
+      // Even if API call fails, clear local token and saved data
       _httpClient.clearAuthToken();
+      await AuthStorageService.clearAuthData();
       rethrow;
     }
   }

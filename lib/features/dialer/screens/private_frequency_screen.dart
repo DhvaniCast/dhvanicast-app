@@ -237,6 +237,8 @@ class _PrivateFrequencyScreenState extends State<PrivateFrequencyScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -263,10 +265,7 @@ class _PrivateFrequencyScreenState extends State<PrivateFrequencyScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isExpired
                       ? const Color(0xFF444444).withOpacity(0.3)
@@ -281,17 +280,21 @@ class _PrivateFrequencyScreenState extends State<PrivateFrequencyScreen> {
                       color: isExpired
                           ? const Color(0xFF666666)
                           : const Color(0xFF00ff88),
-                      size: 16,
+                      size: 14,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      timeString,
-                      style: TextStyle(
-                        color: isExpired
-                            ? const Color(0xFF666666)
-                            : const Color(0xFF00ff88),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        timeString,
+                        style: TextStyle(
+                          color: isExpired
+                              ? const Color(0xFF666666)
+                              : const Color(0xFF00ff88),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -1308,12 +1311,16 @@ Download Dhvani Cast to join!
           label,
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Color(0xFF00ff88),
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              color: Color(0xFF00ff88),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -1377,6 +1384,7 @@ class _JoinFrequencyFlowState extends State<JoinFrequencyFlow> {
             'frequencyValue': frequencyData['frequencyValue'],
             'frequencyName': frequencyData['name'],
             'isPrivate': true,
+            'members': frequencyData['members'], // Pass members list
           },
         );
       }

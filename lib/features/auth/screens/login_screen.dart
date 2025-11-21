@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import '../../../core/auth_storage_service.dart';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
@@ -89,24 +88,9 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  /// Save user data and token to SharedPreferences for LiveKit initialization
+  /// Save user data and token for auto-login (30 days)
   Future<void> _saveUserDataToPrefs(User user, String token) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Save user data as JSON (using toJson method from User model)
-      final userData = jsonEncode(user.toJson());
-      await prefs.setString('user', userData);
-
-      // Save token
-      await prefs.setString('token', token);
-
-      print('💾 [Storage] User data and token saved to SharedPreferences');
-      print('👤 [Storage] User: ${user.name}');
-      print('🔑 [Storage] Token: ${token.substring(0, 20)}...');
-    } catch (e) {
-      print('❌ [Storage] Failed to save user data: $e');
-    }
+    await AuthStorageService.saveAuthData(token: token, user: user);
   }
 
   @override

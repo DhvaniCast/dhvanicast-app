@@ -399,6 +399,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
             'timestamp': data['timestamp'],
             'time': _formatTime(data['timestamp']),
             'type': messageType,
+            'messageType': messageType,
             'isMe': false, // Messages from server are always from other users
           };
 
@@ -410,6 +411,16 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
             newMessage['duration'] = data['duration'] ?? '0:00';
             newMessage['audioUrl'] = data['audioUrl'];
+          }
+
+          // Add image-specific fields
+          if (messageType == 'image') {
+            print('🖼️ [FREQUENCY] Image message received');
+            print(
+              '🖼️ [FREQUENCY] Image Data Length: ${data['imageData']?.length ?? 0}',
+            );
+
+            newMessage['imageData'] = data['imageData'];
           }
 
           _messages.add(newMessage);
@@ -436,6 +447,8 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
         // Convert server messages
         final serverMessages = (data['messages'] as List).map((msg) {
+          final messageType = msg['messageType'] ?? msg['type'] ?? 'text';
+
           final newMsg = {
             'id': msg['id'],
             'senderId': msg['sender']['id'],
@@ -445,11 +458,28 @@ class _CommunicationScreenState extends State<CommunicationScreen>
             'text': msg['message'],
             'timestamp': msg['timestamp'],
             'time': _formatTime(msg['timestamp']),
-            'type': 'text',
+            'type': messageType,
+            'messageType': messageType,
             'isMe': msg['sender']['id'] == currentUserId,
           };
+
+          // Add image-specific data
+          if (messageType == 'image' && msg['imageData'] != null) {
+            newMsg['imageData'] = msg['imageData'];
+            print(
+              '🖼️ [HISTORY] Image message with data length: ${msg['imageData'].length}',
+            );
+          }
+
+          // Add audio-specific data
+          if (messageType == 'audio') {
+            newMsg['duration'] = msg['duration'] ?? '0:00';
+            newMsg['audioUrl'] = msg['audioUrl'];
+            print('🎤 [HISTORY] Audio message: ${msg['duration']}');
+          }
+
           print(
-            '📨 [HISTORY] Processed message: ${newMsg['message']} from ${newMsg['senderName']}',
+            '📨 [HISTORY] Processed message: ${newMsg['message']} from ${newMsg['senderName']} (type: $messageType)',
           );
           return newMsg;
         }).toList();
@@ -508,13 +538,17 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
     wsClient.on('user_joined_frequency', (data) {
       print('👤 [FREQUENCY] User joined: ${data['user']['name']}');
-      if (mounted) {
+      if (mounted && data['user'] != null) {
         setState(() {
+          final userId = data['user']['id'] ?? data['user']['_id'];
           final userExists = _activeUsers.any(
-            (u) => u['id'] == data['user']['id'],
+            (u) => (u['id'] ?? u['_id']) == userId,
           );
           if (!userExists) {
             _activeUsers.add(data['user']);
+            print('✅ [FREQUENCY] Added user. Total: ${_activeUsers.length}');
+          } else {
+            print('ℹ️ [FREQUENCY] User already exists');
           }
         });
       }
@@ -522,9 +556,16 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
     wsClient.on('user_left_frequency', (data) {
       print('👤 [FREQUENCY] User left: ${data['userId']}');
-      if (mounted) {
+      if (mounted && data['userId'] != null) {
         setState(() {
-          _activeUsers.removeWhere((u) => u['id'] == data['userId']);
+          final beforeCount = _activeUsers.length;
+          _activeUsers.removeWhere(
+            (u) => (u['id'] ?? u['_id']) == data['userId'],
+          );
+          final afterCount = _activeUsers.length;
+          print(
+            '✅ [FREQUENCY] Removed user. Count: $beforeCount → $afterCount',
+          );
         });
       }
     });
@@ -556,6 +597,17 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     wsClient.on('volume_status_updated', (data) {
       if (mounted) {
         print('✅ [VOL] ${data['message']}');
+
+        // Update speaker state based on backend response
+        if (data['isSpeakerOn'] != null) {
+          setState(() {
+            _isSpeakerOn = data['isSpeakerOn'];
+          });
+          print(
+            '🔊 [VOL] Speaker state updated: ${_isSpeakerOn ? "ON" : "OFF"}',
+          );
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data['message']),
@@ -564,6 +616,14 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           ),
         );
       }
+    });
+
+    // Listen for volume status from other users
+    wsClient.on('user_volume_status', (data) {
+      print(
+        '🔊 [VOL] User ${data['userName']} volume: ${data['isSpeakerOn'] ? "SPEAKER" : "EARPIECE"}',
+      );
+      // You can show a toast or update UI if needed
     });
 
     // Signal status updates
@@ -1190,9 +1250,14 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
       // Send via WebSocket
       final wsClient = getIt<WebSocketClient>();
-      wsClient.sendFrequencyChat(frequencyId, 'Image', messageType: 'image');
+      wsClient.sendFrequencyChat(
+        frequencyId,
+        'Image',
+        messageType: 'image',
+        imageData: base64Image, // Send base64 image data
+      );
 
-      print('📡 [SEND IMAGE] WebSocket message sent');
+      print('📡 [SEND IMAGE] WebSocket message sent with image data');
       print('✅ [SEND IMAGE] ===== IMAGE MESSAGE SENT =====');
 
       if (mounted) {
@@ -1418,31 +1483,6 @@ class _CommunicationScreenState extends State<CommunicationScreen>
             ],
           ),
           actions: [
-            // Emergency Button
-            Container(
-              margin: const EdgeInsets.only(right: 4),
-              child: IconButton(
-                onPressed: () {
-                  // Emergency broadcast - functionality already in EMG button below
-                },
-                icon: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFff4444).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: const Color(0xFFff4444),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.emergency,
-                    color: Color(0xFFff4444),
-                    size: 16,
-                  ),
-                ),
-              ),
-            ),
             // Leave Channel Button
             Container(
               margin: const EdgeInsets.only(right: 4),
@@ -1598,22 +1638,6 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                           ),
                         ],
                       ),
-                      // Signal Strength
-                      Row(
-                        children: List.generate(5, (index) {
-                          return Container(
-                            margin: const EdgeInsets.only(right: 1.5),
-                            width: 3,
-                            height: 10 + (index * 2),
-                            decoration: BoxDecoration(
-                              color: index < 4
-                                  ? const Color(0xFF00ff88)
-                                  : const Color(0xFF333333),
-                              borderRadius: BorderRadius.circular(1.5),
-                            ),
-                          );
-                        }),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1642,40 +1666,38 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                         },
                       ),
                       _buildRadioControlButton(
-                        icon: _isSpeakerOn
-                            ? Icons.volume_up
-                            : Icons.volume_down,
-                        label: 'VOL',
+                        icon: Icons.speaker_phone,
+                        label: 'SPK',
                         isActive: _isSpeakerOn,
                         onPressed: () {
                           setState(() {
-                            _isSpeakerOn = !_isSpeakerOn;
+                            _isSpeakerOn = true;
                           });
 
-                          // Send volume status to backend
+                          // Send speaker status to backend
                           final frequencyId = groupData?['frequencyId'];
                           if (frequencyId != null) {
                             final wsClient = getIt<WebSocketClient>();
-                            wsClient.toggleVolume(frequencyId, _isSpeakerOn);
-                            print(
-                              '🔊 [VOL] Toggled: ${_isSpeakerOn ? "ON" : "OFF"}',
-                            );
+                            wsClient.toggleVolume(frequencyId, true);
+                            print('🔊 [SPK] Speaker ON');
                           }
                         },
                       ),
                       _buildRadioControlButton(
-                        icon: Icons.radio,
-                        label: 'SIG',
-                        isActive: true,
+                        icon: Icons.phone_in_talk,
+                        label: 'EAR',
+                        isActive: !_isSpeakerOn,
                         onPressed: () {
-                          // Check signal strength
+                          setState(() {
+                            _isSpeakerOn = false;
+                          });
+
+                          // Send earpiece status to backend
                           final frequencyId = groupData?['frequencyId'];
                           if (frequencyId != null) {
                             final wsClient = getIt<WebSocketClient>();
-                            wsClient.checkSignal(frequencyId);
-                            print('📡 [SIG] Checking signal...');
-                          } else {
-                            print('❌ [SIG] No frequency ID available');
+                            wsClient.toggleVolume(frequencyId, false);
+                            print('📱 [EAR] Earpiece ON');
                           }
                         },
                       ),
@@ -2185,7 +2207,13 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   Widget _buildImageMessage(Map<String, dynamic> message, bool isMe) {
     final imageData = message['imageData'] as String?;
 
+    print('🖼️ [IMAGE WIDGET] Building image message');
+    print('🖼️ [IMAGE WIDGET] Message: $message');
+    print('🖼️ [IMAGE WIDGET] Image data exists: ${imageData != null}');
+    print('🖼️ [IMAGE WIDGET] Image data length: ${imageData?.length ?? 0}');
+
     if (imageData == null || imageData.isEmpty) {
+      print('❌ [IMAGE WIDGET] No image data - showing loading text');
       return const Text(
         'Image (loading...)',
         style: TextStyle(
@@ -2199,6 +2227,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     try {
       // Decode base64 image
       final bytes = base64Decode(imageData);
+      print('✅ [IMAGE WIDGET] Successfully decoded ${bytes.length} bytes');
 
       return GestureDetector(
         onTap: () {
@@ -2381,17 +2410,61 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.people_outline,
-                              size: 64,
-                              color: Colors.white.withOpacity(0.3),
+                            // Human illustration
+                            Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2a2a2a),
+                                borderRadius: BorderRadius.circular(60),
+                                border: Border.all(
+                                  color: const Color(0xFF555555),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Multiple user silhouettes
+                                  Positioned(
+                                    left: 20,
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.white.withOpacity(0.15),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 20,
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.white.withOpacity(0.15),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.people_outline,
+                                    size: 60,
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             Text(
-                              'No users connected',
+                              'No Active Users',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.5),
-                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Waiting for users to join...',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.4),
+                                fontSize: 14,
                               ),
                             ),
                           ],

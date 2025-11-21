@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 
 import 'injection.dart';
+import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
 import 'features/auth/screens/permission_screen.dart';
@@ -59,8 +60,9 @@ class MyApp extends StatelessWidget {
           fontFamily: 'Roboto',
         ),
         debugShowCheckedModeBanner: false,
-        initialRoute: '/login',
+        initialRoute: '/',
         routes: {
+          '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignupScreen(),
           '/permissions': (context) => const PermissionScreen(),
