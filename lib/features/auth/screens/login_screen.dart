@@ -193,10 +193,14 @@ class _LoginScreenState extends State<LoginScreen>
                                         width: 2,
                                       ),
                                     ),
-                                    child: const Icon(
-                                      Icons.radio,
-                                      size: 50,
-                                      color: Color(0xFF00ff88),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(48),
+                                      child: Image.asset(
+                                        'assets/images/app_logo.png',
+                                        width: 96,
+                                        height: 96,
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 24),

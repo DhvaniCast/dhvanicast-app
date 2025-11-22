@@ -158,7 +158,15 @@ class _PermissionScreenState extends State<PermissionScreen> {
                     color: const Color(0xFF667eea),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(Icons.radio, size: 60, color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 32),
 
