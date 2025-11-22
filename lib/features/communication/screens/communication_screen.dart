@@ -290,6 +290,16 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         _chatStorageKey = 'chat_$frequencyId';
         print('🔑 [STORAGE KEY] Set to: $_chatStorageKey');
 
+        // Initialize active users from arguments
+        if (args['activeUsers'] != null) {
+          _activeUsers = List<Map<String, dynamic>>.from(args['activeUsers']);
+          print(
+            '👥 [INIT] Loaded ${_activeUsers.length} active users from arguments',
+          );
+        } else {
+          print('⚠️ [INIT] No active users in arguments');
+        }
+
         // Ensure user ID is loaded before loading chat
         _ensureUserIdAndLoadChat();
 
@@ -357,34 +367,24 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         print('💬 [FREQUENCY] Sender ID: $senderId');
         print('💬 [FREQUENCY] Sender Name: $senderName');
 
-        // Check if this message already exists (avoid duplicates from optimistic updates)
-        // Check by comparing recent messages with same text (last 5 messages)
-        final recentMessages = _messages.length > 5
-            ? _messages.sublist(_messages.length - 5)
-            : _messages;
+        // Get current user ID for comparison
+        final currentUserId = _getCurrentUserId();
+        print('💬 [FREQUENCY] Current User ID: $currentUserId');
+        print('💬 [FREQUENCY] Comparing: $senderId == $currentUserId');
 
-        final isDuplicateByText = recentMessages.any(
-          (msg) =>
-              msg['message'] == messageText &&
-              msg['isMe'] == true &&
-              DateTime.parse(
-                        msg['timestamp'] ?? DateTime.now().toIso8601String(),
-                      )
-                      .difference(DateTime.parse(data['timestamp']))
-                      .inSeconds
-                      .abs() <
-                  5,
-        );
-
-        if (isDuplicateByText) {
+        // CRITICAL FIX: If sender is current user, skip this message
+        // We already added it optimistically when user pressed send
+        if (senderId == currentUserId) {
           print(
-            '⚠️ [FREQUENCY] 🚫 DUPLICATE DETECTED - This is my own message coming back from server',
+            '⚠️ [FREQUENCY] 🚫 SKIPPING - This is MY OWN message coming back from server',
           );
-          print('⚠️ [FREQUENCY] 🚫 Skipping to avoid showing on left side');
+          print(
+            '⚠️ [FREQUENCY] 🚫 Already displayed on RIGHT side (optimistic update)',
+          );
           return;
         }
 
-        print('✅ [FREQUENCY] ✅ NOT DUPLICATE - This is from another user');
+        print('✅ [FREQUENCY] ✅ This is from ANOTHER user');
         print('✅ [FREQUENCY] ✅ Adding to LEFT side');
 
         // This is a message from another user, add it to the left side

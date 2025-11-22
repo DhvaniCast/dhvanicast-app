@@ -1117,6 +1117,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         'status': 'active',
         'icon': Icons.radio,
         'type': 'frequency', // Important: to identify it's frequency chat
+        'activeUsers': _connectedUsers, // Pass active users list
       },
     );
   }

@@ -9,7 +9,7 @@ class ApiEndpoints {
   // static const Environment _currentEnvironment =
   //     Environment.local; // Local Testing
   static const Environment _currentEnvironment =
-      Environment.production; // Production (Render.com)
+      Environment.production; // Production (Google Cloud)
 
   // =====================================================
   // 📱 DEVICE CONFIGURATION
@@ -32,11 +32,11 @@ class ApiEndpoints {
   // Smart URL selector based on device type
   static String get _localServerUrl {
     if (_isWeb) {
-      return 'http://localhost:5000'; // Web browser
+      return 'http://localhost:8080'; // Web browser
     } else if (_useEmulator) {
-      return 'http://10.0.2.2:5000'; // Android Emulator
+      return 'http://10.0.2.2:8080'; // Android Emulator
     } else {
-      return 'http://$_computerIP:5000'; // Real Device
+      return 'http://$_computerIP:8080'; // Real Device
     }
   }
 
@@ -55,7 +55,8 @@ class ApiEndpoints {
       case Environment.local:
         return _localServerUrl;
       case Environment.production:
-        return 'https://harborleaf-radio-backend.onrender.com';
+        // FIXED: Use same backend as API (Google Cloud Run, not Render.com)
+        return 'https://dhvanicast-backend-522772414506.europe-west1.run.app';
     }
   }
 
