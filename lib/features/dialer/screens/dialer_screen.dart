@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../injection.dart';
 import '../../../models/frequency_model.dart';
 import '../../../shared/services/dialer_service.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DialerScreen extends StatefulWidget {
   const DialerScreen({Key? key}) : super(key: key);
@@ -809,37 +812,330 @@ class _DialerScreenState extends State<DialerScreen>
     print('✅ [CLIPBOARD] Link copied successfully');
   }
 
-  // Share to phone contacts
+  // Share to phone contacts - Shows options dialog
   void _shareToPhoneContacts(String link) {
     print('📱 [PHONE-SHARE] ====== SHARE TO PHONE CONTACTS ======');
     print('📱 [PHONE-SHARE] Frequency: ${_frequency.toStringAsFixed(1)} MHz');
     print('📱 [PHONE-SHARE] Link: $link');
 
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: const Color(0xFF1a1a1a),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.share, size: 64, color: Color(0xFF00ff88)),
+              const SizedBox(height: 16),
+              const Text(
+                'Share Frequency',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Share via Apps Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _shareViaApps(link);
+                  },
+                  icon: const Icon(Icons.share, size: 20),
+                  label: const Text(
+                    'SHARE VIA APPS',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Share to Contacts Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _shareToContacts(link);
+                  },
+                  icon: const Icon(Icons.contacts, size: 20),
+                  label: const Text(
+                    'SHARE TO CONTACTS',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF00ff88),
+                    side: const BorderSide(color: Color(0xFF00ff88), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Close Button
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    print('✅ [PHONE-SHARE] Share dialog opened');
+  }
+
+  // Share via any app (WhatsApp, SMS, etc.)
+  Future<void> _shareViaApps(String link) async {
     final message =
         '🎙️ Join me on Dhvani Cast!\n\n'
         'Frequency: ${_frequency.toStringAsFixed(1)} MHz\n'
         'Band: $_selectedBand\n\n'
         'Join now: $link';
 
-    print('📱 [PHONE-SHARE] Message prepared: $message');
+    try {
+      await Share.share(
+        message,
+        subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on Dhvani Cast',
+      );
+    } catch (e) {
+      print('Error sharing: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Failed to share'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
-    // TODO: Add share_plus package and implement
-    // Share.share(message, subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on Dhvani Cast');
+  // Share to contacts
+  Future<void> _shareToContacts(String link) async {
+    try {
+      final permission = await Permission.contacts.request();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Share to: ${_frequency.toStringAsFixed(1)} MHz'),
-        backgroundColor: const Color(0xFF00ff88),
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: 'COPY',
-          textColor: Colors.black,
-          onPressed: () => _copyLinkToClipboard(link),
+      if (permission.isGranted) {
+        if (await FlutterContacts.requestPermission()) {
+          final contacts = await FlutterContacts.getContacts(
+            withProperties: true,
+            withPhoto: false,
+          );
+
+          if (contacts.isEmpty) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('📱 No contacts found on your device'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            return;
+          }
+
+          if (mounted) {
+            _showContactPicker(contacts, link);
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Contacts permission denied'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Contacts permission is required'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error accessing contacts: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Failed to open contacts'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Show contact picker
+  void _showContactPicker(List<Contact> contacts, String link) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: const Color(0xFF1a1a1a),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.contacts,
+                    color: Color(0xFF00ff88),
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Select Contact',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              Expanded(
+                child: ListView.builder(
+                  itemCount: contacts.length,
+                  itemBuilder: (context, index) {
+                    final contact = contacts[index];
+                    final hasPhone = contact.phones.isNotEmpty;
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFF00ff88),
+                        child: Text(
+                          contact.displayName.isNotEmpty
+                              ? contact.displayName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        contact.displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: hasPhone
+                          ? Text(
+                              contact.phones.first.number,
+                              style: const TextStyle(color: Colors.white54),
+                            )
+                          : const Text(
+                              'No phone number',
+                              style: TextStyle(color: Colors.white30),
+                            ),
+                      trailing: hasPhone
+                          ? const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Color(0xFF00ff88),
+                              size: 16,
+                            )
+                          : null,
+                      onTap: hasPhone
+                          ? () {
+                              Navigator.pop(context);
+                              _shareToSelectedContact(contact, link);
+                            }
+                          : null,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
 
-    print('✅ [PHONE-SHARE] Share dialog opened');
+  // Share to selected contact
+  Future<void> _shareToSelectedContact(Contact contact, String link) async {
+    final message =
+        'Hi ${contact.displayName}! \n\n'
+        '🎙️ Join me on Dhvani Cast!\n\n'
+        'Frequency: ${_frequency.toStringAsFixed(1)} MHz\n'
+        'Band: $_selectedBand\n\n'
+        'Join now: $link';
+
+    try {
+      await Share.share(
+        message,
+        subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on Dhvani Cast',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Shared with ${contact.displayName}'),
+            backgroundColor: const Color(0xFF00ff88),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error sharing to contact: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Failed to share'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Build frequency user card (users on current frequency)
@@ -1492,7 +1788,7 @@ class _DialerScreenState extends State<DialerScreen>
 
                 const SizedBox(height: 20),
 
-                // Audio Controls Row (Recording + Band)
+                // Audio Controls Row (Recording + Friends + Band)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -1519,6 +1815,28 @@ class _DialerScreenState extends State<DialerScreen>
                             backgroundColor: _isRecording
                                 ? const Color(0xFFff4444)
                                 : const Color(0xFF444444),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/friends');
+                          },
+                          icon: const Icon(Icons.people_alt, size: 18),
+                          label: const Text('FRIENDS'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFff9800),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             textStyle: const TextStyle(

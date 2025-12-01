@@ -257,9 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'Privacy Policy',
                         icon: Icons.privacy_tip_outlined,
                         color: Colors.white70,
-                        onTap: () {
-                          // Privacy policy functionality
-                        },
+                        onTap: _openPrivacyPolicy,
                       ),
                       const SizedBox(height: 16),
                       _buildActionTile(
@@ -484,6 +482,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xFFff4444),
             ),
             child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    // Using a simple dialog to show the URL since url_launcher has issues
+    // User can copy and paste in browser
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Privacy Policy'),
+        content: const SelectableText(
+          'Visit our privacy policy at:\n\nhttps://dhvanicast.com/privacy-policy',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import '../../../models/frequency_model.dart';
 import '../../../core/websocket_client.dart';
 import '../../../shared/services/dialer_service.dart';
 import '../../../shared/services/livekit_service.dart';
+import '../../../shared/services/social_service.dart';
 
 class LiveRadioScreen extends StatefulWidget {
   final Map<String, dynamic>? groupData;
@@ -526,6 +527,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
         print('   userName: ${user.userName}, callSign: ${user.callSign}');
 
         return {
+          'userId': user.userId, // Add userId for friend requests
           'name': displayName,
           'avatar': user.avatar ?? '📻',
           'isActive': user.isTransmitting,
@@ -1628,59 +1630,1165 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     final isActive = (user['isActive'] as bool?) ?? false;
     final userName = (user['name'] ?? 'Unknown').toString();
     final avatar = (user['avatar'] ?? '📻').toString();
+    final userId = (user['userId'] ?? user['_id'] ?? '').toString();
 
     print(
       '🎨 [AVATAR] Building avatar widget -> name="$userName" active=$isActive avatar=$avatar full=$user',
     );
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 56,
-          height: 56,
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isActive
-                    ? [
-                        const Color(0xFF00ff88).withOpacity(0.35),
-                        const Color(0xFF00aaff).withOpacity(0.35),
-                      ]
-                    : [const Color(0xFF333333), const Color(0xFF444444)],
+    return GestureDetector(
+      onTap: () {
+        print('👆 [TAP] Avatar tapped for user: $userName');
+        print('👆 [TAP] userId: $userId');
+        print('👆 [TAP] _currentUserId: $_currentUserId');
+
+        // Always show action sheet - Report is available for everyone
+        _showUserActionSheet(context, user);
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isActive
+                      ? [
+                          const Color(0xFF00ff88).withOpacity(0.35),
+                          const Color(0xFF00aaff).withOpacity(0.35),
+                        ]
+                      : [const Color(0xFF333333), const Color(0xFF444444)],
+                ),
+                border: Border.all(
+                  color: isActive
+                      ? const Color(0xFF00ff88)
+                      : const Color(0xFF555555),
+                  width: 2,
+                ),
               ),
-              border: Border.all(
-                color: isActive
-                    ? const Color(0xFF00ff88)
-                    : const Color(0xFF555555),
-                width: 2,
+              child: Center(
+                child: Text(avatar, style: const TextStyle(fontSize: 26)),
               ),
-            ),
-            child: Center(
-              child: Text(avatar, style: const TextStyle(fontSize: 26)),
             ),
           ),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: 70,
-          child: Text(
-            userName,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF00ff88) : Colors.white60,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 70,
+            child: Text(
+              userName,
+              style: TextStyle(
+                color: isActive ? const Color(0xFF00ff88) : Colors.white60,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  // Show user action bottom sheet with Report and Add Friend options
+  void _showUserActionSheet(BuildContext context, Map<String, dynamic> user) {
+    final userName = (user['name'] ?? 'Unknown').toString();
+    final avatar = (user['avatar'] ?? '📻').toString();
+    final userId = (user['userId'] ?? user['_id'] ?? '').toString();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF2a2a2a),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // User info header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF00ff88), Color(0xFF00aaff)],
+                        ),
+                        border: Border.all(
+                          color: const Color(0xFF00ff88),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          avatar,
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'In $_stationName',
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(color: Color(0xFF444444), height: 1),
+
+              // Add Friend Option (only show for other users)
+              if (userId != _currentUserId) ...[
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _addFriend(userId, userName);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                      horizontal: 24,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00ff88).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.person_add,
+                            color: Color(0xFF00ff88),
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Add Friend',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Send friend request',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white38,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(color: Color(0xFF444444), height: 1),
+              ],
+
+              // Report User Option (only show for other users)
+              if (userId != _currentUserId) ...[
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showReportDialog(context, userId, userName);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                      horizontal: 24,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.flag,
+                            color: Colors.red,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Report User',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Report inappropriate behavior',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white38,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(color: Color(0xFF444444), height: 1),
+              ],
+
+              // Report Frequency Option (available for everyone)
+              InkWell(
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFrequencyReportDialog(context);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 18,
+                    horizontal: 24,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.report_problem,
+                          color: Colors.orange,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Report Frequency',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Report issues with $_stationName',
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white38,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show frequency report dialog
+  void _showFrequencyReportDialog(BuildContext context) {
+    String? selectedReason;
+    final TextEditingController detailsController = TextEditingController();
+
+    final List<Map<String, String>> reportReasons = [
+      {'icon': '🚫', 'title': 'Spam or Misleading Content', 'value': 'spam'},
+      {'icon': '😡', 'title': 'Harassment in Frequency', 'value': 'harassment'},
+      {
+        'icon': '🔞',
+        'title': 'Inappropriate Content',
+        'value': 'inappropriate',
+      },
+      {'icon': '⚠️', 'title': 'Technical Issues', 'value': 'technical'},
+      {'icon': '🤥', 'title': 'False Information', 'value': 'false_info'},
+      {'icon': '📻', 'title': 'Other', 'value': 'other'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFF2a2a2a),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.report_problem,
+                              color: Colors.orange,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Report Frequency',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  _stationName,
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      const Text(
+                        'Why are you reporting this frequency?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Report reasons
+                      ...reportReasons.map((reason) {
+                        final isSelected = selectedReason == reason['value'];
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedReason = reason['value'];
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.orange.withOpacity(0.15)
+                                  : const Color(0xFF1a1a1a),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.orange
+                                    : const Color(0xFF444444),
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  reason['icon']!,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    reason['title']!,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white70,
+                                      fontSize: 15,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.orange,
+                                    size: 22,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+
+                      const SizedBox(height: 16),
+
+                      // Additional details
+                      const Text(
+                        'Additional Details (Optional)',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      TextField(
+                        controller: detailsController,
+                        maxLines: 3,
+                        maxLength: 200,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Describe the issue...',
+                          hintStyle: const TextStyle(color: Colors.white38),
+                          filled: true,
+                          fillColor: const Color(0xFF1a1a1a),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF444444),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF444444),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Colors.orange,
+                              width: 2,
+                            ),
+                          ),
+                          counterStyle: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(
+                                    color: Color(0xFF444444),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: selectedReason == null
+                                  ? null
+                                  : () {
+                                      Navigator.pop(context);
+                                      _submitFrequencyReport(
+                                        selectedReason!,
+                                        detailsController.text,
+                                      );
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                disabledBackgroundColor: Colors.orange
+                                    .withOpacity(0.3),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Submit Report',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Submit frequency report
+  Future<void> _submitFrequencyReport(String reason, String details) async {
+    final socialService = SocialService();
+
+    try {
+      print('📻 [FREQUENCY REPORT] Reporting frequency: $_stationName');
+      print('📻 [FREQUENCY REPORT] Frequency: $_frequency MHz');
+      print('📻 [FREQUENCY REPORT] Reason: $reason');
+      print('📻 [FREQUENCY REPORT] Details: $details');
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2a2a2a),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Colors.orange),
+                const SizedBox(height: 16),
+                const Text(
+                  'Submitting report...',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Call API
+      await socialService.submitReport(
+        reason: reason,
+        details: details,
+        frequency: _frequency,
+        frequencyName: _stationName,
+        reportType: 'frequency',
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.orange),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Frequency report submitted successfully',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.orange, width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [FREQUENCY REPORT] Error: $e');
+
+      // Close loading dialog if open
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.toString().replaceAll('Exception: ', ''),
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.red, width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // Show report dialog with reasons
+  void _showReportDialog(BuildContext context, String userId, String userName) {
+    String? selectedReason;
+    final TextEditingController detailsController = TextEditingController();
+
+    final List<Map<String, String>> reportReasons = [
+      {'icon': '🚫', 'title': 'Spam or Misleading', 'value': 'spam'},
+      {
+        'icon': '😡',
+        'title': 'Harassment or Hate Speech',
+        'value': 'harassment',
+      },
+      {
+        'icon': '🔞',
+        'title': 'Inappropriate Content',
+        'value': 'inappropriate',
+      },
+      {'icon': '🤥', 'title': 'False Information', 'value': 'false_info'},
+      {'icon': '⚠️', 'title': 'Other', 'value': 'other'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFF2a2a2a),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.flag,
+                              color: Colors.red,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Report User',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  userName,
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      const Text(
+                        'Why are you reporting this user?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Report reasons
+                      ...reportReasons.map((reason) {
+                        final isSelected = selectedReason == reason['value'];
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedReason = reason['value'];
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.red.withOpacity(0.15)
+                                  : const Color(0xFF1a1a1a),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.red
+                                    : const Color(0xFF444444),
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  reason['icon']!,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    reason['title']!,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white70,
+                                      fontSize: 15,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.red,
+                                    size: 22,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+
+                      const SizedBox(height: 16),
+
+                      // Additional details
+                      const Text(
+                        'Additional Details (Optional)',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      TextField(
+                        controller: detailsController,
+                        maxLines: 3,
+                        maxLength: 200,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Describe the issue...',
+                          hintStyle: const TextStyle(color: Colors.white38),
+                          filled: true,
+                          fillColor: const Color(0xFF1a1a1a),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF444444),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF444444),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Colors.red,
+                              width: 2,
+                            ),
+                          ),
+                          counterStyle: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(
+                                    color: Color(0xFF444444),
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: selectedReason == null
+                                  ? null
+                                  : () {
+                                      Navigator.pop(context);
+                                      _submitReport(
+                                        userId,
+                                        userName,
+                                        selectedReason!,
+                                        detailsController.text,
+                                      );
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                disabledBackgroundColor: Colors.red.withOpacity(
+                                  0.3,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Submit Report',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Handle friend request
+  Future<void> _addFriend(String userId, String userName) async {
+    final socialService = SocialService();
+
+    try {
+      print('🤝 [ADD FRIEND] Sending friend request to userId: $userId');
+
+      // Call API
+      await socialService.sendFriendRequest(receiverId: userId);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Color(0xFF00ff88)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Friend request sent to $userName',
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF00ff88), width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [ADD FRIEND] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.toString().replaceAll('Exception: ', ''),
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.red, width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // Submit report
+  Future<void> _submitReport(
+    String userId,
+    String userName,
+    String reason,
+    String details,
+  ) async {
+    final socialService = SocialService();
+
+    try {
+      print('🚩 [REPORT] Reporting userId: $userId');
+      print('🚩 [REPORT] Reason: $reason');
+      print('🚩 [REPORT] Details: $details');
+
+      // Call API
+      await socialService.submitReport(
+        reportedUserId: userId,
+        reason: reason,
+        details: details,
+        frequency: _frequency,
+        frequencyName: _stationName,
+        reportType: 'user',
+      );
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Color(0xFF00ff88)),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Report submitted successfully',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Color(0xFF00ff88), width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [REPORT] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.toString().replaceAll('Exception: ', ''),
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.red, width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildControlButton({

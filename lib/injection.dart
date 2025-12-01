@@ -11,6 +11,7 @@ import 'shared/services/dialer_service.dart';
 import 'shared/services/communication_service.dart';
 import 'shared/services/audio_service.dart';
 import 'shared/services/livekit_service.dart';
+import 'shared/services/social_service.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -36,6 +37,7 @@ void setupServiceLocator() {
   );
   getIt.registerLazySingleton<AudioService>(() => AudioService());
   getIt.registerLazySingleton<LiveKitService>(() => LiveKitService());
+  getIt.registerLazySingleton<SocialService>(() => SocialService());
 
   // Register AuthBloc as factory (new instance each time)
   getIt.registerFactory<AuthBloc>(

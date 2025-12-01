@@ -189,6 +189,7 @@ class AudioService extends ChangeNotifier {
       await _player.stop();
       await _player.play(DeviceFileSource(path));
       print('▶️ Playing audio: $path');
+      print('🎧 Audio will automatically route to headphones if connected');
       return true;
     } catch (e) {
       print('❌ Error playing audio: $e');
@@ -202,6 +203,7 @@ class AudioService extends ChangeNotifier {
       await _player.stop();
       await _player.play(UrlSource(url));
       print('▶️ Playing audio from URL: $url');
+      print('🎧 Audio will automatically route to headphones if connected');
       return true;
     } catch (e) {
       print('❌ Error playing audio URL: $e');

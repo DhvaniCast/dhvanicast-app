@@ -10,8 +10,10 @@ import 'features/auth/screens/permission_screen.dart';
 import 'features/dialer/screens/dialer_screen.dart';
 import 'features/dialer/screens/private_frequency_screen.dart';
 import 'features/communication/screens/communication_screen.dart';
+import 'features/communication/screens/friend_chat_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'features/radio/screens/live_radio_screen.dart';
+import 'features/social/screens/friends_screen.dart';
 import 'providers/auth_bloc.dart';
 
 void main() async {
@@ -70,6 +72,13 @@ class MyApp extends StatelessWidget {
           '/private-frequency': (context) => const PrivateFrequencyScreen(),
           '/communication': (context) => const CommunicationScreen(),
           '/profile': (context) => const ProfileScreen(),
+          '/friends': (context) => const FriendsScreen(),
+          '/friend-chat': (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+            return FriendChatScreen(friendData: args);
+          },
           '/live_radio': (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments
