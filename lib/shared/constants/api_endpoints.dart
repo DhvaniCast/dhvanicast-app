@@ -110,6 +110,10 @@ class ApiEndpoints {
   static String get unreadCount => '$baseUrl/communication/unread';
   static String get markAsRead => '$baseUrl/communication/mark-read';
 
+  // LiveKit Endpoints
+  static String get livekitToken => '$baseUrl/livekit/token';
+  static String get friendCallToken => '$baseUrl/livekit/friend-call-token';
+
   // Health Check
   static String get health {
     switch (_currentEnvironment) {

@@ -187,6 +187,140 @@ class LiveKitService {
     }
   }
 
+  /// Get LiveKit token for friend call (using email)
+  Future<Map<String, dynamic>?> _getFriendCallToken(
+    String friendEmail,
+    String authToken,
+  ) async {
+    try {
+      print('📞 [LiveKit Friend Call] Getting token for: $friendEmail');
+      final response = await http.post(
+        Uri.parse(ApiEndpoints.friendCallToken),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({'friendEmail': friendEmail}),
+      );
+
+      print('📡 [LiveKit Friend Call] Response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('📡 [LiveKit Friend Call] Success: ${data['success']}');
+
+        if (data['success'] == true) {
+          return data['data'] as Map<String, dynamic>;
+        }
+      } else {
+        print('❌ [LiveKit Friend Call] Failed: ${response.body}');
+      }
+
+      return null;
+    } catch (e) {
+      print('❌ [LiveKit Friend Call] Error: $e');
+      return null;
+    }
+  }
+
+  /// Connect to LiveKit for friend-to-friend call using email
+  Future<void> connectToFriendCall(String friendEmail, String authToken) async {
+    try {
+      print('📞 [LiveKit Friend Call] Connecting to friend: $friendEmail');
+
+      // Get LiveKit token from backend using friend's email
+      final tokenData = await _getFriendCallToken(friendEmail, authToken);
+
+      if (tokenData == null) {
+        print('❌ [LiveKit Friend Call] Failed to get token');
+        throw Exception('Failed to get call token');
+      }
+
+      final livekitUrl = tokenData['url'] as String;
+      final livekitToken = tokenData['token'] as String;
+      final friendInfo = tokenData['friendInfo'] as Map<String, dynamic>?;
+
+      print('🔗 [LiveKit Friend Call] Server URL: $livekitUrl');
+      print('👤 [LiveKit Friend Call] Calling: ${friendInfo?['name']}');
+
+      // Create room instance
+      _room = Room(
+        roomOptions: const RoomOptions(
+          defaultAudioPublishOptions: AudioPublishOptions(
+            name: 'microphone',
+            dtx: false,
+          ),
+          defaultAudioCaptureOptions: AudioCaptureOptions(
+            noiseSuppression: true,
+            echoCancellation: true,
+            autoGainControl: true,
+          ),
+          adaptiveStream: true,
+          dynacast: true,
+        ),
+      );
+
+      // Setup event listeners
+      _setupListeners();
+
+      // Connect to LiveKit room
+      await _room!.connect(livekitUrl, livekitToken);
+      print('✅ [LiveKit Friend Call] Connected to call room');
+
+      // Wait for room state to settle
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Create and publish audio track
+      print('🎤 [LiveKit Friend Call] Creating audio track...');
+      _audioTrack = await LocalAudioTrack.create(
+        const AudioCaptureOptions(
+          noiseSuppression: true,
+          echoCancellation: true,
+          autoGainControl: true,
+        ),
+      );
+
+      // Publish the track
+      await _room?.localParticipant?.publishAudioTrack(_audioTrack!);
+      print('✅ [LiveKit Friend Call] Audio track published');
+
+      // Start unmuted
+      await _audioTrack!.unmute();
+      _isMuted = false;
+      _isConnected = true;
+
+      print('✅ [LiveKit Friend Call] Call connected and ready');
+      print('🔊 [LiveKit Friend Call] Microphone active');
+    } catch (e, stackTrace) {
+      print('❌ [LiveKit Friend Call] Connection error: $e');
+      print('📍 [LiveKit Friend Call] Stack trace: $stackTrace');
+      _isConnected = false;
+
+      // Cleanup on error
+      if (_audioTrack != null) {
+        try {
+          await _audioTrack!.stop();
+          await _audioTrack!.dispose();
+          _audioTrack = null;
+        } catch (cleanupError) {
+          print('⚠️ [LiveKit Friend Call] Cleanup error: $cleanupError');
+        }
+      }
+
+      if (_room != null) {
+        try {
+          await _room!.disconnect();
+          await _room!.dispose();
+          _room = null;
+        } catch (cleanupError) {
+          print('⚠️ [LiveKit Friend Call] Room cleanup error: $cleanupError');
+        }
+      }
+
+      rethrow;
+    }
+  }
+
   /// Setup LiveKit event listeners
   void _setupListeners() {
     // Listen to room events using the EventsEmitter pattern
