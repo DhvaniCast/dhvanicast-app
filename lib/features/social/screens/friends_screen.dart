@@ -4,6 +4,8 @@ import '../../../shared/services/social_service.dart';
 import '../../../shared/services/livekit_service.dart';
 import '../../../core/auth_storage_service.dart';
 import '../../../core/websocket_client.dart';
+import 'incoming_call_screen.dart';
+import 'active_call_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({Key? key}) : super(key: key);
@@ -96,96 +98,35 @@ class _FriendsScreenState extends State<FriendsScreen>
     final callerAvatar = callData['callerAvatar'] ?? '👤';
     final callerId = callData['callerId'];
     final callId = callData['callId'];
-    final roomName = callData['roomName'];
     final callerEmail = callData['callerEmail'];
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: const Color(0xFF2a2a2a),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00ff88).withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    callerAvatar,
-                    style: const TextStyle(fontSize: 50),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
+    // Navigate to full-screen incoming call UI
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => IncomingCallScreen(
+          callData: {
+            'callerName': callerName,
+            'callerAvatar': callerAvatar,
+            'callerId': callerId,
+            'callId': callId,
+            'callerEmail': callerEmail,
+          },
+          onCallResponse: (accepted) {
+            Navigator.of(context).pop();
+
+            if (accepted) {
+              _acceptCall(
+                callId,
+                callerId,
+                callerEmail,
                 callerName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Incoming Call...',
-                style: TextStyle(color: Color(0xFF00ff88), fontSize: 16),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Reject button
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _rejectCall(callId, callerId);
-                      Navigator.pop(dialogContext);
-                    },
-                    icon: const Icon(Icons.call_end, size: 20),
-                    label: const Text('Decline'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  // Accept button
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      _acceptCall(
-                        callId,
-                        callerId,
-                        callerEmail,
-                        callerName,
-                        callerAvatar,
-                      );
-                    },
-                    icon: const Icon(Icons.call, size: 20),
-                    label: const Text('Accept'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00ff88),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                callerAvatar,
+              );
+            } else {
+              _rejectCall(callId, callerId);
+            }
+          },
         ),
       ),
     );
@@ -206,19 +147,48 @@ class _FriendsScreenState extends State<FriendsScreen>
       'callerId': callerId,
     });
 
-    // Show call active dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => _buildActiveCallDialog(
-        callerName,
-        callerEmail,
-        callerAvatar,
-        callerId,
-        callId,
-        dialogContext,
-      ),
-    );
+    // Join the call via LiveKit
+    try {
+      final authToken = await AuthStorageService.getToken();
+      if (authToken == null) {
+        throw Exception('Not authenticated');
+      }
+
+      await _livekitService.connectToFriendCall(callerEmail, authToken);
+
+      // Navigate to active call screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => ActiveCallScreen(
+              callData: {
+                'friendName': callerName,
+                'friendAvatar': callerAvatar,
+                'friendId': callerId,
+                'callId': callId,
+              },
+              onEndCall: () async {
+                await _endCall(callerId, callId);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [FRIENDS] Failed to join call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to join call: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _rejectCall(String callId, String callerId) {
@@ -229,166 +199,6 @@ class _FriendsScreenState extends State<FriendsScreen>
       'callId': callId,
       'callerId': callerId,
     });
-  }
-
-  Widget _buildActiveCallDialog(
-    String friendName,
-    String friendEmail,
-    String friendAvatar,
-    String friendId,
-    String callId,
-    BuildContext dialogContext,
-  ) {
-    bool isConnecting = true;
-    bool isCallActive = false;
-    String status = 'Connecting...';
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        if (isConnecting) {
-          _joinCall(friendEmail)
-              .then((_) {
-                setState(() {
-                  isConnecting = false;
-                  isCallActive = true;
-                  status = 'Call connected';
-                });
-              })
-              .catchError((error) {
-                setState(() {
-                  isConnecting = false;
-                  status = 'Call failed: ${error.toString()}';
-                });
-                Future.delayed(const Duration(seconds: 2), () {
-                  if (Navigator.canPop(dialogContext)) {
-                    Navigator.pop(dialogContext);
-                  }
-                });
-              });
-        }
-
-        return Dialog(
-          backgroundColor: const Color(0xFF2a2a2a),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00ff88).withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      friendAvatar,
-                      style: const TextStyle(fontSize: 50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  friendName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  status,
-                  style: TextStyle(
-                    color: isCallActive
-                        ? const Color(0xFF00ff88)
-                        : Colors.white70,
-                    fontSize: 16,
-                  ),
-                ),
-                if (isConnecting)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: CircularProgressIndicator(color: Color(0xFF00ff88)),
-                  ),
-                const SizedBox(height: 24),
-                if (isCallActive)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        onPressed: () async {
-                          await _livekitService.toggleMute();
-                          setState(() {});
-                        },
-                        icon: Icon(
-                          _livekitService.isMuted ? Icons.mic_off : Icons.mic,
-                          color: _livekitService.isMuted
-                              ? Colors.red
-                              : const Color(0xFF00ff88),
-                        ),
-                        iconSize: 32,
-                      ),
-                      IconButton(
-                        onPressed: () async {
-                          await _livekitService.setSpeakerPhone(true);
-                          setState(() {});
-                        },
-                        icon: const Icon(
-                          Icons.volume_up,
-                          color: Color(0xFF00ff88),
-                        ),
-                        iconSize: 32,
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    await _endCall(friendId, callId);
-                    if (Navigator.canPop(dialogContext)) {
-                      Navigator.pop(dialogContext);
-                    }
-                  },
-                  icon: const Icon(Icons.call_end, size: 24),
-                  label: const Text('End Call', style: TextStyle(fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _joinCall(String friendEmail) async {
-    try {
-      print('📞 [FRIENDS] Joining call with: $friendEmail');
-
-      final authToken = await AuthStorageService.getToken();
-      if (authToken == null) {
-        throw Exception('Not authenticated');
-      }
-
-      await _livekitService.connectToFriendCall(friendEmail, authToken);
-      print('✅ [FRIENDS] Joined call successfully');
-    } catch (e) {
-      print('❌ [FRIENDS] Failed to join call: $e');
-      rethrow;
-    }
   }
 
   Future<void> _loadFriendsData() async {
@@ -479,6 +289,7 @@ class _FriendsScreenState extends State<FriendsScreen>
         'friendId': friend['_id'] ?? friend['id'],
         'friendName': friend['name'] ?? 'Friend',
         'friendAvatar': friend['avatar'] ?? '👤',
+        'friendEmail': friend['email'],
         'isOnline': friend['isOnline'] ?? false,
       },
     );
@@ -513,187 +324,47 @@ class _FriendsScreenState extends State<FriendsScreen>
       'roomName': roomName,
     });
 
-    // Show calling dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => _buildCallingDialog(
-        friendName,
-        friendEmail,
-        friendAvatar,
-        friendId,
-        roomName,
-        isOnline,
-        dialogContext,
-      ),
-    );
-  }
-
-  Widget _buildCallingDialog(
-    String friendName,
-    String friendEmail,
-    String friendAvatar,
-    String friendId,
-    String roomName,
-    bool isOnline,
-    BuildContext dialogContext,
-  ) {
-    bool isConnecting = true;
-    bool isCallActive = false;
-    String status = 'Ringing...';
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        // Start the call when dialog opens
-        if (isConnecting) {
-          _initiateCall(friendEmail)
-              .then((_) {
-                setState(() {
-                  isConnecting = false;
-                  isCallActive = true;
-                  status = 'Call connected';
-                });
-              })
-              .catchError((error) {
-                setState(() {
-                  isConnecting = false;
-                  status = 'Call failed: ${error.toString()}';
-                });
-                Future.delayed(const Duration(seconds: 2), () {
-                  if (Navigator.canPop(dialogContext)) {
-                    Navigator.pop(dialogContext);
-                  }
-                });
-              });
-        }
-
-        return Dialog(
-          backgroundColor: const Color(0xFF2a2a2a),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00ff88).withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      friendAvatar,
-                      style: const TextStyle(fontSize: 50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  friendName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  status,
-                  style: TextStyle(
-                    color: isCallActive
-                        ? const Color(0xFF00ff88)
-                        : Colors.white70,
-                    fontSize: 16,
-                  ),
-                ),
-                if (isConnecting)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: CircularProgressIndicator(color: Color(0xFF00ff88)),
-                  ),
-                const SizedBox(height: 24),
-                if (isCallActive)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Mute button
-                      IconButton(
-                        onPressed: () async {
-                          await _livekitService.toggleMute();
-                          setState(() {});
-                        },
-                        icon: Icon(
-                          _livekitService.isMuted ? Icons.mic_off : Icons.mic,
-                          color: _livekitService.isMuted
-                              ? Colors.red
-                              : const Color(0xFF00ff88),
-                        ),
-                        iconSize: 32,
-                      ),
-                      // Speaker button
-                      IconButton(
-                        onPressed: () async {
-                          // Toggle speaker (you can add state management for this)
-                          await _livekitService.setSpeakerPhone(true);
-                          setState(() {});
-                        },
-                        icon: const Icon(
-                          Icons.volume_up,
-                          color: Color(0xFF00ff88),
-                        ),
-                        iconSize: 32,
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    await _endCall(friendId, roomName);
-                    if (Navigator.canPop(dialogContext)) {
-                      Navigator.pop(dialogContext);
-                    }
-                  },
-                  icon: const Icon(Icons.call_end, size: 24),
-                  label: const Text('End Call', style: TextStyle(fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _initiateCall(String friendEmail) async {
+    // Start the call and navigate to active call screen
     try {
-      print('📞 [FRIENDS] Initiating call to: $friendEmail');
-
-      // Get auth token
       final authToken = await AuthStorageService.getToken();
       if (authToken == null) {
         throw Exception('Not authenticated');
       }
 
-      // Connect to friend call using email
       await _livekitService.connectToFriendCall(friendEmail, authToken);
 
-      print('✅ [FRIENDS] Call connected successfully');
+      // Navigate to active call screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => ActiveCallScreen(
+              callData: {
+                'friendName': friendName,
+                'friendAvatar': friendAvatar,
+                'friendId': friendId,
+                'callId': roomName,
+              },
+              onEndCall: () async {
+                await _endCall(friendId, roomName);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ),
+        );
+      }
     } catch (e) {
-      print('❌ [FRIENDS] Call failed: $e');
-      rethrow;
+      print('❌ [FRIENDS] Failed to initiate call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate call: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

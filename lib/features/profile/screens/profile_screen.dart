@@ -3,6 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
+import '../../policies/screens/privacy_policy_screen.dart';
+import '../../policies/screens/refund_policy_screen.dart';
+import '../../policies/screens/terms_conditions_screen.dart';
+import '../../policies/screens/help_support_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -251,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 32),
 
                       // Actions Section
-                      _buildSectionTitle('Actions'),
+                      _buildSectionTitle('Legal & Support'),
                       const SizedBox(height: 16),
                       _buildActionTile(
                         title: 'Privacy Policy',
@@ -259,14 +263,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.white70,
                         onTap: _openPrivacyPolicy,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Refund Policy',
+                        icon: Icons.payment_outlined,
+                        color: Colors.white70,
+                        onTap: _openRefundPolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Terms & Conditions',
+                        icon: Icons.description_outlined,
+                        color: Colors.white70,
+                        onTap: _openTermsConditions,
+                      ),
+                      const SizedBox(height: 12),
                       _buildActionTile(
                         title: 'Help & Support',
                         icon: Icons.help_outline,
-                        color: Colors.white70,
-                        onTap: () {
-                          // Help & support functionality
-                        },
+                        color: const Color(0xFF00ff88),
+                        onTap: _openHelpSupport,
                       ),
                       const SizedBox(height: 32),
 
@@ -488,24 +504,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _openPrivacyPolicy() async {
-    // Using a simple dialog to show the URL since url_launcher has issues
-    // User can copy and paste in browser
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy'),
-        content: const SelectableText(
-          'Visit our privacy policy at:\n\nhttps://dhvanicast.com/privacy-policy',
-          style: TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+  void _openPrivacyPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+    );
+  }
+
+  void _openRefundPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RefundPolicyScreen()),
+    );
+  }
+
+  void _openTermsConditions() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TermsConditionsScreen()),
+    );
+  }
+
+  void _openHelpSupport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
     );
   }
 }

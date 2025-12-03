@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../../injection.dart';
 import '../../../core/websocket_client.dart';
+import '../../../core/auth_storage_service.dart';
+import '../../../shared/services/livekit_service.dart';
+import '../../social/screens/active_call_screen.dart';
 
 class FriendChatScreen extends StatefulWidget {
   final Map<String, dynamic>? friendData;
@@ -15,12 +18,14 @@ class FriendChatScreen extends StatefulWidget {
 
 class _FriendChatScreenState extends State<FriendChatScreen> {
   late WebSocketClient _wsClient;
+  late LiveKitService _livekitService;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   String _friendId = '';
   String _friendName = 'Friend';
   String _friendAvatar = '👤';
+  String? _friendEmail;
   bool _isOnline = false;
   String? _currentUserId;
 
@@ -33,19 +38,29 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     super.initState();
 
     _wsClient = getIt<WebSocketClient>();
+    _livekitService = getIt<LiveKitService>();
+
+    print('🔍 [DEBUG] friendData received: ${widget.friendData}');
 
     if (widget.friendData != null) {
       _friendId = widget.friendData!['friendId'] ?? '';
       _friendName = widget.friendData!['friendName'] ?? 'Friend';
       _friendAvatar = widget.friendData!['friendAvatar'] ?? '👤';
+      _friendEmail = widget.friendData!['friendEmail'];
       _isOnline = widget.friendData!['isOnline'] ?? false;
+
+      print('🔍 [DEBUG] Parsed friendId: "$_friendId"');
+      print('🔍 [DEBUG] Parsed friendName: "$_friendName"');
+      print('🔍 [DEBUG] Parsed friendEmail: "$_friendEmail"');
+    } else {
+      print('❌ [ERROR] friendData is null!');
     }
 
     _loadCurrentUserId();
     _loadChatHistory();
     _setupWebSocketListeners();
 
-    print('💬 [FRIEND CHAT] Opened chat with: $_friendName');
+    print('💬 [FRIEND CHAT] Opened chat with: $_friendName (ID: $_friendId)');
   }
 
   @override
@@ -78,20 +93,35 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       print('💬 [FRIEND CHAT] Received message: $data');
 
       if (mounted) {
-        final senderId = data['senderId'] ?? data['sender']?['id'];
-        final senderInfo = data['senderInfo'] ?? {};
+        final senderId =
+            data['senderId'] ?? data['sender']?['id'] ?? data['sender']?['_id'];
+        final senderInfo = data['senderInfo'] ?? data['sender'] ?? {};
 
         // Check if message is from this friend
         if (senderId == _friendId) {
+          // Parse content - handle both string and object
+          String messageText = '';
+          if (data['content'] is String) {
+            messageText = data['content'];
+          } else if (data['content'] is Map) {
+            messageText = data['content']['text'] ?? data['content'].toString();
+          } else {
+            messageText = data['message'] ?? '';
+          }
+
           final newMessage = {
             'id':
                 data['messageId'] ??
+                data['_id'] ??
                 DateTime.now().millisecondsSinceEpoch.toString(),
             'senderId': senderId,
             'senderName': senderInfo['name'] ?? _friendName,
             'senderAvatar': senderInfo['avatar'] ?? '👤',
-            'message': data['content']?['text'] ?? data['content'],
-            'timestamp': data['timestamp'] ?? DateTime.now().toIso8601String(),
+            'message': messageText,
+            'timestamp':
+                data['timestamp'] ??
+                data['createdAt'] ??
+                DateTime.now().toIso8601String(),
             'isMe': false,
             'messageType': data['messageType'] ?? 'text',
           };
@@ -121,21 +151,33 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       print('✅ [FRIEND CHAT] Message delivered: $data');
     });
 
-    // Listen for friend message history
+    // Listen for message history
     _wsClient.on('friend_messages', (data) {
       print(
-        '📥 [FRIEND CHAT] Received friend messages: ${data['count']} messages',
+        '📥 [FRIEND CHAT] Received messages: ${data['count'] ?? data['messages']?.length ?? 0} messages',
       );
-      if (mounted && data['friendId'] == _friendId) {
+      final friendId = data['friendId'];
+      if (mounted && friendId == _friendId) {
         final List<dynamic> messages = data['messages'] ?? [];
         setState(() {
           _messages = messages.map((msg) {
+            // Parse content properly
+            String messageText = '';
+            if (msg['content'] is String) {
+              messageText = msg['content'];
+            } else if (msg['content'] is Map) {
+              messageText = msg['content']['text'] ?? '';
+            }
+
             return {
               'id': msg['_id'] ?? msg['id'],
               'senderId': msg['sender']['_id'] ?? msg['sender']['id'],
-              'senderName': msg['senderInfo']['name'],
-              'senderAvatar': msg['senderInfo']['avatar'] ?? '👤',
-              'message': msg['content']['text'] ?? msg['content'],
+              'senderName':
+                  msg['senderInfo']?['name'] ??
+                  msg['sender']?['name'] ??
+                  'Unknown',
+              'senderAvatar': msg['senderInfo']?['avatar'] ?? '👤',
+              'message': messageText,
               'timestamp': msg['createdAt'] ?? msg['timestamp'],
               'isMe':
                   (msg['sender']['_id'] ?? msg['sender']['id']) ==
@@ -150,8 +192,19 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     });
 
     // Listen for typing indicator
+    _wsClient.on('typing_indicator', (data) {
+      final senderId = data['userId'] ?? data['senderId'];
+      if (mounted && senderId == _friendId) {
+        setState(() {
+          _isTyping = data['isTyping'] == true;
+        });
+      }
+    });
+
+    // Also listen to user_typing for backward compatibility
     _wsClient.on('user_typing', (data) {
-      if (mounted && data['userId'] == _friendId) {
+      final senderId = data['userId'] ?? data['senderId'];
+      if (mounted && senderId == _friendId) {
         setState(() {
           _isTyping = data['isTyping'] == true;
         });
@@ -254,9 +307,28 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     _saveChatToStorage();
 
     // Send message via WebSocket
+    print('📤 [DEBUG] friendId: "$_friendId"');
+    print('📤 [DEBUG] content: "$message"');
+    print('📤 [DEBUG] messageType: "text"');
+    print('📤 [DEBUG] Socket connected: ${_wsClient.socket?.connected}');
+
+    if (_friendId.isEmpty) {
+      print('❌ [ERROR] Friend ID is empty!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Friend ID is missing'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isSendingMessage = false;
+      });
+      return;
+    }
+
     _wsClient.socket?.emit('direct_message', {
       'friendId': _friendId,
-      'content': {'text': message},
+      'content': message,
       'messageType': 'text',
     });
 
@@ -363,15 +435,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              // TODO: Implement voice call
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('📞 Calling $_friendName...'),
-                  backgroundColor: const Color(0xFF00ff88),
-                ),
-              );
-            },
+            onPressed: _callFriend,
             icon: const Icon(Icons.call, color: Color(0xFF00ff88)),
           ),
         ],
@@ -587,7 +651,13 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                             colors: [Color(0xFF9c27b0), Color(0xFFba68c8)],
                           )
                         : null,
-                    color: isMe ? null : Color(0xFF2a2a2a),
+                    color: isMe ? null : Color(0xFF3a3a3a),
+                    border: isMe
+                        ? null
+                        : Border.all(
+                            color: Color(0xFF00ff88).withOpacity(0.3),
+                            width: 1,
+                          ),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(isMe ? 18 : 4),
                       topRight: Radius.circular(isMe ? 4 : 18),
@@ -629,5 +699,89 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         ],
       ),
     );
+  }
+
+  void _callFriend() async {
+    if (_friendEmail == null || _friendEmail!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Friend email not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    print('📞 [FRIEND CHAT] Calling: $_friendName (Email: $_friendEmail)');
+
+    // Generate unique room name
+    final roomName = 'friend_call_${DateTime.now().millisecondsSinceEpoch}';
+
+    // Send call initiation to backend
+    _wsClient.socket?.emit('initiate_call', {
+      'friendId': _friendId,
+      'callType': 'voice',
+      'roomName': roomName,
+    });
+
+    // Start the call and navigate to active call screen
+    try {
+      final authToken = await AuthStorageService.getToken();
+      if (authToken == null) {
+        throw Exception('Not authenticated');
+      }
+
+      await _livekitService.connectToFriendCall(_friendEmail!, authToken);
+
+      // Navigate to active call screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => ActiveCallScreen(
+              callData: {
+                'friendName': _friendName,
+                'friendAvatar': _friendAvatar,
+                'friendId': _friendId,
+                'callId': roomName,
+              },
+              onEndCall: () async {
+                await _endCall(_friendId, roomName);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [FRIEND CHAT] Failed to initiate call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate call: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _endCall(String friendId, String callId) async {
+    try {
+      print('📞 [FRIEND CHAT] Ending call');
+
+      // Send end call event to backend
+      _wsClient.socket?.emit('end_call', {
+        'callId': callId,
+        'friendId': friendId,
+      });
+
+      await _livekitService.disconnect();
+      print('✅ [FRIEND CHAT] Call ended');
+    } catch (e) {
+      print('❌ [FRIEND CHAT] Error ending call: $e');
+    }
   }
 }

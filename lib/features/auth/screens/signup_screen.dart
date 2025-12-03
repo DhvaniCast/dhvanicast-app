@@ -7,6 +7,7 @@ import '../../../providers/auth_state.dart';
 import '../../../models/user.dart';
 import '../../../injection.dart';
 import '../../../core/websocket_client.dart';
+import '../../policies/screens/terms_conditions_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -33,6 +34,7 @@ class _SignupScreenState extends State<SignupScreen>
   bool _isLoading = false;
   int _currentStep = 0;
   String? _selectedState;
+  bool _acceptedTerms = false;
 
   // List of Indian states and union territories
   final List<String> _indianStates = [
@@ -116,6 +118,17 @@ class _SignupScreenState extends State<SignupScreen>
         _nameController.text.trim().isNotEmpty &&
         _selectedState != null &&
         _selectedState!.isNotEmpty) {
+      // Check if terms are accepted
+      if (!_acceptedTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please accept Terms & Conditions to continue'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
@@ -466,6 +479,89 @@ class _SignupScreenState extends State<SignupScreen>
                                         return 'Enter valid mobile number';
                                       return null;
                                     },
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Terms & Conditions Checkbox
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _acceptedTerms
+                                            ? const Color(0xFF00ff88)
+                                            : Colors.white.withOpacity(0.1),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Checkbox(
+                                          value: _acceptedTerms,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _acceptedTerms = value ?? false;
+                                            });
+                                          },
+                                          activeColor: const Color(0xFF00ff88),
+                                          checkColor: Colors.white,
+                                          side: BorderSide(
+                                            color: Colors.white.withOpacity(
+                                              0.3,
+                                            ),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const TermsConditionsScreen(),
+                                                ),
+                                              );
+                                            },
+                                            child: RichText(
+                                              text: TextSpan(
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.white70,
+                                                  height: 1.4,
+                                                ),
+                                                children: [
+                                                  const TextSpan(
+                                                    text: 'I accept the ',
+                                                  ),
+                                                  TextSpan(
+                                                    text: 'Terms & Conditions',
+                                                    style: TextStyle(
+                                                      color: const Color(
+                                                        0xFF00ff88,
+                                                      ),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                    ),
+                                                  ),
+                                                  const TextSpan(
+                                                    text: ' (tap to read)',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontStyle:
+                                                          FontStyle.italic,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                   const SizedBox(height: 20),
 
