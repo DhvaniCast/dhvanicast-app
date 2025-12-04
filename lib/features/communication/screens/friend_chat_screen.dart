@@ -59,14 +59,38 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     _loadCurrentUserId();
     _loadChatHistory();
     _setupWebSocketListeners();
+    _setupCallEndListener();
 
     print('💬 [FRIEND CHAT] Opened chat with: $_friendName (ID: $_friendId)');
+  }
+
+  void _setupCallEndListener() {
+    print('🎧 [FRIEND_CHAT] Setting up call_ended listener');
+
+    _wsClient.socket?.on('call_ended', (data) {
+      print('📴 [FRIEND_CHAT] Call ended by other user: $data');
+
+      if (mounted) {
+        // Disconnect LiveKit if connected
+        _livekitService.disconnect();
+
+        // Show notification
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Call ended by friend'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _wsClient.socket?.off('call_ended');
     super.dispose();
   }
 

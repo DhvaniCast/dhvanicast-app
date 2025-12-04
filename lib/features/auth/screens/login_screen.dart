@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import '../../../core/auth_storage_service.dart';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
@@ -91,6 +95,37 @@ class _LoginScreenState extends State<LoginScreen>
   /// Save user data and token for auto-login (30 days)
   Future<void> _saveUserDataToPrefs(User user, String token) async {
     await AuthStorageService.saveAuthData(token: token, user: user);
+
+    // Send FCM token to backend
+    _sendFCMTokenToBackend(token);
+  }
+
+  /// Send FCM token to backend after login
+  Future<void> _sendFCMTokenToBackend(String accessToken) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final fcmToken = prefs.getString('pending_fcm_token');
+
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        final response = await http.post(
+          Uri.parse('http://10.0.2.2:3000/api/users/update-fcm-token'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({'fcmToken': fcmToken}),
+        );
+
+        if (response.statusCode == 200) {
+          print('✅ [FCM] Token synced with backend');
+          await prefs.remove('pending_fcm_token');
+        } else {
+          print('⚠️ [FCM] Failed to sync token: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      print('❌ [FCM] Error sending token to backend: $e');
+    }
   }
 
   @override

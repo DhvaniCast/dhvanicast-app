@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../../injection.dart';
 import '../../../shared/services/livekit_service.dart';
+import '../../../core/websocket_client.dart';
 
 class ActiveCallScreen extends StatefulWidget {
   final Map<String, dynamic> callData;
@@ -20,6 +21,7 @@ class ActiveCallScreen extends StatefulWidget {
 class _ActiveCallScreenState extends State<ActiveCallScreen>
     with SingleTickerProviderStateMixin {
   final LiveKitService _livekitService = getIt<LiveKitService>();
+  final WebSocketClient _wsClient = WebSocketClient();
   late AnimationController _waveController;
   Timer? _callDurationTimer;
   int _callDurationSeconds = 0;
@@ -35,6 +37,29 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     )..repeat(reverse: true);
 
     _startCallDurationTimer();
+    _setupCallEndListener();
+  }
+
+  void _setupCallEndListener() {
+    print('🎧 [ACTIVE_CALL] Setting up call_ended listener');
+
+    _wsClient.socket?.on('call_ended', (data) {
+      print('📴 [ACTIVE_CALL] Call ended by other user: $data');
+
+      if (mounted) {
+        // Show notification
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Call ended by friend'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // End the call automatically
+        widget.onEndCall();
+      }
+    });
   }
 
   void _startCallDurationTimer() {
@@ -55,6 +80,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   void dispose() {
     _waveController.dispose();
     _callDurationTimer?.cancel();
+    _wsClient.socket?.off('call_ended');
     super.dispose();
   }
 

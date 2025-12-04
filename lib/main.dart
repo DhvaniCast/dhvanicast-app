@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 import 'injection.dart';
+import 'firebase_options.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
@@ -16,6 +24,24 @@ import 'features/radio/screens/live_radio_screen.dart';
 import 'features/social/screens/friends_screen.dart';
 import 'providers/auth_bloc.dart';
 
+// Background message handler (must be top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint('📲 [FCM] Background message: ${message.notification?.title}');
+
+  if (message.data['type'] == 'incoming_call') {
+    debugPrint(
+      '📞 [FCM] Incoming call in background from: ${message.data['callerName']}',
+    );
+    // Local notification will be shown automatically
+  }
+}
+
+// Local notifications instance
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 void main() async {
   // Setup error handling
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -28,6 +54,75 @@ void main() async {
     () async {
       // Ensure Flutter bindings are initialized
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Initialize Firebase
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        debugPrint('✅ Firebase initialized');
+
+        // Set background message handler
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
+
+        // Initialize local notifications
+        const AndroidInitializationSettings initializationSettingsAndroid =
+            AndroidInitializationSettings('@mipmap/ic_launcher');
+
+        const DarwinInitializationSettings initializationSettingsDarwin =
+            DarwinInitializationSettings(
+              requestAlertPermission: true,
+              requestBadgePermission: true,
+              requestSoundPermission: true,
+            );
+
+        const InitializationSettings initializationSettings =
+            InitializationSettings(
+              android: initializationSettingsAndroid,
+              iOS: initializationSettingsDarwin,
+            );
+
+        await flutterLocalNotificationsPlugin.initialize(
+          initializationSettings,
+          onDidReceiveNotificationResponse: (NotificationResponse response) {
+            debugPrint('📲 [FCM] Notification tapped: ${response.payload}');
+            // TODO: Navigate to incoming call screen
+          },
+        );
+
+        // Request notification permissions
+        FirebaseMessaging messaging = FirebaseMessaging.instance;
+        NotificationSettings settings = await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        debugPrint('✅ FCM permission status: ${settings.authorizationStatus}');
+
+        // Get FCM token
+        String? fcmToken = await messaging.getToken();
+        if (fcmToken != null) {
+          debugPrint('📲 [FCM TOKEN]: $fcmToken');
+          // Save token to backend after user logs in
+          _saveFCMTokenLater(fcmToken);
+        }
+
+        // Listen for foreground messages
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+          debugPrint(
+            '📲 [FCM] Foreground message: ${message.notification?.title}',
+          );
+
+          if (message.data['type'] == 'incoming_call') {
+            _showIncomingCallNotification(message.data);
+          }
+        });
+      } catch (e, stack) {
+        debugPrint('❌ Error initializing Firebase: $e');
+        debugPrint('Stack: $stack');
+      }
 
       // Setup dependency injection
       try {
@@ -44,6 +139,53 @@ void main() async {
       debugPrint('🔴 Uncaught Error: $error');
       debugPrint('Stack trace: $stack');
     },
+  );
+}
+
+// Save FCM token to backend (called after login)
+Future<void> _saveFCMTokenLater(String token) async {
+  // Store token locally, will be sent to backend after login
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('pending_fcm_token', token);
+  debugPrint(
+    '📲 [FCM] Token saved locally, will sync with backend after login',
+  );
+}
+
+// Show incoming call notification
+Future<void> _showIncomingCallNotification(
+  Map<String, dynamic> callData,
+) async {
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'incoming_calls',
+    'Incoming Calls',
+    channelDescription: 'Notifications for incoming voice calls',
+    importance: Importance.max,
+    priority: Priority.high,
+    fullScreenIntent: true,
+    category: AndroidNotificationCategory.call,
+    playSound: true,
+    enableVibration: true,
+  );
+
+  const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+    categoryIdentifier: 'INCOMING_CALL',
+  );
+
+  const NotificationDetails notificationDetails = NotificationDetails(
+    android: androidDetails,
+    iOS: iosDetails,
+  );
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    '📞 Incoming Call',
+    '${callData['callerName']} is calling...',
+    notificationDetails,
+    payload: jsonEncode(callData),
   );
 }
 
