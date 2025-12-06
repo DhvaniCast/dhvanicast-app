@@ -314,10 +314,14 @@ class _SignupScreenState extends State<SignupScreen>
                                       width: 2,
                                     ),
                                   ),
-                                  child: const Icon(
-                                    Icons.person_add,
-                                    size: 30,
-                                    color: Color(0xFF00ff88),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(28),
+                                    child: Image.asset(
+                                      'assets/images/app_logo.png',
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({Key? key}) : super(key: key);
@@ -99,7 +100,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
               _buildSectionTitle('7. Children\'s Privacy'),
               _buildParagraph(
-                'DhvaniCast is intended for users aged 13 and above. We do not knowingly collect information from children under 13.',
+                'DhvaniCast is intended for users aged 18 and above. We do not knowingly collect information from children under 18.',
               ),
               const SizedBox(height: 20),
 
@@ -114,6 +115,23 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 'For privacy-related questions or concerns:\n\n'
                 'Email: support@dhvanicast.com\n'
                 'In-App: Help & Support section',
+              ),
+              const SizedBox(height: 30),
+
+              _buildSectionTitle('For More Info Visit'),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () =>
+                    _launchURL('https://dhvanicast.com/privacy-policy'),
+                child: const Text(
+                  'https://dhvanicast.com/privacy-policy',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF00ff88),
+                    decoration: TextDecoration.underline,
+                    decorationColor: Color(0xFF00ff88),
+                  ),
+                ),
               ),
               const SizedBox(height: 30),
             ],
@@ -150,5 +168,12 @@ class PrivacyPolicyScreen extends StatelessWidget {
       text,
       style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.6),
     );
+  }
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch $url');
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RefundPolicyScreen extends StatelessWidget {
   const RefundPolicyScreen({Key? key}) : super(key: key);
@@ -113,6 +114,22 @@ class RefundPolicyScreen extends StatelessWidget {
                 'DhvaniCast reserves the right to update or modify this Refund Policy at any time. Changes will be posted within the app or on our website.',
               ),
               const SizedBox(height: 30),
+
+              _buildSectionTitle('For More Info Visit'),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () => _launchURL('https://dhvanicast.com/refund-policy'),
+                child: const Text(
+                  'https://dhvanicast.com/refund-policy',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF00ff88),
+                    decoration: TextDecoration.underline,
+                    decorationColor: Color(0xFF00ff88),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -158,5 +175,12 @@ class RefundPolicyScreen extends StatelessWidget {
       text,
       style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.6),
     );
+  }
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch $url');
+    }
   }
 }
