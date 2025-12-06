@@ -66,6 +66,14 @@ class WebSocketClient {
 
   /// Setup socket event listeners
   void _setupSocketListeners() {
+    // **DEBUG: Log ALL incoming socket events**
+    _socket?.onAny((event, data) {
+      if (kDebugMode) {
+        print('🎯 [WEBSOCKET_CLIENT] Received event: $event');
+        print('📦 [WEBSOCKET_CLIENT] Event data: $data');
+      }
+    });
+
     _socket?.on('connect', (_) {
       _isConnected = true;
       if (kDebugMode) {

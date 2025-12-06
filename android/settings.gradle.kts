@@ -14,6 +14,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
@@ -24,6 +25,16 @@ plugins {
     id("com.google.gms.google-services") version("4.3.15") apply false
     // END: FlutterFire Configuration
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
+    }
 }
 
 include(":app")

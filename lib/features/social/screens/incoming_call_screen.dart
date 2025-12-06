@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:async';
+import '../../../shared/services/notification_service.dart';
 
 class IncomingCallScreen extends StatefulWidget {
   final Map<String, dynamic> callData;
@@ -78,6 +79,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   void _stopRingtone() {
     _audioPlayer.stop();
     _callTimer?.cancel();
+    // Also stop notification service ringtone
+    final notificationService = NotificationService();
+    notificationService.stopRingtone();
   }
 
   void _acceptCall() {
@@ -122,212 +126,236 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               ),
             ),
 
-            // Content
-            Column(
-              children: [
-                const SizedBox(height: 60),
-
-                // Call type label
-                const Text(
-                  'Incoming Voice Call',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    letterSpacing: 1.2,
-                  ),
+            // Content - Make scrollable to prevent overflow
+            SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top,
                 ),
-
-                const SizedBox(height: 40),
-
-                // Caller avatar with pulse animation
-                ScaleTransition(
-                  scale: _pulseAnimation,
-                  child: Container(
-                    width: 140,
-                    height: 140,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF00ff88),
-                        width: 3,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00ff88).withOpacity(0.3),
-                          blurRadius: 30,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2a2a2a),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          callerAvatar,
-                          style: const TextStyle(fontSize: 60),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Caller name
-                Text(
-                  callerName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Calling status with animated dots
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Calling',
-                      style: TextStyle(
-                        color: const Color(0xFF00ff88),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    _buildAnimatedDots(),
-                  ],
-                ),
-
-                const Spacer(),
-
-                // Buttons section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: IntrinsicHeight(
                   child: Column(
                     children: [
-                      // Quick action buttons (optional)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildQuickActionButton(
-                            icon: Icons.message,
-                            label: 'Message',
-                            onTap: () {
-                              // TODO: Open chat
-                              _rejectCall();
-                            },
-                          ),
-                          _buildQuickActionButton(
-                            icon: Icons.alarm,
-                            label: 'Remind Me',
-                            onTap: () {
-                              // TODO: Set reminder
-                              _rejectCall();
-                            },
-                          ),
-                        ],
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.08,
                       ),
 
-                      const SizedBox(height: 60),
+                      // Call type label
+                      const Text(
+                        'Incoming Voice Call',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
 
-                      // Main action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Decline button
-                          Column(
-                            children: [
-                              GestureDetector(
-                                onTap: _rejectCall,
-                                child: Container(
-                                  width: 75,
-                                  height: 75,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.red.withOpacity(0.4),
-                                        blurRadius: 20,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.call_end,
-                                    color: Colors.white,
-                                    size: 36,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Decline',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.04,
+                      ),
+
+                      // Caller avatar with pulse animation
+                      ScaleTransition(
+                        scale: _pulseAnimation,
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.35,
+                          height: MediaQuery.of(context).size.width * 0.35,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF00ff88),
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00ff88).withOpacity(0.3),
+                                blurRadius: 30,
+                                spreadRadius: 5,
                               ),
                             ],
                           ),
-
-                          // Accept button
-                          Column(
-                            children: [
-                              GestureDetector(
-                                onTap: _acceptCall,
-                                child: Container(
-                                  width: 75,
-                                  height: 75,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF00ff88),
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF00ff88,
-                                        ).withOpacity(0.4),
-                                        blurRadius: 20,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.call,
-                                    color: Colors.black,
-                                    size: 36,
-                                  ),
-                                ),
+                          child: Container(
+                            margin: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2a2a2a),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                callerAvatar,
+                                style: const TextStyle(fontSize: 60),
                               ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Accept',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
+                        ),
+                      ),
+
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.04,
+                      ),
+
+                      // Caller name
+                      Text(
+                        callerName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Calling status with animated dots
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Calling',
+                            style: TextStyle(
+                              color: const Color(0xFF00ff88),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          _buildAnimatedDots(),
                         ],
                       ),
 
-                      const SizedBox(height: 80),
+                      const Spacer(),
+
+                      // Buttons section
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Column(
+                          children: [
+                            // Quick action buttons (optional)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildQuickActionButton(
+                                  icon: Icons.message,
+                                  label: 'Message',
+                                  onTap: () {
+                                    // TODO: Open chat
+                                    _rejectCall();
+                                  },
+                                ),
+                                _buildQuickActionButton(
+                                  icon: Icons.alarm,
+                                  label: 'Remind Me',
+                                  onTap: () {
+                                    // TODO: Set reminder
+                                    _rejectCall();
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.06,
+                            ),
+
+                            // Main action buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                // Decline button
+                                Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _rejectCall,
+                                      child: Container(
+                                        width: 70,
+                                        height: 70,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.red.withOpacity(
+                                                0.4,
+                                              ),
+                                              blurRadius: 20,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.call_end,
+                                          color: Colors.white,
+                                          size: 32,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Decline',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // Accept button
+                                Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _acceptCall,
+                                      child: Container(
+                                        width: 70,
+                                        height: 70,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF00ff88),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(
+                                                0xFF00ff88,
+                                              ).withOpacity(0.4),
+                                              blurRadius: 20,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.call,
+                                          color: Colors.black,
+                                          size: 32,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Accept',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.08,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),

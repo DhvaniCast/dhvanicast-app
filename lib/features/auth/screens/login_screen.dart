@@ -11,6 +11,7 @@ import '../../../providers/auth_state.dart';
 import '../../../injection.dart';
 import '../../../core/websocket_client.dart';
 import '../../../models/user.dart';
+import '../../../shared/constants/api_endpoints.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -108,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (fcmToken != null && fcmToken.isNotEmpty) {
         final response = await http.post(
-          Uri.parse('http://10.0.2.2:3000/api/users/update-fcm-token'),
+          Uri.parse('${ApiEndpoints.baseUrl}/users/update-fcm-token'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $accessToken',

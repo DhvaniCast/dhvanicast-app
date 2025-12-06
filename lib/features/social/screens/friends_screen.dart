@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../injection.dart';
 import '../../../shared/services/social_service.dart';
 import '../../../shared/services/livekit_service.dart';
+import '../../../shared/services/notification_service.dart';
 import '../../../core/auth_storage_service.dart';
 import '../../../core/websocket_client.dart';
 import 'incoming_call_screen.dart';
@@ -44,11 +45,8 @@ class _FriendsScreenState extends State<FriendsScreen>
   void _setupCallListeners() {
     print('🔔 [FRIENDS] Setting up call listeners');
 
-    // Listen for incoming calls
-    _socketClient.socket?.on('incoming_call', (data) {
-      print('📞 [FRIENDS] Incoming call received: $data');
-      _showIncomingCallDialog(data);
-    });
+    // NOTE: incoming_call is handled by GlobalCallListener globally
+    // No need to register it here to avoid conflicts
 
     // Listen for call accepted
     _socketClient.socket?.on('call_accepted', (data) {
@@ -83,11 +81,14 @@ class _FriendsScreenState extends State<FriendsScreen>
         ),
       );
       _livekitService.disconnect();
+      // Stop ringtone when call ends
+      final notificationService = NotificationService();
+      notificationService.stopRingtone();
     });
   }
 
   void _removeCallListeners() {
-    _socketClient.socket?.off('incoming_call');
+    // incoming_call is NOT removed here as it's handled by GlobalCallListener
     _socketClient.socket?.off('call_accepted');
     _socketClient.socket?.off('call_rejected');
     _socketClient.socket?.off('call_ended');
@@ -156,7 +157,7 @@ class _FriendsScreenState extends State<FriendsScreen>
 
       await _livekitService.connectToFriendCall(callerEmail, authToken);
 
-      // Navigate to active call screen
+      // Navigate to active call screen (receiver side - call starts now)
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -174,6 +175,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   Navigator.of(context).pop();
                 }
               },
+              callStartTime: DateTime.now(), // Call answered right now
             ),
           ),
         );
@@ -333,7 +335,7 @@ class _FriendsScreenState extends State<FriendsScreen>
 
       await _livekitService.connectToFriendCall(friendEmail, authToken);
 
-      // Navigate to active call screen
+      // Navigate to active call screen (caller side - no start time yet)
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -344,6 +346,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                 'friendAvatar': friendAvatar,
                 'friendId': friendId,
                 'callId': roomName,
+                'isCaller': true,
               },
               onEndCall: () async {
                 await _endCall(friendId, roomName);
@@ -351,6 +354,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   Navigator.of(context).pop();
                 }
               },
+              callStartTime: null, // Timer won't start until call is answered
             ),
           ),
         );

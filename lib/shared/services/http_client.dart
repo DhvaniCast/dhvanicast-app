@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -11,6 +12,8 @@ class HttpClient {
   HttpClient._internal();
 
   static const int _timeoutDuration = 30;
+  static const int _maxRetries = 2; // Retry cold start failures
+  static const int _retryDelay = 1500; // 1.5 seconds between retries
   String? _authToken;
 
   // Set authentication token
@@ -87,7 +90,7 @@ class HttpClient {
     }
   }
 
-  // Generic HTTP request method
+  // Generic HTTP request method with retry logic
   Future<ApiResponse<T>> _makeRequest<T>(
     String method,
     String url, {
@@ -95,92 +98,148 @@ class HttpClient {
     Map<String, String>? additionalHeaders,
     T Function(dynamic)? fromJson,
   }) async {
-    try {
-      final headers = {..._defaultHeaders};
-      if (additionalHeaders != null) {
-        headers.addAll(additionalHeaders);
-      }
+    int attemptCount = 0;
 
-      final encodedBody = body != null ? jsonEncode(body) : null;
-      _logRequest(method, url, headers, encodedBody);
+    while (attemptCount <= _maxRetries) {
+      try {
+        final headers = {..._defaultHeaders};
+        if (additionalHeaders != null) {
+          headers.addAll(additionalHeaders);
+        }
 
-      late http.Response response;
+        final encodedBody = body != null ? jsonEncode(body) : null;
+        _logRequest(method, url, headers, encodedBody);
 
-      switch (method.toLowerCase()) {
-        case 'get':
-          response = await http
-              .get(Uri.parse(url), headers: headers)
-              .timeout(const Duration(seconds: _timeoutDuration));
-          break;
-        case 'post':
-          response = await http
-              .post(Uri.parse(url), headers: headers, body: encodedBody)
-              .timeout(const Duration(seconds: _timeoutDuration));
-          break;
-        case 'put':
-          response = await http
-              .put(Uri.parse(url), headers: headers, body: encodedBody)
-              .timeout(const Duration(seconds: _timeoutDuration));
-          break;
-        case 'delete':
-          response = await http
-              .delete(Uri.parse(url), headers: headers)
-              .timeout(const Duration(seconds: _timeoutDuration));
-          break;
-        default:
+        late http.Response response;
+
+        switch (method.toLowerCase()) {
+          case 'get':
+            response = await http
+                .get(Uri.parse(url), headers: headers)
+                .timeout(const Duration(seconds: _timeoutDuration));
+            break;
+          case 'post':
+            response = await http
+                .post(Uri.parse(url), headers: headers, body: encodedBody)
+                .timeout(const Duration(seconds: _timeoutDuration));
+            break;
+          case 'put':
+            response = await http
+                .put(Uri.parse(url), headers: headers, body: encodedBody)
+                .timeout(const Duration(seconds: _timeoutDuration));
+            break;
+          case 'delete':
+            response = await http
+                .delete(Uri.parse(url), headers: headers)
+                .timeout(const Duration(seconds: _timeoutDuration));
+            break;
+          default:
+            throw ApiException(
+              message: 'Unsupported HTTP method: $method',
+              statusCode: 0,
+            );
+        }
+
+        _logResponse(response);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final responseBody = jsonDecode(response.body);
+          return ApiResponse.fromJson(responseBody, fromJson);
+        } else {
+          print('❌ HTTP Error: ${response.statusCode}');
+          print('❌ Response Body: ${response.body}');
+          throw _handleHttpError(response);
+        }
+      } on TimeoutException {
+        attemptCount++;
+        if (attemptCount > _maxRetries) {
+          print('❌ Request timeout after $attemptCount attempts');
           throw ApiException(
-            message: 'Unsupported HTTP method: $method',
+            message: 'Request timeout. Please check your internet connection.',
+            statusCode: 408,
+          );
+        }
+        print('⏱️ Timeout on attempt $attemptCount, retrying...');
+        await Future.delayed(const Duration(milliseconds: _retryDelay));
+      } on SocketException catch (e) {
+        attemptCount++;
+        if (attemptCount > _maxRetries) {
+          print('❌ Socket Exception after $attemptCount attempts: $e');
+          throw ApiException(
+            message: 'No internet connection. Please check your network.',
             statusCode: 0,
           );
-      }
-
-      _logResponse(response);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final responseBody = jsonDecode(response.body);
-        return ApiResponse.fromJson(responseBody, fromJson);
-      } else {
-        print('❌ HTTP Error: ${response.statusCode}');
-        print('❌ Response Body: ${response.body}');
-        throw _handleHttpError(response);
-      }
-    } on SocketException catch (e) {
-      print('❌ Socket Exception: $e');
-      throw ApiException(
-        message: 'No internet connection. Please check your network.',
-        statusCode: 0,
-      );
-    } on HttpException catch (e) {
-      print('❌ HTTP Exception: $e');
-      throw ApiException(
-        message: 'Network error occurred. Please try again.',
-        statusCode: 0,
-      );
-    } on FormatException catch (e) {
-      print('❌ Format Exception: $e');
-      throw ApiException(
-        message: 'Invalid response format received.',
-        statusCode: 0,
-      );
-    } catch (e) {
-      print('❌ Unexpected Error: $e');
-      if (e is ApiException) {
-        rethrow;
-      }
-
-      // Handle connection closed specifically
-      if (e.toString().contains('Connection closed')) {
+        }
+        print('🌐 Network error on attempt $attemptCount, retrying...');
+        await Future.delayed(const Duration(milliseconds: _retryDelay));
+      } on HttpException catch (e) {
+        attemptCount++;
+        if (attemptCount > _maxRetries) {
+          print('❌ HTTP Exception after $attemptCount attempts: $e');
+          throw ApiException(
+            message: 'Network error occurred. Please try again.',
+            statusCode: 0,
+          );
+        }
+        print(
+          '🔴 HTTP error on attempt $attemptCount (cold start), retrying...',
+        );
+        await Future.delayed(const Duration(milliseconds: _retryDelay));
+      } on HandshakeException catch (e) {
+        attemptCount++;
+        if (attemptCount > _maxRetries) {
+          print('❌ Handshake Exception after $attemptCount attempts: $e');
+          throw ApiException(
+            message: 'Secure connection failed. Please try again.',
+            statusCode: 0,
+          );
+        }
+        print(
+          '🔒 SSL error on attempt $attemptCount (cold start), retrying...',
+        );
+        await Future.delayed(const Duration(milliseconds: _retryDelay));
+      } on FormatException catch (e) {
+        print('❌ Format Exception: $e');
         throw ApiException(
-          message: 'Server connection closed unexpectedly. Please try again.',
-          statusCode: 503,
+          message: 'Invalid response format received.',
+          statusCode: 0,
+        );
+      } catch (e) {
+        if (e is ApiException) {
+          rethrow;
+        }
+
+        // Handle connection closed specifically
+        if (e.toString().contains('Connection closed')) {
+          attemptCount++;
+          if (attemptCount > _maxRetries) {
+            print('❌ Connection closed after $attemptCount attempts: $e');
+            throw ApiException(
+              message:
+                  'Server connection closed unexpectedly. Please try again.',
+              statusCode: 503,
+            );
+          }
+          print(
+            '🔴 Connection closed on attempt $attemptCount (cold start), retrying...',
+          );
+          await Future.delayed(const Duration(milliseconds: _retryDelay));
+          continue;
+        }
+
+        print('❌ Unexpected Error: $e');
+        throw ApiException(
+          message: 'An unexpected error occurred: ${e.toString()}',
+          statusCode: 0,
         );
       }
-
-      throw ApiException(
-        message: 'An unexpected error occurred: ${e.toString()}',
-        statusCode: 0,
-      );
     }
+
+    // Should never reach here due to throw in loop
+    throw ApiException(
+      message: 'Request failed after maximum retries.',
+      statusCode: 500,
+    );
   }
 
   // GET request
