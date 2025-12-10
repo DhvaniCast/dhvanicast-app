@@ -21,6 +21,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthTokenSetRequested>(_onTokenSetRequested);
     on<AuthProfileRequested>(_onProfileRequested);
     on<AuthProfileUpdateRequested>(_onProfileUpdateRequested);
+    on<AuthTemporaryDeleteRequested>(_onTemporaryDeleteRequested);
+    on<AuthPermanentDeleteRequested>(_onPermanentDeleteRequested);
   }
 
   // Handle login request (send OTP)
@@ -371,6 +373,82 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(
         AuthError(
           message: 'Failed to update profile. Please try again.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  // Handle temporary delete account request
+  Future<void> _onTemporaryDeleteRequested(
+    AuthTemporaryDeleteRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    try {
+      final response = await _authService.temporaryDeleteAccount();
+
+      if (response.success) {
+        emit(AuthLoggedOut(message: response.message));
+      } else {
+        emit(
+          AuthError(message: response.message, statusCode: response.statusCode),
+        );
+      }
+    } on ApiException catch (e) {
+      emit(
+        AuthError(
+          message: e.userFriendlyMessage,
+          statusCode: e.statusCode,
+          errors: e.errors,
+        ),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Temporary delete error: $e');
+      }
+      emit(
+        AuthError(
+          message: 'Failed to deactivate account. Please try again.',
+          statusCode: 0,
+        ),
+      );
+    }
+  }
+
+  // Handle permanent delete account request
+  Future<void> _onPermanentDeleteRequested(
+    AuthPermanentDeleteRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    try {
+      final response = await _authService.permanentDeleteAccount();
+
+      if (response.success) {
+        emit(AuthLoggedOut(message: response.message));
+      } else {
+        emit(
+          AuthError(message: response.message, statusCode: response.statusCode),
+        );
+      }
+    } on ApiException catch (e) {
+      emit(
+        AuthError(
+          message: e.userFriendlyMessage,
+          statusCode: e.statusCode,
+          errors: e.errors,
+        ),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Permanent delete error: $e');
+      }
+      emit(
+        AuthError(
+          message: 'Failed to delete account. Please try again.',
           statusCode: 0,
         ),
       );

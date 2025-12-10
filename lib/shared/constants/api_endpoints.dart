@@ -73,6 +73,8 @@ class ApiEndpoints {
   static String get profile => '$baseUrl/auth/profile';
   static String get updateProfile => '$baseUrl/auth/profile';
   static String get logout => '$baseUrl/auth/logout';
+  static String get deleteTemporary => '$baseUrl/auth/delete-temporary';
+  static String get deletePermanent => '$baseUrl/auth/delete-permanent';
 
   // Frequency Endpoints
   static String get frequencies => '$baseUrl/frequencies';

@@ -140,10 +140,15 @@ class DialerService extends ChangeNotifier {
   String? get error => _error;
 
   /// Load all frequencies
-  Future<void> loadFrequencies({String? band, bool? isPublic}) async {
+  Future<void> loadFrequencies({
+    String? band,
+    bool? isPublic,
+    bool? hasActiveUsers, // NEW: Filter for active frequencies
+  }) async {
     print('📥 [LOAD-FREQ] ====== LOADING FREQUENCIES ======');
     print('📥 [LOAD-FREQ] Band filter: $band');
     print('📥 [LOAD-FREQ] Public filter: $isPublic');
+    print('📥 [LOAD-FREQ] Active users filter: $hasActiveUsers');
 
     _isLoading = true;
     _error = null;
@@ -154,7 +159,8 @@ class DialerService extends ChangeNotifier {
         band: band,
         isPublic: isPublic ?? true,
         page: 1,
-        limit: 100,
+        limit: 500, // Increased from 100 to 500 to include more frequencies
+        hasActiveUsers: hasActiveUsers, // NEW: Pass filter
       );
 
       print('📥 [LOAD-FREQ] API Response:');

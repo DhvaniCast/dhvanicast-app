@@ -46,3 +46,7 @@ class AuthProfileUpdateRequested extends AuthEvent {
 
   AuthProfileUpdateRequested({this.name, this.state});
 }
+
+class AuthTemporaryDeleteRequested extends AuthEvent {}
+
+class AuthPermanentDeleteRequested extends AuthEvent {}

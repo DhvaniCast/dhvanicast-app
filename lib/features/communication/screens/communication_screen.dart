@@ -1579,12 +1579,12 @@ class _CommunicationScreenState extends State<CommunicationScreen>
                 ),
               ),
             ),
-            // Settings
+            // User Icon
             Container(
               margin: const EdgeInsets.only(right: 8),
               child: IconButton(
                 onPressed: _showMembersSheet,
-                icon: const Icon(Icons.settings, color: Colors.white, size: 20),
+                icon: const Icon(Icons.person, color: Colors.white, size: 24),
               ),
             ),
           ],

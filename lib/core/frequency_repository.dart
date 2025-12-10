@@ -14,6 +14,7 @@ class FrequencyRepository {
     String? search,
     double? minFrequency,
     double? maxFrequency,
+    bool? hasActiveUsers, // NEW: Filter for active frequencies
   }) async {
     try {
       print('🔍 Step 1: Building query parameters...');
@@ -25,6 +26,7 @@ class FrequencyRepository {
         if (search != null) 'search': search,
         if (minFrequency != null) 'minFrequency': minFrequency,
         if (maxFrequency != null) 'maxFrequency': maxFrequency,
+        if (hasActiveUsers != null) 'hasActiveUsers': hasActiveUsers, // NEW
       };
       print('📋 Query params: $queryParams');
 

@@ -237,4 +237,48 @@ class AuthService {
     }
     return mobile;
   }
+
+  /// Temporary delete account (deactivate)
+  ///
+  /// Requires authentication token
+  ///
+  /// Returns [ApiResponse<void>] with deactivation status
+  Future<ApiResponse<void>> temporaryDeleteAccount() async {
+    try {
+      final response = await _httpClient.post<void>(
+        ApiEndpoints.deleteTemporary,
+        fromJson: null,
+      );
+
+      // Clear the auth token and saved data after temporary deletion
+      _httpClient.clearAuthToken();
+      await AuthStorageService.clearAuthData();
+
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Permanent delete account
+  ///
+  /// Requires authentication token
+  ///
+  /// Returns [ApiResponse<void>] with deletion status
+  Future<ApiResponse<void>> permanentDeleteAccount() async {
+    try {
+      final response = await _httpClient.delete<void>(
+        ApiEndpoints.deletePermanent,
+        fromJson: null,
+      );
+
+      // Clear the auth token and saved data after permanent deletion
+      _httpClient.clearAuthToken();
+      await AuthStorageService.clearAuthData();
+
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

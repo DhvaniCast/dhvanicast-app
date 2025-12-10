@@ -254,6 +254,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 32),
 
+                      // Account Management Section
+                      _buildSectionTitle('Account Management'),
+                      const SizedBox(height: 16),
+                      _buildActionTile(
+                        title: 'Temporary Account Delete',
+                        icon: Icons.pause_circle_outline,
+                        color: Colors.orange,
+                        onTap: _showTemporaryDeleteDialog,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Permanent Account Delete',
+                        icon: Icons.delete_forever_outlined,
+                        color: const Color(0xFFff4444),
+                        onTap: _showPermanentDeleteDialog,
+                      ),
+                      const SizedBox(height: 32),
+
                       // Actions Section
                       _buildSectionTitle('Legal & Support'),
                       const SizedBox(height: 16),
@@ -529,6 +547,146 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+    );
+  }
+
+  void _showTemporaryDeleteDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2a2a2a),
+        title: const Row(
+          children: [
+            Icon(Icons.pause_circle_outline, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Text('Temporary Delete', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Text(
+          'Your account will be deactivated temporarily. You can reactivate it anytime by logging in again.\n\nYour data will be preserved.',
+          style: TextStyle(color: Colors.white70, fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthBloc>().add(AuthTemporaryDeleteRequested());
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text(
+              'Deactivate',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPermanentDeleteDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2a2a2a),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFff4444),
+              size: 28,
+            ),
+            SizedBox(width: 12),
+            Text('Permanent Delete', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '⚠️ WARNING: This action cannot be undone!',
+              style: TextStyle(
+                color: Color(0xFFff4444),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Your account and all associated data will be permanently deleted:\n\n• Profile information\n• Messages and audio files\n• Frequencies and groups\n• Friends and connections\n\nThis action is irreversible.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showFinalConfirmationDialog();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFff4444),
+            ),
+            child: const Text(
+              'Delete Forever',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFinalConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2a2a2a),
+        title: const Text(
+          'Final Confirmation',
+          style: TextStyle(color: Color(0xFFff4444)),
+        ),
+        content: const Text(
+          'Are you absolutely sure you want to permanently delete your account?\n\nType "DELETE" to confirm.',
+          style: TextStyle(color: Colors.white70, fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthBloc>().add(AuthPermanentDeleteRequested());
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFff4444),
+            ),
+            child: const Text(
+              'Yes, Delete Forever',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

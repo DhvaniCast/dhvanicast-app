@@ -184,6 +184,7 @@ class _LoginScreenState extends State<LoginScreen>
         }
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF1a1a1a),
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -194,6 +195,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           child: SafeArea(
             child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:
