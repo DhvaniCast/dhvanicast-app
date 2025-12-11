@@ -113,11 +113,16 @@ class AuthService {
   ///
   /// [name] - Optional new name
   /// [state] - Optional new state
+  /// [avatar] - Optional profile image (base64)
   ///
   /// Requires authentication token
   ///
   /// Returns [ApiResponse<User>] with updated user details
-  Future<ApiResponse<User>> updateProfile({String? name, String? state}) async {
+  Future<ApiResponse<User>> updateProfile({
+    String? name,
+    String? state,
+    String? avatar,
+  }) async {
     try {
       final body = <String, dynamic>{};
       if (name != null && name.trim().isNotEmpty) {
@@ -125,6 +130,10 @@ class AuthService {
       }
       if (state != null && state.trim().isNotEmpty) {
         body['state'] = state.trim();
+      }
+      if (avatar != null && avatar.isNotEmpty) {
+        body['avatar'] = avatar;
+        print('📤 [REPO] Sending avatar, length: ${avatar.length}');
       }
 
       final response = await _httpClient.put<User>(

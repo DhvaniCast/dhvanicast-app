@@ -6,6 +6,20 @@ import 'package:harborleaf_radio_app/shared/services/http_client.dart';
 class FrequencyRepository {
   final HttpClient _httpClient = HttpClient();
 
+  // Cache for frequently accessed data
+  static final Map<String, _CacheEntry<List<FrequencyModel>>> _frequencyCache =
+      {};
+  static final Map<String, _CacheEntry<FrequencyModel>> _singleFrequencyCache =
+      {};
+  static const Duration _cacheValidDuration = Duration(minutes: 5);
+
+  // Clear cache when needed (e.g., after join/leave/create/delete)
+  void clearCache() {
+    _frequencyCache.clear();
+    _singleFrequencyCache.clear();
+    print('🗑️ Frequency cache cleared');
+  }
+
   Future<ApiResponse<List<FrequencyModel>>> getAllFrequencies({
     int page = 1,
     int limit = 50,
@@ -15,6 +29,7 @@ class FrequencyRepository {
     double? minFrequency,
     double? maxFrequency,
     bool? hasActiveUsers, // NEW: Filter for active frequencies
+    bool forceRefresh = false, // Force refresh to bypass cache
   }) async {
     try {
       print('🔍 Step 1: Building query parameters...');
@@ -32,6 +47,19 @@ class FrequencyRepository {
 
       final url = _buildUrl(ApiEndpoints.frequencies, queryParams);
       print('🌐 Step 2: URL built: $url');
+
+      // Check cache if not forcing refresh
+      if (!forceRefresh) {
+        final cached = _frequencyCache[url];
+        if (cached != null && !cached.isExpired) {
+          print('✅ Returning cached frequencies (${cached.data.length} items)');
+          return ApiResponse(
+            success: true,
+            data: cached.data,
+            message: 'Frequencies loaded from cache',
+          );
+        }
+      }
 
       final response = await _httpClient.get<List<FrequencyModel>>(
         url,
@@ -64,6 +92,13 @@ class FrequencyRepository {
       );
 
       print('✅ Step 4: Response received successfully');
+
+      // Cache the result
+      if (response.success && response.data != null) {
+        _frequencyCache[url] = _CacheEntry(response.data!);
+        print('💾 Cached ${response.data!.length} frequencies');
+      }
+
       return response;
     } catch (e) {
       print('❌ Error in getAllFrequencies: $e');
@@ -178,6 +213,9 @@ class FrequencyRepository {
         fromJson: (json) => FrequencyModel.fromJson(json),
       );
 
+      // Clear cache to force refresh
+      clearCache();
+
       return response;
     } catch (e) {
       rethrow;
@@ -192,6 +230,9 @@ class FrequencyRepository {
         fromJson: (json) => FrequencyModel.fromJson(json),
       );
 
+      // Clear cache to force refresh
+      clearCache();
+
       return response;
     } catch (e) {
       rethrow;
@@ -205,6 +246,9 @@ class FrequencyRepository {
         body: {},
         fromJson: (json) => FrequencyModel.fromJson(json),
       );
+
+      // Clear cache to force refresh
+      clearCache();
 
       return response;
     } catch (e) {
@@ -229,6 +273,9 @@ class FrequencyRepository {
         fromJson: (json) => FrequencyModel.fromJson(json),
       );
 
+      // Clear cache to force refresh
+      clearCache();
+
       return response;
     } catch (e) {
       rethrow;
@@ -241,6 +288,9 @@ class FrequencyRepository {
         ApiEndpoints.frequencyById(id),
         fromJson: (json) => null,
       );
+
+      // Clear cache to force refresh
+      clearCache();
 
       return response;
     } catch (e) {
@@ -306,5 +356,18 @@ class FrequencyRepository {
     );
 
     return uri.replace(queryParameters: queryParams).toString();
+  }
+}
+
+// Cache entry helper class
+class _CacheEntry<T> {
+  final T data;
+  final DateTime timestamp;
+
+  _CacheEntry(this.data) : timestamp = DateTime.now();
+
+  bool get isExpired {
+    return DateTime.now().difference(timestamp) >
+        FrequencyRepository._cacheValidDuration;
   }
 }

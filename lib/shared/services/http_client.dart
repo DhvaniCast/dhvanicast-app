@@ -12,8 +12,9 @@ class HttpClient {
   HttpClient._internal();
 
   static const int _timeoutDuration = 30;
-  static const int _maxRetries = 2; // Retry cold start failures
+  static const int _maxRetries = 3; // Retry cold start and rate limit failures
   static const int _retryDelay = 1500; // 1.5 seconds between retries
+  static const int _rateLimitRetryDelay = 2000; // 2 seconds for rate limit
   String? _authToken;
 
   // Set authentication token
@@ -145,6 +146,22 @@ class HttpClient {
         if (response.statusCode >= 200 && response.statusCode < 300) {
           final responseBody = jsonDecode(response.body);
           return ApiResponse.fromJson(responseBody, fromJson);
+        } else if (response.statusCode == 429) {
+          // Rate limit exceeded - retry with exponential backoff
+          attemptCount++;
+          if (attemptCount > _maxRetries) {
+            print('❌ Rate limit exceeded after $attemptCount attempts');
+            throw ApiException(
+              message: 'Too many requests. Please try again in a moment.',
+              statusCode: 429,
+            );
+          }
+          final backoffDelay = _rateLimitRetryDelay * attemptCount;
+          print(
+            '⏳ Rate limit hit (attempt $attemptCount), waiting ${backoffDelay}ms before retry...',
+          );
+          await Future.delayed(Duration(milliseconds: backoffDelay));
+          continue; // Retry the request
         } else {
           print('❌ HTTP Error: ${response.statusCode}');
           print('❌ Response Body: ${response.body}');

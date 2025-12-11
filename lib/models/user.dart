@@ -5,6 +5,7 @@ class User {
   final int age;
   final String? mobile;
   final String state;
+  final String? avatar;
   final bool isVerified;
   final String role;
   final DateTime? lastLogin;
@@ -17,6 +18,7 @@ class User {
     required this.age,
     this.mobile,
     required this.state,
+    this.avatar,
     required this.isVerified,
     required this.role,
     this.lastLogin,
@@ -31,6 +33,7 @@ class User {
       age: json['age'] ?? 0,
       mobile: json['mobile'],
       state: json['state'] ?? '',
+      avatar: json['avatar'],
       isVerified: json['isVerified'] ?? false,
       role: json['role'] ?? 'user',
       lastLogin: json['lastLogin'] != null
@@ -50,6 +53,7 @@ class User {
       'age': age,
       if (mobile != null) 'mobile': mobile,
       'state': state,
+      if (avatar != null) 'avatar': avatar,
       'isVerified': isVerified,
       'role': role,
       'lastLogin': lastLogin?.toIso8601String(),
@@ -64,6 +68,7 @@ class User {
     int? age,
     String? mobile,
     String? state,
+    String? avatar,
     bool? isVerified,
     String? role,
     DateTime? lastLogin,
@@ -76,6 +81,7 @@ class User {
       age: age ?? this.age,
       mobile: mobile ?? this.mobile,
       state: state ?? this.state,
+      avatar: avatar ?? this.avatar,
       isVerified: isVerified ?? this.isVerified,
       role: role ?? this.role,
       lastLogin: lastLogin ?? this.lastLogin,
@@ -85,6 +91,6 @@ class User {
 
   @override
   String toString() {
-    return 'User(id: $id, name: $name, email: $email, age: $age, state: $state, isVerified: $isVerified, role: $role)';
+    return 'User(id: $id, name: $name, email: $email, age: $age, state: $state, avatar: ${avatar != null ? 'set' : 'null'}, isVerified: $isVerified, role: $role)';
   }
 }

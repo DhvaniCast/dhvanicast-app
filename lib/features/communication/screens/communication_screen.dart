@@ -415,12 +415,41 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
           // Add image-specific fields
           if (messageType == 'image') {
-            print('🖼️ [FREQUENCY] Image message received');
+            print('🖼️ [FREQUENCY RECEIVE] ===== IMAGE MESSAGE RECEIVED =====');
+            print('🖼️ [FREQUENCY RECEIVE] Message ID: ${data['id']}');
+            print('🖼️ [FREQUENCY RECEIVE] Sender: $senderName ($senderId)');
             print(
-              '🖼️ [FREQUENCY] Image Data Length: ${data['imageData']?.length ?? 0}',
+              '🖼️ [FREQUENCY RECEIVE] Has imageData key: ${data.containsKey('imageData')}',
+            );
+            print(
+              '🖼️ [FREQUENCY RECEIVE] ImageData type: ${data['imageData']?.runtimeType}',
+            );
+            print(
+              '🖼️ [FREQUENCY RECEIVE] ImageData length: ${data['imageData']?.length ?? 0}',
             );
 
-            newMessage['imageData'] = data['imageData'];
+            if (data['imageData'] != null) {
+              final imageData = data['imageData'] as String;
+              print(
+                '🖼️ [FREQUENCY RECEIVE] ImageData first 100 chars: ${imageData.substring(0, imageData.length > 100 ? 100 : imageData.length)}',
+              );
+              print(
+                '🖼️ [FREQUENCY RECEIVE] ImageData starts with data:image: ${imageData.startsWith('data:image')}',
+              );
+              print('🖼️ [FREQUENCY RECEIVE] Storing imageData in message');
+              newMessage['imageData'] = imageData;
+            } else {
+              print(
+                '⚠️ [FREQUENCY RECEIVE] WARNING: No imageData in received message!',
+              );
+              print(
+                '⚠️ [FREQUENCY RECEIVE] Full data keys: ${data.keys.toList()}',
+              );
+            }
+
+            print(
+              '🖼️ [FREQUENCY RECEIVE] ===== IMAGE MESSAGE PROCESSED =====',
+            );
           }
 
           _messages.add(newMessage);
@@ -1198,6 +1227,10 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   // Send image message
   Future<void> _sendImageMessage(XFile image) async {
     print('📤 [SEND IMAGE] ===== SENDING IMAGE MESSAGE =====');
+    print('📤 [SEND IMAGE] 🔍 DEVICE TYPE CHECK:');
+    print('📤 [SEND IMAGE] Platform: ${Platform.operatingSystem}');
+    print('📤 [SEND IMAGE] Is Android: ${Platform.isAndroid}');
+    print('📤 [SEND IMAGE] Is iOS: ${Platform.isIOS}');
 
     try {
       // Read image file
@@ -1208,6 +1241,13 @@ class _CommunicationScreenState extends State<CommunicationScreen>
       print('📷 [SEND IMAGE] Image path: ${image.path}');
       print('📏 [SEND IMAGE] Image size: ${bytes.length} bytes');
       print('🔤 [SEND IMAGE] Base64 length: ${base64Image.length}');
+      print(
+        '🔤 [SEND IMAGE] Base64 starts with: ${base64Image.substring(0, base64Image.length > 100 ? 100 : base64Image.length)}',
+      );
+      print('🔤 [SEND IMAGE] Base64 type: ${base64Image.runtimeType}');
+      print(
+        '🔤 [SEND IMAGE] Contains data:image prefix: ${base64Image.startsWith('data:image')}',
+      );
 
       // Get frequency ID
       final frequencyId = groupData?['frequencyId'] as String?;
@@ -1250,6 +1290,15 @@ class _CommunicationScreenState extends State<CommunicationScreen>
 
       // Send via WebSocket
       final wsClient = getIt<WebSocketClient>();
+      print('📡 [SEND IMAGE] 📤 Calling sendFrequencyChat with:');
+      print('📡 [SEND IMAGE]    - frequencyId: $frequencyId');
+      print('📡 [SEND IMAGE]    - message: "Image"');
+      print('📡 [SEND IMAGE]    - messageType: "image"');
+      print('📡 [SEND IMAGE]    - imageData length: ${base64Image.length}');
+      print(
+        '📡 [SEND IMAGE]    - imageData first 50: ${base64Image.substring(0, 50)}',
+      );
+
       wsClient.sendFrequencyChat(
         frequencyId,
         'Image',
@@ -1257,7 +1306,7 @@ class _CommunicationScreenState extends State<CommunicationScreen>
         imageData: base64Image, // Send base64 image data
       );
 
-      print('📡 [SEND IMAGE] WebSocket message sent with image data');
+      print('📡 [SEND IMAGE] ✅ WebSocket sendFrequencyChat called');
       print('✅ [SEND IMAGE] ===== IMAGE MESSAGE SENT =====');
 
       if (mounted) {
@@ -2205,15 +2254,30 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   }
 
   Widget _buildImageMessage(Map<String, dynamic> message, bool isMe) {
+    print('🖼️ [IMAGE WIDGET] ===== BUILDING IMAGE MESSAGE =====');
+    print('🖼️ [IMAGE WIDGET] Message ID: ${message['id']}');
+    print('🖼️ [IMAGE WIDGET] Sender: ${message['senderName']} (isMe: $isMe)');
+    print('🖼️ [IMAGE WIDGET] Message Type: ${message['messageType']}');
+    print('🖼️ [IMAGE WIDGET] Full message keys: ${message.keys.toList()}');
+
     final imageData = message['imageData'] as String?;
 
-    print('🖼️ [IMAGE WIDGET] Building image message');
-    print('🖼️ [IMAGE WIDGET] Message: $message');
-    print('🖼️ [IMAGE WIDGET] Image data exists: ${imageData != null}');
-    print('🖼️ [IMAGE WIDGET] Image data length: ${imageData?.length ?? 0}');
+    print('🖼️ [IMAGE WIDGET] ImageData exists: ${imageData != null}');
+    print('🖼️ [IMAGE WIDGET] ImageData type: ${imageData?.runtimeType}');
+    print('🖼️ [IMAGE WIDGET] ImageData length: ${imageData?.length ?? 0}');
+
+    if (imageData != null && imageData.isNotEmpty) {
+      print(
+        '🖼️ [IMAGE WIDGET] ImageData first 100 chars: ${imageData.substring(0, imageData.length > 100 ? 100 : imageData.length)}',
+      );
+      print(
+        '🖼️ [IMAGE WIDGET] ImageData contains data:image prefix: ${imageData.startsWith('data:image')}',
+      );
+    }
 
     if (imageData == null || imageData.isEmpty) {
       print('❌ [IMAGE WIDGET] No image data - showing loading text');
+      print('❌ [IMAGE WIDGET] Possible issue: imageData key missing or empty');
       return const Text(
         'Image (loading...)',
         style: TextStyle(
@@ -2225,9 +2289,13 @@ class _CommunicationScreenState extends State<CommunicationScreen>
     }
 
     try {
+      print('🔄 [IMAGE WIDGET] Attempting to decode base64...');
       // Decode base64 image
       final bytes = base64Decode(imageData);
       print('✅ [IMAGE WIDGET] Successfully decoded ${bytes.length} bytes');
+      print(
+        '✅ [IMAGE WIDGET] First 10 bytes: ${bytes.sublist(0, bytes.length > 10 ? 10 : bytes.length)}',
+      );
 
       return GestureDetector(
         onTap: () {
@@ -2242,7 +2310,9 @@ class _CommunicationScreenState extends State<CommunicationScreen>
               bytes,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                print('❌ [IMAGE] Error displaying image: $error');
+                print('❌ [IMAGE DISPLAY] Error displaying image: $error');
+                print('❌ [IMAGE DISPLAY] Stack trace: $stackTrace');
+                print('❌ [IMAGE DISPLAY] Bytes length: ${bytes.length}');
                 return Container(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -2269,8 +2339,13 @@ class _CommunicationScreenState extends State<CommunicationScreen>
           ),
         ),
       );
-    } catch (e) {
-      print('❌ [IMAGE] Error decoding base64: $e');
+    } catch (e, stackTrace) {
+      print('❌ [IMAGE DECODE] Error decoding base64: $e');
+      print('❌ [IMAGE DECODE] Stack trace: $stackTrace');
+      print('❌ [IMAGE DECODE] ImageData length: ${imageData?.length ?? 0}');
+      print(
+        '❌ [IMAGE DECODE] ImageData sample: ${imageData?.substring(0, imageData.length > 200 ? 200 : imageData.length)}',
+      );
       return Text(
         'Image (error)',
         style: TextStyle(

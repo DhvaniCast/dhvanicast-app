@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
@@ -24,6 +29,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _locationEnabled = true;
   bool _isLoading = false;
 
+  String? _avatarBase64; // Store avatar image as base64
+  String? _currentAvatar; // Current avatar from server
+
   @override
   void initState() {
     super.initState();
@@ -44,10 +52,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _nameController.text = state.user.name;
       _stateController.text = state.user.state;
       _mobileController.text = state.user.mobile ?? '';
+      setState(() {
+        _currentAvatar = state.user.avatar;
+      });
     } else if (state is AuthSuccess) {
       _nameController.text = state.user.name;
       _stateController.text = state.user.state;
       _mobileController.text = state.user.mobile ?? '';
+      setState(() {
+        _currentAvatar = state.user.avatar;
+      });
     }
   }
 
@@ -115,44 +129,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Stack(
                         children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(60),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 60,
-                              color: Color(0xFF667eea),
+                          GestureDetector(
+                            onTap: _showImageSourceDialog,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(60),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: _buildProfileImage(),
                             ),
                           ),
                           Positioned(
                             right: 0,
                             bottom: 0,
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF48BB78),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
+                            child: GestureDetector(
+                              onTap: _showImageSourceDialog,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF00ff88),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 3,
+                                  ),
                                 ),
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 18,
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ),
@@ -486,11 +502,336 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    // Call the API to update profile
+    // Call the API to update profile (including avatar if changed)
     context.read<AuthBloc>().add(
       AuthProfileUpdateRequested(
         name: _nameController.text.trim(),
         state: _stateController.text.trim(),
+        avatar: _avatarBase64, // Send avatar if updated
+      ),
+    );
+  }
+
+  // Build profile image widget
+  Widget _buildProfileImage() {
+    try {
+      // Priority: newly selected image > current avatar > default icon
+      if (_avatarBase64 != null && _avatarBase64!.isNotEmpty) {
+        print('🖼️ [PROFILE] Showing newly selected image');
+        final bytes = base64Decode(_avatarBase64!);
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(60),
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: 120,
+            height: 120,
+            errorBuilder: (context, error, stackTrace) {
+              print('❌ [PROFILE] Error displaying new image: $error');
+              return const Icon(
+                Icons.person,
+                size: 60,
+                color: Color(0xFF667eea),
+              );
+            },
+          ),
+        );
+      } else if (_currentAvatar != null &&
+          _currentAvatar!.isNotEmpty &&
+          _currentAvatar != '👤') {
+        print('🖼️ [PROFILE] Showing current avatar from server');
+        final bytes = base64Decode(_currentAvatar!);
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(60),
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: 120,
+            height: 120,
+            errorBuilder: (context, error, stackTrace) {
+              print('❌ [PROFILE] Error displaying current avatar: $error');
+              return const Icon(
+                Icons.person,
+                size: 60,
+                color: Color(0xFF667eea),
+              );
+            },
+          ),
+        );
+      } else {
+        print('🖼️ [PROFILE] Showing default icon');
+        return const Icon(Icons.person, size: 60, color: Color(0xFF667eea));
+      }
+    } catch (e) {
+      print('❌ [PROFILE] Error building profile image: $e');
+      return const Icon(Icons.person, size: 60, color: Color(0xFF667eea));
+    }
+  }
+
+  // Show image source dialog (Camera or Gallery)
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF2a2a2a),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Choose Profile Photo',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Options
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Gallery
+                _buildImageSourceOption(
+                  icon: Icons.photo_library,
+                  label: 'Gallery',
+                  color: const Color(0xFF00ff88),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickFromGallery();
+                  },
+                ),
+
+                // Camera
+                _buildImageSourceOption(
+                  icon: Icons.camera_alt,
+                  label: 'Camera',
+                  color: const Color(0xFF4a90e2),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openCamera();
+                  },
+                ),
+
+                // Remove (if has avatar)
+                if (_avatarBase64 != null ||
+                    (_currentAvatar != null && _currentAvatar != '👤'))
+                  _buildImageSourceOption(
+                    icon: Icons.delete,
+                    label: 'Remove',
+                    color: const Color(0xFFff4444),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _removeProfileImage();
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageSourceOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withOpacity(0.5), width: 2),
+            ),
+            child: Icon(icon, color: color, size: 35),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Pick image from gallery
+  void _pickFromGallery() async {
+    print('📷 [PROFILE] Opening gallery...');
+
+    // Request photos permission
+    PermissionStatus status;
+    if (await Permission.photos.isGranted) {
+      status = PermissionStatus.granted;
+    } else {
+      status = await Permission.photos.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        status = await Permission.storage.request();
+      }
+    }
+
+    if (status.isDenied || status.isPermanentlyDenied) {
+      print('❌ [PROFILE] Gallery permission denied');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gallery permission is required'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        print('✅ [PROFILE] Image selected: ${image.path}');
+        await _processImage(image);
+      }
+    } catch (e) {
+      print('❌ [PROFILE] Error picking from gallery: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Open camera
+  void _openCamera() async {
+    print('📸 [PROFILE] Opening camera...');
+
+    final status = await Permission.camera.request();
+    if (status.isDenied) {
+      print('❌ [PROFILE] Camera permission denied');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera permission is required'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (photo != null) {
+        print('✅ [PROFILE] Photo captured: ${photo.path}');
+        await _processImage(photo);
+      }
+    } catch (e) {
+      print('❌ [PROFILE] Error capturing photo: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error capturing photo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Process selected/captured image
+  Future<void> _processImage(XFile image) async {
+    try {
+      final File imageFile = File(image.path);
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      print('📏 [PROFILE] Image size: ${bytes.length} bytes');
+      print('🔤 [PROFILE] Base64 length: ${base64Image.length}');
+
+      setState(() {
+        _avatarBase64 = base64Image;
+      });
+
+      print('✅ [PROFILE] Profile image updated in state');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Profile photo updated! Don't forget to save changes.",
+            ),
+            backgroundColor: Color(0xFF00ff88),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [PROFILE] Error processing image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Remove profile image
+  void _removeProfileImage() {
+    setState(() {
+      _avatarBase64 = '👤'; // Set to default emoji
+      _currentAvatar = null;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Profile photo removed! Don't forget to save changes."),
+        backgroundColor: Color(0xFF00ff88),
+        duration: Duration(seconds: 2),
       ),
     );
   }
