@@ -6,10 +6,10 @@ class ApiEndpoints {
   // 🌍 ENVIRONMENT CONFIGURATION
   // =====================================================
   // ⚡ Change this line to switch between LOCAL and PRODUCTION
-  static const Environment _currentEnvironment =
-      Environment.local; // Local Testing
   // static const Environment _currentEnvironment =
-  //     Environment.production; // Production (Google Cloud)
+  //     Environment.local; // Local Testing
+  static const Environment _currentEnvironment =
+      Environment.production; // Production (Google Cloud)
 
   // =====================================================
   // 📱 DEVICE CONFIGURATION
