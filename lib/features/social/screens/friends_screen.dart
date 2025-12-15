@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../../../injection.dart';
 import '../../../shared/services/social_service.dart';
 import '../../../shared/services/livekit_service.dart';
@@ -544,10 +545,32 @@ class _FriendsScreenState extends State<FriendsScreen>
                     ),
                   ),
                   child: Center(
-                    child: Text(
-                      friendAvatar,
-                      style: const TextStyle(fontSize: 30),
-                    ),
+                    child: (friendAvatar.length > 20 || friendAvatar.startsWith('http'))
+                        ? ClipOval(
+                            child: friendAvatar.startsWith('http')
+                                ? Image.network(
+                                    friendAvatar,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Text('👤',
+                                            style: TextStyle(fontSize: 30)),
+                                  )
+                                : Image.memory(
+                                    base64Decode(friendAvatar),
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const Text('👤',
+                                            style: TextStyle(fontSize: 30)),
+                                  ),
+                          )
+                        : Text(
+                            friendAvatar,
+                            style: const TextStyle(fontSize: 30),
+                          ),
                   ),
                 ),
                 if (isOnline)
@@ -705,10 +728,21 @@ class _FriendsScreenState extends State<FriendsScreen>
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      senderAvatar,
-                      style: const TextStyle(fontSize: 24),
-                    ),
+                    child: senderAvatar.length > 20
+                        ? ClipOval(
+                            child: Image.memory(
+                              base64Decode(senderAvatar),
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Text('👤', style: TextStyle(fontSize: 24)),
+                            ),
+                          )
+                        : Text(
+                            senderAvatar,
+                            style: const TextStyle(fontSize: 24),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -1810,15 +1810,30 @@ class _DialerScreenState extends State<DialerScreen>
     return GestureDetector(
       onTap: () {
         print('🖱️ [CARD] Card tapped: ${group['name']}');
-        print('🖱️ [CARD] Navigating to communication screen...');
-        print('🖱️ [CARD] Arguments: $group');
 
-        // Navigate to communication screen with group data
-        Navigator.pushNamed(context, '/communication', arguments: group).then((
-          _,
-        ) {
-          print('🔙 [CARD] Returned from communication screen');
-        });
+        // Check if it's a frequency group (either by type or by presence of frequency field)
+        if (group['type'] == 'frequency' || group.containsKey('frequency')) {
+          print('🖱️ [CARD] Joining frequency: ${group['frequency']}');
+          Navigator.pop(context); // Close popup
+          
+          setState(() {
+            _frequency = (group['frequency'] as num).toDouble();
+          });
+
+          Future.delayed(const Duration(milliseconds: 300), () {
+            _showJoinDialog();
+          });
+        } else {
+          print('🖱️ [CARD] Navigating to communication screen...');
+          print('🖱️ [CARD] Arguments: $group');
+
+          // Navigate to communication screen with group data
+          Navigator.pushNamed(context, '/communication', arguments: group).then((
+            _,
+          ) {
+            print('🔙 [CARD] Returned from communication screen');
+          });
+        }
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),

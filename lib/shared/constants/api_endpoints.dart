@@ -6,10 +6,10 @@ class ApiEndpoints {
   // 🌍 ENVIRONMENT CONFIGURATION
   // =====================================================
   // ⚡ Change this line to switch between LOCAL and PRODUCTION
-  // static const Environment _currentEnvironment =
-  //     Environment.local; // Local Testing
   static const Environment _currentEnvironment =
-      Environment.production; // Production (Google Cloud)
+      Environment.local; // Local Testing
+  // static const Environment _currentEnvironment =
+  //     Environment.production; // Production (Google Cloud)
 
   // =====================================================
   // 📱 DEVICE CONFIGURATION
@@ -18,7 +18,8 @@ class ApiEndpoints {
   static const bool _useEmulator = false; // Change to true for emulator
 
   // 🌐 Your Computer IP (for real device testing)
-  static const String _computerIP = '192.168.31.80'; // Your WiFi IP
+  // Using 127.0.0.1 with 'adb reverse tcp:8080 tcp:8080' to bypass Wi-Fi issues
+  static const String _computerIP = '127.0.0.1'; // USB Debugging
 
   // Platform detection helper
   static bool get _isWeb {
@@ -46,7 +47,7 @@ class ApiEndpoints {
       case Environment.local:
         return '$_localServerUrl/api';
       case Environment.production:
-        return 'https://dhvanicast-backend-522772414506.europe-west1.run.app/api';
+        return 'https://dhvanicast-backend-522772414506.asia-south1.run.app/api';
     }
   }
 
@@ -56,7 +57,7 @@ class ApiEndpoints {
         return _localServerUrl;
       case Environment.production:
         // FIXED: Use same backend as API (Google Cloud Run, not Render.com)
-        return 'https://dhvanicast-backend-522772414506.europe-west1.run.app';
+        return 'https://dhvanicast-backend-522772414506.asia-south1.run.app';
     }
   }
 
