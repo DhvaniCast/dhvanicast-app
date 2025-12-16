@@ -130,7 +130,7 @@ class _DialerScreenState extends State<DialerScreen>
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
       print('🔄 Periodic refresh triggered');
       try {
-        await _dialerService.loadFrequencies(isPublic: true);
+        await _dialerService.loadFrequencies(isPublic: true, forceRefresh: true);
         await _dialerService.loadUserGroups();
         print('✅ Periodic refresh complete');
       } catch (e) {
@@ -251,10 +251,11 @@ class _DialerScreenState extends State<DialerScreen>
       );
     }
 
-    // Refresh data to get latest active users - load ALL frequencies not just filtered
+    // Refresh data to get latest active users - load ALL frequencies
+    // ✅ Don't use hasActiveUsers filter - let frontend filter locally for better real-time updates
     await _dialerService.loadFrequencies(
       isPublic: true,
-      hasActiveUsers: true, // ✅ ONLY load frequencies with active users
+      // hasActiveUsers: true, // ❌ Removed - causes timing issues when users leave
     );
     await _dialerService.loadUserGroups();
 
@@ -354,6 +355,8 @@ class _DialerScreenState extends State<DialerScreen>
                   IconButton(
                     onPressed: () async {
                       print('🔄 [GROUPS] Manual refresh triggered');
+                      // Force refresh from API
+                      await _dialerService.loadFrequencies(isPublic: true, forceRefresh: true);
                       Navigator.pop(context); // Close current popup
                       await Future.delayed(const Duration(milliseconds: 300));
                       _showActiveGroupsPopup(); // Reopen with fresh data
@@ -479,13 +482,13 @@ class _DialerScreenState extends State<DialerScreen>
       );
     }
 
-    // Refresh frequency data to get latest users - load specific frequency with users
+    // Refresh frequency data to get latest users
     print('📞 [USERS] Refreshing frequencies to get latest user data...');
 
-    // Try loading by frequency range first (faster)
+    // Load all frequencies - frontend will filter for active users
     await _dialerService.loadFrequencies(
       isPublic: true,
-      hasActiveUsers: true, // Only get frequencies with active users
+      // hasActiveUsers: true, // ❌ Removed - let frontend filter locally
     );
 
     // Close loading dialog

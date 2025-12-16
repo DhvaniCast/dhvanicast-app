@@ -19,7 +19,7 @@ class ApiEndpoints {
 
   // 🌐 Your Computer IP (for real device testing)
   // Using 127.0.0.1 with 'adb reverse tcp:8080 tcp:8080' to bypass Wi-Fi issues
-  static const String _computerIP = '127.0.0.1'; // USB Debugging
+  static const String _computerIP = '192.168.31.80'; // Local IP
 
   // Platform detection helper
   static bool get _isWeb {

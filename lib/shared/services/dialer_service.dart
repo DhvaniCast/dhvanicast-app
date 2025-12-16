@@ -43,7 +43,7 @@ class DialerService extends ChangeNotifier {
           print('🔔 [WS] Refreshing frequencies to get updated user list...');
 
           // Refresh frequencies to get updated user counts
-          loadFrequencies().then((_) {
+          loadFrequencies(forceRefresh: true).then((_) {
             print('✅ [WS] Frequencies refreshed after user join');
           });
         } else {
@@ -115,7 +115,7 @@ class DialerService extends ChangeNotifier {
 
           // Then refresh from server to ensure consistency
           print('🔔 [WS] Refreshing frequencies from server...');
-          loadFrequencies().then((_) {
+          loadFrequencies(forceRefresh: true).then((_) {
             print('✅ [WS] Frequencies refreshed after user left');
           });
         } else {
@@ -125,6 +125,37 @@ class DialerService extends ChangeNotifier {
         print('❌ [WS] Error processing user_left_frequency: $e');
         if (kDebugMode) {
           print('Error processing user_left_frequency: $e');
+        }
+      }
+    });
+
+    // Listen for global frequency updates (for active channels list)
+    _socketClient.on('frequency_updated', (data) {
+      try {
+        print('🔔 [WS] ====== FREQUENCY_UPDATED EVENT ======');
+        print('🔔 [WS] Raw data: $data');
+
+        final frequencyId = data['frequencyId'];
+        final frequencyValue = data['frequency'];
+        final currentUsers = data['currentUsers'];
+
+        print('🔔 [WS] Frequency ID: $frequencyId');
+        print('🔔 [WS] Frequency Value: $frequencyValue MHz');
+        print('🔔 [WS] Current Users: $currentUsers');
+
+        if (frequencyId != null) {
+          print('🔔 [WS] Global update for frequency: $frequencyValue MHz');
+          print('🔔 [WS] Refreshing frequencies to update active channels list...');
+
+          // Refresh frequencies to get updated user counts and active channels
+          loadFrequencies(forceRefresh: true).then((_) {
+            print('✅ [WS] Frequencies refreshed after global update');
+          });
+        }
+      } catch (e) {
+        print('❌ [WS] Error processing frequency_updated: $e');
+        if (kDebugMode) {
+          print('Error processing frequency_updated: $e');
         }
       }
     });
@@ -144,11 +175,13 @@ class DialerService extends ChangeNotifier {
     String? band,
     bool? isPublic,
     bool? hasActiveUsers, // NEW: Filter for active frequencies
+    bool forceRefresh = false, // NEW: Force refresh to bypass cache
   }) async {
     print('📥 [LOAD-FREQ] ====== LOADING FREQUENCIES ======');
     print('📥 [LOAD-FREQ] Band filter: $band');
     print('📥 [LOAD-FREQ] Public filter: $isPublic');
     print('📥 [LOAD-FREQ] Active users filter: $hasActiveUsers');
+    print('📥 [LOAD-FREQ] Force refresh: $forceRefresh');
 
     _isLoading = true;
     _error = null;
@@ -161,6 +194,7 @@ class DialerService extends ChangeNotifier {
         page: 1,
         limit: 500, // Increased from 100 to 500 to include more frequencies
         hasActiveUsers: hasActiveUsers, // NEW: Pass filter
+        forceRefresh: forceRefresh, // Pass forceRefresh to repo
       );
 
       print('📥 [LOAD-FREQ] API Response:');

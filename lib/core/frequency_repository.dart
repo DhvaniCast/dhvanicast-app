@@ -66,7 +66,6 @@ class FrequencyRepository {
         fromJson: (json) {
           print('🔧 Step 3: Processing JSON response...');
           print('📦 Raw JSON type: ${json.runtimeType}');
-          print('📦 Raw JSON: $json');
 
           // Backend returns: {frequencies: [...], pagination: {...}}
           // We need to extract the frequencies array
@@ -78,10 +77,36 @@ class FrequencyRepository {
 
             if (frequenciesData is List) {
               print('✅ Converting ${frequenciesData.length} frequencies...');
+              
+              // ✅ DEBUG: Log first frequency with users if any
+              final freqWithUsers = frequenciesData.firstWhere(
+                (f) => f['activeUsers'] != null && (f['activeUsers'] as List).isNotEmpty,
+                orElse: () => null,
+              );
+              
+              if (freqWithUsers != null) {
+                print('🔍 [DEBUG] Found frequency with users!');
+                print('🔍 [DEBUG] Frequency: ${freqWithUsers['frequency']} MHz');
+                print('🔍 [DEBUG] Active Users: ${freqWithUsers['activeUsers']}');
+                print('🔍 [DEBUG] User count: ${(freqWithUsers['activeUsers'] as List).length}');
+              } else {
+                print('⚠️ [DEBUG] NO FREQUENCIES WITH ACTIVE USERS IN JSON!');
+              }
+              
               final result = frequenciesData
                   .map((item) => FrequencyModel.fromJson(item))
                   .toList();
               print('✅ Conversion complete: ${result.length} frequencies');
+              
+              // ✅ DEBUG: Check parsed models
+              final modelsWithUsers = result.where((f) => f.activeUsers.isNotEmpty).toList();
+              print('✅ [DEBUG] Parsed models with users: ${modelsWithUsers.length}');
+              if (modelsWithUsers.isNotEmpty) {
+                for (var model in modelsWithUsers) {
+                  print('✅ [DEBUG] Model: ${model.frequency} MHz - ${model.activeUsers.length} users');
+                }
+              }
+              
               return result;
             }
           }
