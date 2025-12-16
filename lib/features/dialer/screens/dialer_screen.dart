@@ -237,8 +237,20 @@ class _DialerScreenState extends State<DialerScreen>
 
   // Missing functions - Add back
   void _showActiveGroupsPopup() async {
-    print('👥 [GROUPS] ====== SHOWING GROUPS POPUP ======');
-    print('👥 [GROUPS] Refreshing data before showing popup...');
+    print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('👥 [ACTIVE-CHANNELS] ====== OPENING POPUP ======');
+    print('⏰ Time: ${DateTime.now()}');
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    // Show message on screen
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🔄 Loading Active Channels...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
 
     // Show loading indicator
     if (mounted) {
@@ -253,8 +265,10 @@ class _DialerScreenState extends State<DialerScreen>
 
     // Refresh data to get latest active users - load ALL frequencies
     // ✅ Don't use hasActiveUsers filter - let frontend filter locally for better real-time updates
+    // ✅ Force refresh to bypass cache and get real-time data
     await _dialerService.loadFrequencies(
       isPublic: true,
+      forceRefresh: true, // Always get fresh data when opening popup
       // hasActiveUsers: true, // ❌ Removed - causes timing issues when users leave
     );
     await _dialerService.loadUserGroups();
@@ -262,64 +276,87 @@ class _DialerScreenState extends State<DialerScreen>
     // Close loading dialog
     if (mounted) Navigator.pop(context);
 
-    print('👥 [GROUPS] ====== DATA LOADED ======');
-    print('👥 [GROUPS] Total groups from API: ${_dialerService.groups.length}');
-    print(
-      '👥 [GROUPS] Total frequencies: ${_dialerService.frequencies.length}',
-    );
+    print('\n✅ [ACTIVE-CHANNELS] ====== DATA LOADED FROM API ======');
+    print('📊 Total frequencies received: ${_dialerService.frequencies.length}');
+    print('📊 Total groups received: ${_dialerService.groups.length}');
 
     // Create frequency-based groups from frequencies with active users
     List<Map<String, dynamic>> frequencyGroups = [];
+    
+    print('\n🔍 [ACTIVE-CHANNELS] ====== FILTERING FREQUENCIES ======');
 
     for (var freq in _dialerService.frequencies) {
-      print('🔍 [GROUPS] ====== CHECKING FREQUENCY ======');
-      print('🔍 [GROUPS] Frequency: ${freq.frequency} MHz');
-      print('🔍 [GROUPS] Frequency ID: ${freq.id}');
-      print('🔍 [GROUPS] Band: ${freq.band}');
-      print('🔍 [GROUPS] Is Public: ${freq.isPublic}');
-      print('🔍 [GROUPS] User Count: ${freq.userCount}');
-      print('🔍 [GROUPS] Active Users Length: ${freq.activeUsers.length}');
-
+      if (freq.activeUsers.isEmpty) {
+        continue; // Skip frequencies without users silently
+      }
+      
+      print('\n📡 Frequency: ${freq.frequency} MHz (${freq.band})');
+      print('   Users count: ${freq.activeUsers.length}');
+      
       // Log each active user
-      if (freq.activeUsers.isNotEmpty) {
-        print(
-          '🔍 [GROUPS] ====== ACTIVE USERS ON ${freq.frequency} MHz ======',
-        );
-        for (var i = 0; i < freq.activeUsers.length; i++) {
-          final user = freq.activeUsers[i];
-          print('🔍 [GROUPS]   User $i:');
-          print('🔍 [GROUPS]     - User ID: ${user.userId}');
-          print('🔍 [GROUPS]     - User Name: ${user.userName}');
-          print('🔍 [GROUPS]     - Call Sign: ${user.callSign}');
-        }
+      for (var i = 0; i < freq.activeUsers.length; i++) {
+        final user = freq.activeUsers[i];
+        print('   👤 User ${i + 1}: ${user.userName ?? user.callSign ?? 'Unknown'}');
       }
 
-      if (freq.activeUsers.isNotEmpty) {
-        print(
-          '✅ [GROUPS] Creating group for ${freq.frequency} MHz with ${freq.activeUsers.length} users',
-        );
-
-        frequencyGroups.add({
-          'id': freq.id,
-          'frequencyId': freq.id,
-          'name': '${freq.frequency.toStringAsFixed(1)} MHz Channel',
-          'frequency': freq.frequency,
-          'members': freq.activeUsers.map((u) => u.userId).toList(),
-          'status': 'active',
-          'icon': Icons.radio,
-          'color': const Color(0xFF00ff88),
-          'type': 'frequency', // Important: to identify it's frequency chat
-          'activeUsers': freq.activeUsers.length,
-        });
-      } else {
-        print('⏭️ [GROUPS] Skipping ${freq.frequency} MHz - no active users');
-      }
+      frequencyGroups.add({
+        'id': freq.id,
+        'frequencyId': freq.id,
+        'name': '${freq.frequency.toStringAsFixed(1)} MHz Channel',
+        'frequency': freq.frequency,
+        'members': freq.activeUsers.map((u) => u.userId).toList(),
+        'status': 'active',
+        'icon': Icons.radio,
+        'color': const Color(0xFF00ff88),
+        'type': 'frequency',
+        'activeUsers': freq.activeUsers.length,
+      });
     }
 
-    print(
-      '📊 [GROUPS] Total frequency groups created: ${frequencyGroups.length}',
-    );
-    print('📊 [GROUPS] API groups: ${_dialerService.groups.length}');
+    print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('📊 [ACTIVE-CHANNELS] ====== FINAL RESULT ======');
+    print('🎯 Frequency channels to show: ${frequencyGroups.length}');
+    print('🎯 Regular groups to show: ${_dialerService.groups.length}');
+    print('🎯 TOTAL ACTIVE CHANNELS: ${frequencyGroups.length + _dialerService.groups.length}');
+    
+    // Show result on screen as snackbar
+    final totalChannels = frequencyGroups.length + _dialerService.groups.length;
+    String message;
+    
+    if (frequencyGroups.isEmpty && _dialerService.groups.isEmpty) {
+      print('⚠️ NO ACTIVE CHANNELS (All users disconnected)');
+      message = '📊 Active Channels: 0 (No users online)';
+    } else {
+      print('✅ DISPLAYING ${frequencyGroups.length + _dialerService.groups.length} CHANNELS');
+      message = '📊 Active Channels: $totalChannels';
+      if (frequencyGroups.isNotEmpty) {
+        print('\n📻 Active Frequencies:');
+        for (var fg in frequencyGroups) {
+          print('   - ${fg['name']}: ${fg['activeUsers']} users');
+        }
+        message += ' (${frequencyGroups.length} freq';
+        if (frequencyGroups.length == 1) {
+          final fg = frequencyGroups[0];
+          message += ' • ${fg['activeUsers']} users)';
+        } else {
+          message += ')';
+        }
+      }
+    }
+    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    
+    // Show snackbar with result
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+          backgroundColor: totalChannels > 0 
+            ? const Color(0xFF00ff88) 
+            : Colors.orange,
+        ),
+      );
+    }
 
     showModalBottomSheet(
       context: context,

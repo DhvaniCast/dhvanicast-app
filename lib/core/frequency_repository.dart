@@ -48,11 +48,20 @@ class FrequencyRepository {
       final url = _buildUrl(ApiEndpoints.frequencies, queryParams);
       print('🌐 Step 2: URL built: $url');
 
+      // If forcing refresh, clear the cache for this URL
+      if (forceRefresh) {
+        _frequencyCache.remove(url);
+        print('🗑️ Cache cleared for forceRefresh');
+      }
+
       // Check cache if not forcing refresh
       if (!forceRefresh) {
         final cached = _frequencyCache[url];
         if (cached != null && !cached.isExpired) {
           print('✅ Returning cached frequencies (${cached.data.length} items)');
+          // Log if cache has frequencies with users
+          final withUsers = cached.data.where((f) => f.activeUsers.isNotEmpty).length;
+          print('📊 Cached frequencies with active users: $withUsers');
           return ApiResponse(
             success: true,
             data: cached.data,

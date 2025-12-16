@@ -10,10 +10,13 @@ class WebSocketClient {
   IO.Socket? _socket;
   String? _authToken;
   bool _isConnected = false;
+  DateTime? _lastConnectionTime;
+  int _reconnectCount = 0;
 
   // Getters
   bool get isConnected => _isConnected;
   IO.Socket? get socket => _socket;
+  DateTime? get lastConnectionTime => _lastConnectionTime;
 
   /// Initialize and connect to Socket.IO server
   void connect(String token) {
@@ -46,16 +49,20 @@ class WebSocketClient {
           .setExtraHeaders({'Authorization': 'Bearer $token'})
           // Production-specific settings
           .setTimeout(
-            isProduction ? 20000 : 10000,
-          ) // Longer timeout for production
+            isProduction ? 30000 : 15000,
+          ) // Longer timeout for stable connection
           .enableReconnection()
-          .setReconnectionAttempts(5)
-          .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(5000)
-          // Security settings for production
+          .setReconnectionAttempts(999999) // Infinite reconnection attempts
+          .setReconnectionDelay(1000) // Start with 1 second
+          .setReconnectionDelayMax(5000) // Max 5 seconds between attempts
+          // Keep connection alive
+          .disableAutoConnect() // Manual control
           .disableMultiplex() // Better for production
           .build(),
     );
+
+    // Connect manually for better control
+    _socket?.connect();
 
     if (kDebugMode) {
       print('✅ Socket instance created with auth config');
@@ -76,11 +83,14 @@ class WebSocketClient {
 
     _socket?.on('connect', (_) {
       _isConnected = true;
+      _lastConnectionTime = DateTime.now();
+      _reconnectCount = 0; // Reset counter on successful connection
       if (kDebugMode) {
         print('✅ Socket.IO Connected to ${ApiEndpoints.socketUrl}');
         print(
           '🎯 Transport: ${_socket?.io.engine?.transport?.name ?? 'unknown'}',
         );
+        print('⏰ Connection time: $_lastConnectionTime');
       }
     });
 
@@ -89,6 +99,19 @@ class WebSocketClient {
       if (kDebugMode) {
         print('❌ Socket.IO Disconnected');
         print('📋 Reason: $reason');
+        print('🔄 Will auto-reconnect...');
+      }
+      
+      // Auto-reconnect after short delay if not intentional disconnect
+      if (reason != 'io client disconnect' && _authToken != null) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!_isConnected && _authToken != null) {
+            if (kDebugMode) {
+              print('🔄 Attempting auto-reconnect...');
+            }
+            _socket?.connect();
+          }
+        });
       }
     });
 
@@ -114,26 +137,57 @@ class WebSocketClient {
     });
 
     _socket?.on('reconnect', (attemptNumber) {
+      _isConnected = true;
+      _lastConnectionTime = DateTime.now();
+      _reconnectCount = attemptNumber as int;
       if (kDebugMode) {
         print('🔄 Socket.IO Reconnected after $attemptNumber attempts');
+        print('✅ Connection restored successfully!');
       }
     });
 
     _socket?.on('reconnect_attempt', (attemptNumber) {
+      _reconnectCount = attemptNumber as int;
       if (kDebugMode) {
         print('🔄 Socket.IO Reconnection attempt #$attemptNumber');
+        print('⏰ Time since last connection: ${_lastConnectionTime != null ? DateTime.now().difference(_lastConnectionTime!).inSeconds : "N/A"}s');
       }
     });
 
     _socket?.on('reconnect_error', (error) {
       if (kDebugMode) {
         print('🔴 Socket.IO Reconnection error: $error');
+        print('🔄 Will keep trying...');
       }
     });
 
     _socket?.on('reconnect_failed', (_) {
       if (kDebugMode) {
-        print('❌ Socket.IO Reconnection failed - max attempts reached');
+        print('⚠️ Socket.IO Reconnection attempts exhausted');
+        print('🔄 Will retry in 5 seconds...');
+      }
+      
+      // Force reconnect after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () {
+        if (!_isConnected && _authToken != null) {
+          if (kDebugMode) {
+            print('🔄 Force reconnecting...');
+          }
+          reconnect();
+        }
+      });
+    });
+
+    // Keep-alive ping every 25 seconds
+    _socket?.on('ping', (_) {
+      if (kDebugMode) {
+        print('🏓 Ping received - connection alive');
+      }
+    });
+
+    _socket?.on('pong', (_) {
+      if (kDebugMode) {
+        print('🏓 Pong sent - connection alive');
       }
     });
   }
@@ -499,8 +553,31 @@ class WebSocketClient {
 
   /// Reconnect socket
   void reconnect() {
+    if (kDebugMode) {
+      print('🔄 Manual reconnect requested');
+    }
+    
+    if (_socket != null) {
+      _socket?.disconnect();
+      _socket?.dispose();
+    }
+    
     if (_authToken != null) {
       connect(_authToken!);
+    }
+  }
+
+  /// Check and ensure connection is alive
+  void ensureConnection() {
+    if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print('⚠️ Connection lost - attempting reconnect');
+      }
+      reconnect();
+    } else {
+      if (kDebugMode) {
+        print('✅ Connection is alive');
+      }
     }
   }
 
@@ -514,6 +591,11 @@ class WebSocketClient {
       'hasToken': _authToken != null,
       'socketExists': _socket != null,
       'transport': _socket?.io.engine?.transport?.name ?? 'none',
+      'lastConnectionTime': _lastConnectionTime?.toIso8601String(),
+      'reconnectCount': _reconnectCount,
+      'timeSinceLastConnection': _lastConnectionTime != null 
+          ? DateTime.now().difference(_lastConnectionTime!).inSeconds
+          : null,
     };
   }
 }

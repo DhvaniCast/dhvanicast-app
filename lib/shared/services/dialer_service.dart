@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../core/frequency_repository.dart';
 import '../../core/group_repository.dart';
@@ -15,9 +16,25 @@ class DialerService extends ChangeNotifier {
   FrequencyModel? _currentFrequency;
   bool _isLoading = false;
   String? _error;
+  Timer? _connectionCheckTimer;
 
   DialerService() {
     _setupAutomaticSocketListeners();
+    _startConnectionHealthCheck();
+  }
+
+  /// Start periodic connection health check
+  void _startConnectionHealthCheck() {
+    // Check connection every 30 seconds
+    _connectionCheckTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (timer) {
+        if (kDebugMode) {
+          print('🏥 [HEALTH-CHECK] Checking socket connection...');
+        }
+        _socketClient.ensureConnection();
+      },
+    );
   }
 
   /// Setup automatic WebSocket listeners for frequency updates
@@ -562,12 +579,18 @@ class DialerService extends ChangeNotifier {
     }
   }
 
-  /// Clean up
+  /// Dispose resources and clean up
+  @override
   void dispose() {
+    // Cancel health check timer
+    _connectionCheckTimer?.cancel();
+    
+    // Remove socket listeners
     _socketClient.off('user_joined');
     _socketClient.off('user_left');
     _socketClient.off('transmission_started');
     _socketClient.off('transmission_stopped');
+    
     super.dispose();
   }
 }
