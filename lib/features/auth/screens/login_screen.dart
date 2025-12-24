@@ -164,14 +164,7 @@ class _LoginScreenState extends State<LoginScreen>
           print('🔌 Initializing WebSocket connection...');
           wsClient.connect(state.token);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Navigate to dialer screen
+          // Navigate immediately without showing SnackBar
           Navigator.pushReplacementNamed(context, '/dialer');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -11,10 +11,11 @@ class HttpClient {
   factory HttpClient() => _instance;
   HttpClient._internal();
 
-  static const int _timeoutDuration = 30;
-  static const int _maxRetries = 3; // Retry cold start and rate limit failures
+  static const int _timeoutDuration =
+      10; // Reduced from 30 to 10 seconds for faster response
+  static const int _maxRetries = 10; // Retry cold start and rate limit failures
   static const int _retryDelay = 1500; // 1.5 seconds between retries
-  static const int _rateLimitRetryDelay = 2000; // 2 seconds for rate limit
+  static const int _rateLimitRetryDelay = 500; // 0.5 seconds for rate limit
   String? _authToken;
 
   // Set authentication token
@@ -156,7 +157,11 @@ class HttpClient {
               statusCode: 429,
             );
           }
-          final backoffDelay = _rateLimitRetryDelay * attemptCount;
+          // Use exponential backoff with jitter to spread out retries
+          final baseDelay = _rateLimitRetryDelay * attemptCount;
+          final jitter = (baseDelay * 0.3 * (attemptCount / _maxRetries))
+              .round();
+          final backoffDelay = baseDelay + jitter;
           print(
             '⏳ Rate limit hit (attempt $attemptCount), waiting ${backoffDelay}ms before retry...',
           );

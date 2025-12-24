@@ -62,10 +62,13 @@ class _DialerScreenState extends State<DialerScreen>
     // Listen to service changes
     _dialerService.addListener(_onServiceUpdate);
 
-    // Load initial data from API
+    // Setup WebSocket listeners immediately for instant connectivity
+    _dialerService.setupSocketListeners();
+
+    // Load initial data from API in background (non-blocking)
     _loadInitialData();
 
-    // Setup periodic refresh every 10 seconds to keep data updated
+    // Setup periodic refresh every 30 seconds to keep data updated
     _setupPeriodicRefresh();
 
     // Scroll to current frequency after build
@@ -108,20 +111,12 @@ class _DialerScreenState extends State<DialerScreen>
     setState(() {});
   }
 
-  Future<void> _loadInitialData() async {
-    print('📥 DialerScreen: Loading initial data from API...');
-
-    // Load frequencies
-    await _dialerService.loadFrequencies(band: _selectedBand, isPublic: true);
-    print('✅ Frequencies loaded: ${_dialerService.frequencies.length}');
-
-    // Load groups
-    await _dialerService.loadUserGroups();
-    print('✅ Groups loaded: ${_dialerService.groups.length}');
-
-    // Setup WebSocket listeners
-    _dialerService.setupSocketListeners();
-    print('✅ WebSocket listeners setup complete');
+  void _loadInitialData() {
+    // Load frequencies and groups in parallel without blocking UI
+    Future.wait([
+      _dialerService.loadFrequencies(band: _selectedBand, isPublic: true),
+      _dialerService.loadUserGroups(),
+    ]);
   }
 
   // Setup periodic refresh to keep data updated
@@ -130,8 +125,11 @@ class _DialerScreenState extends State<DialerScreen>
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
       print('🔄 Periodic refresh triggered');
       try {
-        await _dialerService.loadFrequencies(isPublic: true, forceRefresh: true);
-        await _dialerService.loadUserGroups();
+        // Run both refreshes in parallel
+        await Future.wait([
+          _dialerService.loadFrequencies(isPublic: true, forceRefresh: true),
+          _dialerService.loadUserGroups(),
+        ]);
         print('✅ Periodic refresh complete');
       } catch (e) {
         print('⚠️ Periodic refresh error (will retry): $e');
@@ -277,26 +275,30 @@ class _DialerScreenState extends State<DialerScreen>
     if (mounted) Navigator.pop(context);
 
     print('\n✅ [ACTIVE-CHANNELS] ====== DATA LOADED FROM API ======');
-    print('📊 Total frequencies received: ${_dialerService.frequencies.length}');
+    print(
+      '📊 Total frequencies received: ${_dialerService.frequencies.length}',
+    );
     print('📊 Total groups received: ${_dialerService.groups.length}');
 
     // Create frequency-based groups from frequencies with active users
     List<Map<String, dynamic>> frequencyGroups = [];
-    
+
     print('\n🔍 [ACTIVE-CHANNELS] ====== FILTERING FREQUENCIES ======');
 
     for (var freq in _dialerService.frequencies) {
       if (freq.activeUsers.isEmpty) {
         continue; // Skip frequencies without users silently
       }
-      
+
       print('\n📡 Frequency: ${freq.frequency} MHz (${freq.band})');
       print('   Users count: ${freq.activeUsers.length}');
-      
+
       // Log each active user
       for (var i = 0; i < freq.activeUsers.length; i++) {
         final user = freq.activeUsers[i];
-        print('   👤 User ${i + 1}: ${user.userName ?? user.callSign ?? 'Unknown'}');
+        print(
+          '   👤 User ${i + 1}: ${user.userName ?? user.callSign ?? 'Unknown'}',
+        );
       }
 
       frequencyGroups.add({
@@ -317,17 +319,21 @@ class _DialerScreenState extends State<DialerScreen>
     print('📊 [ACTIVE-CHANNELS] ====== FINAL RESULT ======');
     print('🎯 Frequency channels to show: ${frequencyGroups.length}');
     print('🎯 Regular groups to show: ${_dialerService.groups.length}');
-    print('🎯 TOTAL ACTIVE CHANNELS: ${frequencyGroups.length + _dialerService.groups.length}');
-    
+    print(
+      '🎯 TOTAL ACTIVE CHANNELS: ${frequencyGroups.length + _dialerService.groups.length}',
+    );
+
     // Show result on screen as snackbar
     final totalChannels = frequencyGroups.length + _dialerService.groups.length;
     String message;
-    
+
     if (frequencyGroups.isEmpty && _dialerService.groups.isEmpty) {
       print('⚠️ NO ACTIVE CHANNELS (All users disconnected)');
       message = '📊 Active Channels: 0 (No users online)';
     } else {
-      print('✅ DISPLAYING ${frequencyGroups.length + _dialerService.groups.length} CHANNELS');
+      print(
+        '✅ DISPLAYING ${frequencyGroups.length + _dialerService.groups.length} CHANNELS',
+      );
       message = '📊 Active Channels: $totalChannels';
       if (frequencyGroups.isNotEmpty) {
         print('\n📻 Active Frequencies:');
@@ -344,16 +350,16 @@ class _DialerScreenState extends State<DialerScreen>
       }
     }
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     // Show snackbar with result
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
           duration: const Duration(seconds: 2),
-          backgroundColor: totalChannels > 0 
-            ? const Color(0xFF00ff88) 
-            : Colors.orange,
+          backgroundColor: totalChannels > 0
+              ? const Color(0xFF00ff88)
+              : Colors.orange,
         ),
       );
     }
@@ -393,7 +399,10 @@ class _DialerScreenState extends State<DialerScreen>
                     onPressed: () async {
                       print('🔄 [GROUPS] Manual refresh triggered');
                       // Force refresh from API
-                      await _dialerService.loadFrequencies(isPublic: true, forceRefresh: true);
+                      await _dialerService.loadFrequencies(
+                        isPublic: true,
+                        forceRefresh: true,
+                      );
                       Navigator.pop(context); // Close current popup
                       await Future.delayed(const Duration(milliseconds: 300));
                       _showActiveGroupsPopup(); // Reopen with fresh data
@@ -1855,7 +1864,7 @@ class _DialerScreenState extends State<DialerScreen>
         if (group['type'] == 'frequency' || group.containsKey('frequency')) {
           print('🖱️ [CARD] Joining frequency: ${group['frequency']}');
           Navigator.pop(context); // Close popup
-          
+
           setState(() {
             _frequency = (group['frequency'] as num).toDouble();
           });
@@ -1868,11 +1877,11 @@ class _DialerScreenState extends State<DialerScreen>
           print('🖱️ [CARD] Arguments: $group');
 
           // Navigate to communication screen with group data
-          Navigator.pushNamed(context, '/communication', arguments: group).then((
-            _,
-          ) {
-            print('🔙 [CARD] Returned from communication screen');
-          });
+          Navigator.pushNamed(context, '/communication', arguments: group).then(
+            (_) {
+              print('🔙 [CARD] Returned from communication screen');
+            },
+          );
         }
       },
       child: Container(

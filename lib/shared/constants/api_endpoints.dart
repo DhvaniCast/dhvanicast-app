@@ -6,10 +6,10 @@ class ApiEndpoints {
   // 🌍 ENVIRONMENT CONFIGURATION
   // =====================================================
   // ⚡ Change this line to switch between LOCAL and PRODUCTION
-  static const Environment _currentEnvironment =
-      Environment.local; // Local Testing
   // static const Environment _currentEnvironment =
-  //     Environment.production; // Production (Google Cloud)
+  //     Environment.local; // Local Testing
+  static const Environment _currentEnvironment =
+      Environment.production; // Production (Google Cloud)
 
   // =====================================================
   // 📱 DEVICE CONFIGURATION
@@ -47,7 +47,7 @@ class ApiEndpoints {
       case Environment.local:
         return '$_localServerUrl/api';
       case Environment.production:
-        return 'https://dhvanicast-backend-522772414506.asia-south1.run.app/api';
+        return 'http://100.31.177.152/api';
     }
   }
 
@@ -57,7 +57,7 @@ class ApiEndpoints {
         return _localServerUrl;
       case Environment.production:
         // FIXED: Use same backend as API (Google Cloud Run, not Render.com)
-        return 'https://dhvanicast-backend-522772414506.asia-south1.run.app';
+        return 'http://100.31.177.152';
     }
   }
 

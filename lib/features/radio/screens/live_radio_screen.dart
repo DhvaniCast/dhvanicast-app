@@ -518,7 +518,13 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       }
 
       // Convert activeUsers to connectedUsers format for display
-      _connectedUsers = _currentFrequency!.activeUsers.map((user) {
+      // For private frequencies, use _privateFrequencyUsers instead of activeUsers
+      final usersToMap =
+          (_frequencyId != null && _frequencyId!.startsWith('private_'))
+          ? _privateFrequencyUsers
+          : _currentFrequency!.activeUsers;
+
+      _connectedUsers = usersToMap.map((user) {
         // Prefer userName over callSign for display
         final displayName = user.userName ?? user.callSign ?? 'Unknown';
         print(
@@ -1290,7 +1296,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Frequency: $_frequency MHz',
+                                    'Frequency: ${_currentFrequency?.frequency.toStringAsFixed(1) ?? _frequency} MHz',
                                     style: const TextStyle(
                                       color: Color(0xFF00ff88),
                                       fontSize: 14,

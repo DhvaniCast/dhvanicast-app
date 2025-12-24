@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TermsConditionsScreen extends StatelessWidget {
   const TermsConditionsScreen({Key? key}) : super(key: key);
@@ -135,6 +136,57 @@ class TermsConditionsScreen extends StatelessWidget {
                 'For questions about these Terms & Conditions:\n\n'
                 'Email: support@dhvanicast.com\n'
                 'In-App: Help & Support section',
+              ),
+              const SizedBox(height: 20),
+
+              // Clickable URL to full terms
+              Center(
+                child: InkWell(
+                  onTap: () async {
+                    final url = Uri.parse(
+                      'https://dhvanicast.com/terms-of-use',
+                    );
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00ff88).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF00ff88),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.open_in_new,
+                          color: Color(0xFF00ff88),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'View Complete Terms of Use',
+                          style: TextStyle(
+                            color: Color(0xFF00ff88),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 30),
             ],

@@ -459,8 +459,10 @@ class _SignupScreenState extends State<SignupScreen>
                                       if (v == null || v.trim().isEmpty)
                                         return 'Enter your age';
                                       final age = int.tryParse(v.trim());
-                                      if (age == null || age < 13 || age > 120)
-                                        return 'Age must be between 13-120';
+                                      if (age == null || age < 1 || age > 120)
+                                        return 'Enter valid age';
+                                      if (age < 18)
+                                        return 'Only users 18 years and above can register';
                                       return null;
                                     },
                                   ),

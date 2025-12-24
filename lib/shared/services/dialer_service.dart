@@ -26,15 +26,14 @@ class DialerService extends ChangeNotifier {
   /// Start periodic connection health check
   void _startConnectionHealthCheck() {
     // Check connection every 30 seconds
-    _connectionCheckTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (timer) {
-        if (kDebugMode) {
-          print('🏥 [HEALTH-CHECK] Checking socket connection...');
-        }
-        _socketClient.ensureConnection();
-      },
-    );
+    _connectionCheckTimer = Timer.periodic(const Duration(seconds: 30), (
+      timer,
+    ) {
+      if (kDebugMode) {
+        print('🏥 [HEALTH-CHECK] Checking socket connection...');
+      }
+      _socketClient.ensureConnection();
+    });
   }
 
   /// Setup automatic WebSocket listeners for frequency updates
@@ -162,7 +161,9 @@ class DialerService extends ChangeNotifier {
 
         if (frequencyId != null) {
           print('🔔 [WS] Global update for frequency: $frequencyValue MHz');
-          print('🔔 [WS] Refreshing frequencies to update active channels list...');
+          print(
+            '🔔 [WS] Refreshing frequencies to update active channels list...',
+          );
 
           // Refresh frequencies to get updated user counts and active channels
           loadFrequencies(forceRefresh: true).then((_) {
@@ -194,12 +195,6 @@ class DialerService extends ChangeNotifier {
     bool? hasActiveUsers, // NEW: Filter for active frequencies
     bool forceRefresh = false, // NEW: Force refresh to bypass cache
   }) async {
-    print('📥 [LOAD-FREQ] ====== LOADING FREQUENCIES ======');
-    print('📥 [LOAD-FREQ] Band filter: $band');
-    print('📥 [LOAD-FREQ] Public filter: $isPublic');
-    print('📥 [LOAD-FREQ] Active users filter: $hasActiveUsers');
-    print('📥 [LOAD-FREQ] Force refresh: $forceRefresh');
-
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -209,44 +204,22 @@ class DialerService extends ChangeNotifier {
         band: band,
         isPublic: isPublic ?? true,
         page: 1,
-        limit: 500, // Increased from 100 to 500 to include more frequencies
-        hasActiveUsers: hasActiveUsers, // NEW: Pass filter
-        forceRefresh: forceRefresh, // Pass forceRefresh to repo
+        limit: 100, // Reduced from 500 to 100 for faster initial load
+        hasActiveUsers: hasActiveUsers,
+        forceRefresh: forceRefresh,
       );
-
-      print('📥 [LOAD-FREQ] API Response:');
-      print('📥 [LOAD-FREQ] - Success: ${response.success}');
-      print('📥 [LOAD-FREQ] - Message: ${response.message}');
-      print('📥 [LOAD-FREQ] - Data count: ${response.data?.length ?? 0}');
 
       if (response.success && response.data != null) {
         _frequencies = response.data!;
         _error = null;
-
-        print('✅ [LOAD-FREQ] Loaded ${_frequencies.length} frequencies:');
-        for (var freq in _frequencies) {
-          print('✅ [LOAD-FREQ]   - ${freq.frequency} MHz (ID: ${freq.id})');
-          print('✅ [LOAD-FREQ]     Active Users: ${freq.activeUsers.length}');
-          for (var user in freq.activeUsers) {
-            print(
-              '✅ [LOAD-FREQ]       * ${user.userName ?? user.callSign ?? user.userId}',
-            );
-          }
-        }
       } else {
         _error = response.message;
-        print('❌ [LOAD-FREQ] Error: ${response.message}');
       }
     } catch (e) {
       _error = 'Failed to load frequencies: $e';
-      print('❌ [LOAD-FREQ] Exception: $e');
-      if (kDebugMode) {
-        print('Error loading frequencies: $e');
-      }
     } finally {
       _isLoading = false;
       notifyListeners();
-      print('📥 [LOAD-FREQ] Loading complete. isLoading: $_isLoading');
     }
   }
 
@@ -283,7 +256,7 @@ class DialerService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _groupRepo.getUserGroups(page: 1, limit: 50);
+      final response = await _groupRepo.getUserGroups(page: 1, limit: 20);
 
       if (response.success && response.data != null) {
         _groups = response.data!;
@@ -584,13 +557,13 @@ class DialerService extends ChangeNotifier {
   void dispose() {
     // Cancel health check timer
     _connectionCheckTimer?.cancel();
-    
+
     // Remove socket listeners
     _socketClient.off('user_joined');
     _socketClient.off('user_left');
     _socketClient.off('transmission_started');
     _socketClient.off('transmission_stopped');
-    
+
     super.dispose();
   }
 }
