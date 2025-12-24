@@ -2851,18 +2851,54 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
     // Parse timestamp
     String timeString = '';
     try {
-      final DateTime time = DateTime.parse(timestamp);
+      // Parse UTC timestamp and convert to local time
+      final DateTime utcTime = DateTime.parse(timestamp);
+      final DateTime localTime = utcTime.toLocal();
       final now = DateTime.now();
-      final difference = now.difference(time);
 
-      if (difference.inMinutes < 1) {
-        timeString = 'Just now';
-      } else if (difference.inHours < 1) {
-        timeString = '${difference.inMinutes}m ago';
-      } else if (difference.inDays < 1) {
-        timeString = '${difference.inHours}h ago';
+      // Format hours for 12-hour display
+      final hour = localTime.hour > 12
+          ? localTime.hour - 12
+          : (localTime.hour == 0 ? 12 : localTime.hour);
+      final amPm = localTime.hour >= 12 ? 'PM' : 'AM';
+      final timeStr =
+          '$hour:${localTime.minute.toString().padLeft(2, '0')} $amPm';
+
+      // Check if message is from today
+      final isToday =
+          localTime.year == now.year &&
+          localTime.month == now.month &&
+          localTime.day == now.day;
+
+      // Check if message is from yesterday
+      final yesterday = now.subtract(Duration(days: 1));
+      final isYesterday =
+          localTime.year == yesterday.year &&
+          localTime.month == yesterday.month &&
+          localTime.day == yesterday.day;
+
+      if (isToday) {
+        timeString = timeStr;
+      } else if (isYesterday) {
+        timeString = 'Yesterday $timeStr';
       } else {
-        timeString = '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+        // For older messages, show date
+        final months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        timeString =
+            '${localTime.day} ${months[localTime.month - 1]}, $timeStr';
       }
     } catch (e) {
       timeString = '';

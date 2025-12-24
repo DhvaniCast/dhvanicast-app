@@ -197,9 +197,9 @@ class AuthService {
 
   /// Validate age
   ///
-  /// Returns true if age is between 13 and 120
+  /// Returns true if age is between 18 and 120
   bool isValidAge(int age) {
-    return age >= 13 && age <= 120;
+    return age >= 18 && age <= 120;
   }
 
   /// Validate mobile number format

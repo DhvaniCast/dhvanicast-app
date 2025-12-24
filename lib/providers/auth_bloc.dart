@@ -117,7 +117,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (!_authService.isValidAge(event.age)) {
         emit(
           AuthError(
-            message: 'Age must be between 13 and 120',
+            message: 'Minimum required age is 18 years',
             field: 'age',
             statusCode: 400,
           ),

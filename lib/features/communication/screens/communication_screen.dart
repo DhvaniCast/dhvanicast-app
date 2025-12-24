@@ -918,9 +918,14 @@ class _CommunicationScreenState extends State<CommunicationScreen>
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '';
     try {
+      // Parse the timestamp - it should be in ISO 8601 format from server
       final dt = DateTime.parse(timestamp);
-      return '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+      // Convert to local time if it's UTC
+      final localTime = dt.toLocal();
+      // Format as HH:MM
+      return '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
+      print('❌ [TIME FORMAT] Error formatting timestamp: $e');
       return '';
     }
   }

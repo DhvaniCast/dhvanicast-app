@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class FriendsListWidget extends StatelessWidget {
   final List<Map<String, dynamic>> friends;
   final VoidCallback onClose;
+  final Function(Map<String, dynamic>)? onCallFriend;
 
   const FriendsListWidget({
     Key? key,
     required this.friends,
     required this.onClose,
+    this.onCallFriend,
   }) : super(key: key);
 
   @override
@@ -113,6 +115,7 @@ class FriendsListWidget extends StatelessWidget {
   }
 
   Widget _buildFriendItem(Map<String, dynamic> friend) {
+    final friendId = friend['_id'] ?? friend['id'] ?? '';
     final name = friend['name'] ?? 'Unknown';
     final avatar = friend['avatar'] ?? '👤';
     final isOnline = friend['isOnline'] ?? false;
@@ -205,8 +208,15 @@ class FriendsListWidget extends StatelessWidget {
             // Call button
             IconButton(
               onPressed: () {
-                // TODO: Implement call friend functionality
-                print('Call $name');
+                if (onCallFriend != null) {
+                  onCallFriend!({
+                    '_id': friendId,
+                    'id': friendId,
+                    'name': name,
+                    'avatar': avatar,
+                    'isOnline': isOnline,
+                  });
+                }
               },
               icon: const Icon(Icons.phone, color: Color(0xFF00ff88), size: 22),
             ),

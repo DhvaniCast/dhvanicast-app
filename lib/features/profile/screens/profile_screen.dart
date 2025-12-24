@@ -8,6 +8,8 @@ import 'dart:typed_data';
 import '../../../providers/auth_bloc.dart';
 import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
+import '../../../injection.dart';
+import '../../../shared/services/dialer_service.dart';
 import '../../policies/screens/privacy_policy_screen.dart';
 import '../../policies/screens/refund_policy_screen.dart';
 import '../../policies/screens/terms_conditions_screen.dart';
@@ -850,6 +852,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              // Cancel any background timers/services before logout
+              // This prevents API calls after logout
+              final dialerService = getIt<DialerService>();
+              dialerService.dispose();
+
               // Call logout API
               context.read<AuthBloc>().add(AuthLogoutRequested());
             },

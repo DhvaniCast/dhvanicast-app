@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/frequency_repository.dart';
 import '../../core/group_repository.dart';
 import '../../core/websocket_client.dart';
@@ -251,6 +252,18 @@ class DialerService extends ChangeNotifier {
 
   /// Load user's groups
   Future<void> loadUserGroups() async {
+    // Check if user is logged in before making API call
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null || token.isEmpty) {
+      // User is logged out, silently return without error
+      if (kDebugMode) {
+        print('ℹ️ DialerService: Skipping loadUserGroups - user not logged in');
+      }
+      return;
+    }
+
     _isLoading = true;
     _error = null;
     notifyListeners();

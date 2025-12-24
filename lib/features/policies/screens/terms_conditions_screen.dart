@@ -131,14 +131,6 @@ class TermsConditionsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              _buildSectionTitle('12. Contact Information'),
-              _buildParagraph(
-                'For questions about these Terms & Conditions:\n\n'
-                'Email: support@dhvanicast.com\n'
-                'In-App: Help & Support section',
-              ),
-              const SizedBox(height: 20),
-
               // Clickable URL to full terms
               Center(
                 child: InkWell(

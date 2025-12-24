@@ -457,12 +457,12 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: _callFriend,
-            icon: const Icon(Icons.call, color: Color(0xFF00ff88)),
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     onPressed: _callFriend,
+        //     icon: const Icon(Icons.call, color: Color(0xFF00ff88)),
+        //   ),
+        // ],
       ),
       body: Column(
         children: [

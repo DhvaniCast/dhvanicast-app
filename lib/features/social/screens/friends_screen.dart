@@ -545,7 +545,9 @@ class _FriendsScreenState extends State<FriendsScreen>
                     ),
                   ),
                   child: Center(
-                    child: (friendAvatar.length > 20 || friendAvatar.startsWith('http'))
+                    child:
+                        (friendAvatar.length > 20 ||
+                            friendAvatar.startsWith('http'))
                         ? ClipOval(
                             child: friendAvatar.startsWith('http')
                                 ? Image.network(
@@ -553,18 +555,24 @@ class _FriendsScreenState extends State<FriendsScreen>
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        const Text('👤',
-                                            style: TextStyle(fontSize: 30)),
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Text(
+                                              '👤',
+                                              style: TextStyle(fontSize: 30),
+                                            ),
                                   )
                                 : Image.memory(
                                     base64Decode(friendAvatar),
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        const Text('👤',
-                                            style: TextStyle(fontSize: 30)),
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Text(
+                                              '👤',
+                                              style: TextStyle(fontSize: 30),
+                                            ),
                                   ),
                           )
                         : Text(
@@ -640,24 +648,24 @@ class _FriendsScreenState extends State<FriendsScreen>
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Call Button
-                Material(
-                  color: const Color(0xFF00ff88).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _callFriend(friend),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      child: const Icon(
-                        Icons.call,
-                        color: Color(0xFF00ff88),
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                ),
+                // const SizedBox(width: 8),
+                // // Call Button
+                // Material(
+                //   color: const Color(0xFF00ff88).withOpacity(0.2),
+                //   borderRadius: BorderRadius.circular(12),
+                //   child: InkWell(
+                //     borderRadius: BorderRadius.circular(12),
+                //     onTap: () => _callFriend(friend),
+                //     child: Container(
+                //       padding: const EdgeInsets.all(12),
+                //       child: const Icon(
+                //         Icons.call,
+                //         color: Color(0xFF00ff88),
+                //         size: 22,
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ],
@@ -736,7 +744,10 @@ class _FriendsScreenState extends State<FriendsScreen>
                               height: 50,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
-                                  const Text('👤', style: TextStyle(fontSize: 24)),
+                                  const Text(
+                                    '👤',
+                                    style: TextStyle(fontSize: 24),
+                                  ),
                             ),
                           )
                         : Text(

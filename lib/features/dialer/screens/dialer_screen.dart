@@ -241,14 +241,14 @@ class _DialerScreenState extends State<DialerScreen>
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Show message on screen
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🔄 Loading Active Channels...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
+    // if (mounted) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(
+    //       content: Text('🔄 Loading Active Channels...'),
+    //       duration: Duration(seconds: 1),
+    //     ),
+    //   );
+    // }
 
     // Show loading indicator
     if (mounted) {
