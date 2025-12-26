@@ -47,7 +47,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
               _buildSectionTitle('2. User Eligibility'),
               _buildParagraph(
-                '• You must be at least 13 years old to use DhvaniCast.\n'
+                '• You must be at least 18 years old to use DhvaniCast.\n'
                 '• You are responsible for maintaining the confidentiality of your account credentials.\n'
                 '• You agree to provide accurate and complete information during registration.',
               ),

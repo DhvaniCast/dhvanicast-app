@@ -189,6 +189,64 @@ class DialerService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  /// Filter out users who have been inactive for more than the threshold
+  /// This helps remove stale/disconnected users that backend hasn't cleaned up yet
+  List<FrequencyModel> _filterStaleUsers(
+    List<FrequencyModel> frequencies, {
+    Duration threshold = const Duration(minutes: 10),
+  }) {
+    final now = DateTime.now();
+    print('🧹 [FILTER] ====== FILTERING STALE USERS ======');
+    print('🧹 [FILTER] Threshold: ${threshold.inMinutes} minutes');
+    print('🧹 [FILTER] Total frequencies to check: ${frequencies.length}');
+
+    return frequencies.map((freq) {
+      if (freq.activeUsers.isEmpty) {
+        return freq;
+      }
+
+      final originalCount = freq.activeUsers.length;
+      final filteredUsers = freq.activeUsers.where((user) {
+        final timeSinceJoined = now.difference(user.joinedAt);
+        final isStale = timeSinceJoined > threshold;
+
+        if (isStale) {
+          print(
+            '🗑️ [FILTER] Removing stale user: ${user.userName ?? user.userId}',
+          );
+          print('🗑️ [FILTER]   Joined: ${user.joinedAt.toIso8601String()}');
+          print(
+            '🗑️ [FILTER]   Time since join: ${timeSinceJoined.inMinutes} min',
+          );
+        }
+        return !isStale;
+      }).toList();
+
+      if (filteredUsers.length < originalCount) {
+        print(
+          '✂️ [FILTER] ${freq.frequency} MHz: Removed ${originalCount - filteredUsers.length} stale users',
+        );
+        return FrequencyModel(
+          id: freq.id,
+          frequency: freq.frequency,
+          name: freq.name,
+          description: freq.description,
+          band: freq.band,
+          isPublic: freq.isPublic,
+          isActive: freq.isActive,
+          createdBy: freq.createdBy,
+          activeUsers: filteredUsers,
+          userCount: filteredUsers.length,
+          createdAt: freq.createdAt,
+          updatedAt: freq.updatedAt,
+          currentTransmitter: freq.currentTransmitter,
+        );
+      }
+
+      return freq;
+    }).toList();
+  }
+
   /// Load all frequencies
   Future<void> loadFrequencies({
     String? band,
@@ -211,7 +269,8 @@ class DialerService extends ChangeNotifier {
       );
 
       if (response.success && response.data != null) {
-        _frequencies = response.data!;
+        // Filter out stale/disconnected users before storing
+        _frequencies = _filterStaleUsers(response.data!);
         _error = null;
       } else {
         _error = response.message;
@@ -250,6 +309,53 @@ class DialerService extends ChangeNotifier {
     }
   }
 
+  /// Filter out offline/inactive members from groups
+  /// This helps remove stale/disconnected users from group member lists
+  List<GroupModel> _filterOfflineGroupMembers(List<GroupModel> groups) {
+    print('🧹 [GROUP-FILTER] ====== FILTERING OFFLINE MEMBERS ======');
+    print('🧹 [GROUP-FILTER] Total groups to check: ${groups.length}');
+
+    return groups.map((group) {
+      if (group.members.isEmpty) {
+        return group;
+      }
+
+      final originalCount = group.members.length;
+      // Only keep online members
+      final onlineMembers = group.members.where((member) {
+        if (!member.isOnline) {
+          print(
+            '🗑️ [GROUP-FILTER] Removing offline member: ${member.userName ?? member.userId}',
+          );
+        }
+        return member.isOnline;
+      }).toList();
+
+      if (onlineMembers.length < originalCount) {
+        print(
+          '✂️ [GROUP-FILTER] ${group.name}: Removed ${originalCount - onlineMembers.length} offline members',
+        );
+        return GroupModel(
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          avatar: group.avatar,
+          owner: group.owner,
+          members: onlineMembers,
+          frequencyId: group.frequencyId,
+          settings: group.settings,
+          isActive: group.isActive,
+          createdAt: group.createdAt,
+          updatedAt: group.updatedAt,
+          onlineCount: onlineMembers.length,
+          totalMembers: group.totalMembers,
+        );
+      }
+
+      return group;
+    }).toList();
+  }
+
   /// Load user's groups
   Future<void> loadUserGroups() async {
     // Check if user is logged in before making API call
@@ -272,7 +378,8 @@ class DialerService extends ChangeNotifier {
       final response = await _groupRepo.getUserGroups(page: 1, limit: 20);
 
       if (response.success && response.data != null) {
-        _groups = response.data!;
+        // Filter out offline members before storing
+        _groups = _filterOfflineGroupMembers(response.data!);
         _error = null;
 
         if (kDebugMode) {

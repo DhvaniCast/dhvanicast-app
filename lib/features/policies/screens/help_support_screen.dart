@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({Key? key}) : super(key: key);
@@ -46,11 +47,7 @@ class HelpSupportScreen extends StatelessWidget {
                 title: 'Email Support',
                 subtitle: 'support@dhvanicast.com',
                 color: const Color(0xFF00ff88),
-                onTap: () => _copyToClipboard(
-                  context,
-                  'support@dhvanicast.com',
-                  'Email copied to clipboard',
-                ),
+                onTap: () => _openEmailApp(context),
               ),
               const SizedBox(height: 16),
 
@@ -288,6 +285,33 @@ class HelpSupportScreen extends StatelessWidget {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _openEmailApp(BuildContext context) async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: 'support@dhvanicast.com',
+      query: 'subject=Support Request&body=Hello DhvaniCast Support Team,\n\n',
+    );
+
+    try {
+      if (await canLaunchUrl(emailUri)) {
+        await launchUrl(emailUri);
+      } else {
+        // If email app is not available, copy to clipboard as fallback
+        _copyToClipboard(
+          context,
+          'support@dhvanicast.com',
+          'Email copied to clipboard',
+        );
+      }
+    } catch (e) {
+      _copyToClipboard(
+        context,
+        'support@dhvanicast.com',
+        'Email copied to clipboard',
+      );
+    }
   }
 
   void _showReportDialog(BuildContext context, String type) {
