@@ -79,6 +79,16 @@ class HelpSupportScreen extends StatelessWidget {
                 color: Colors.purpleAccent,
                 onTap: () => _showReportDialog(context, 'Billing Issue'),
               ),
+              const SizedBox(height: 16),
+
+              _buildContactCard(
+                context,
+                icon: Icons.shield_outlined,
+                title: 'CSAE Reporting',
+                subtitle: 'Child Safety and Exploitation reporting',
+                color: Colors.redAccent,
+                onTap: () => _openChildSafetyUrl(context),
+              ),
               const SizedBox(height: 32),
 
               // FAQ Section
@@ -310,6 +320,32 @@ class HelpSupportScreen extends StatelessWidget {
         context,
         'support@dhvanicast.com',
         'Email copied to clipboard',
+      );
+    }
+  }
+
+  Future<void> _openChildSafetyUrl(BuildContext context) async {
+    final Uri childSafetyUri = Uri.parse('https://dhvanicast.com/child-safety');
+
+    try {
+      if (await canLaunchUrl(childSafetyUri)) {
+        await launchUrl(childSafetyUri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open the URL'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error opening child safety page'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
