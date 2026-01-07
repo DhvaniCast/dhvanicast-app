@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 
 import '../../../core/auth_storage_service.dart';
 import '../../../providers/auth_bloc.dart';
@@ -33,6 +34,11 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isOtpSent = false;
   bool _isLoading = false;
 
+  // OTP Timer variables
+  Timer? _otpTimer;
+  int _otpTimeRemaining = 0;
+  bool _canResendOtp = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +67,27 @@ class _LoginScreenState extends State<LoginScreen>
     _animationController.dispose();
     _emailController.dispose();
     _otpController.dispose();
+    _otpTimer?.cancel();
     super.dispose();
+  }
+
+  void _startOtpTimer() {
+    setState(() {
+      _otpTimeRemaining = 60; // 60 seconds
+      _canResendOtp = false;
+    });
+
+    _otpTimer?.cancel();
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_otpTimeRemaining > 0) {
+          _otpTimeRemaining--;
+        } else {
+          _canResendOtp = true;
+          timer.cancel();
+        }
+      });
+    });
   }
 
   void _sendOtp() async {
@@ -73,6 +99,27 @@ class _LoginScreenState extends State<LoginScreen>
       // Send OTP via API
       context.read<AuthBloc>().add(
         AuthLoginRequested(email: _emailController.text.trim()),
+      );
+    }
+  }
+
+  void _resendOtp() async {
+    if (_canResendOtp && _emailController.text.trim().isNotEmpty) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Resend OTP via API (using same send-otp endpoint)
+      context.read<AuthBloc>().add(
+        AuthLoginRequested(email: _emailController.text.trim()),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OTP has been resent to your email'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
       );
     }
   }
@@ -145,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen>
           setState(() {
             _isOtpSent = true;
           });
+          _startOtpTimer(); // Start 60 second timer
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -445,6 +493,40 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                                   ),
                                   const SizedBox(height: 20),
+
+                                  // Resend OTP section (only show when OTP is sent)
+                                  if (_isOtpSent) ...[
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        if (_otpTimeRemaining > 0) ...[
+                                          Text(
+                                            'Resend OTP in $_otpTimeRemaining seconds',
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          TextButton(
+                                            onPressed: _canResendOtp
+                                                ? _resendOtp
+                                                : null,
+                                            child: const Text(
+                                              'Resend OTP',
+                                              style: TextStyle(
+                                                color: Color(0xFF00ff88),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
 
                                   // Sign Up Link
                                   Row(

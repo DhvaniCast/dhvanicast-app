@@ -83,11 +83,11 @@ class HelpSupportScreen extends StatelessWidget {
 
               _buildContactCard(
                 context,
-                icon: Icons.shield_outlined,
-                title: 'CSAE Reporting',
-                subtitle: 'Child Safety and Exploitation reporting',
+                icon: Icons.report_outlined,
+                title: 'Report Case',
+                subtitle: 'Report inappropriate behavior or content',
                 color: Colors.redAccent,
-                onTap: () => _openChildSafetyUrl(context),
+                onTap: () => _showReportDialog(context, 'Report Case'),
               ),
               const SizedBox(height: 32),
 

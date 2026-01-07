@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class RefundPolicyScreen extends StatelessWidget {
-  const RefundPolicyScreen({super.key});
+class CommunityGuidelinesScreen extends StatelessWidget {
+  const CommunityGuidelinesScreen({super.key});
 
   Future<void> _launchWebsite() async {
-    final Uri url = Uri.parse('https://dhvanicast.com/refund-policy');
+    final Uri url = Uri.parse('https://dhvanicast.com/community-guidelines');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
@@ -16,7 +16,7 @@ class RefundPolicyScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Refund Policy',
+          'Community Guidelines',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: const Color(0xFF1a1a1a),
@@ -44,55 +44,65 @@ class RefundPolicyScreen extends StatelessWidget {
               _buildContactCard(),
               const SizedBox(height: 24),
 
-              _buildSectionTitle('9.1 Nature of Digital Services'),
+              _buildSectionTitle('3.1 Purpose and Philosophy'),
               _buildParagraph(
-                'Private frequencies offered on Dhvani Cast are time-bound, exclusive digital services. Once activated, these services are immediately consumed by reserving exclusive access to a specific frequency for a defined duration.',
+                'Dhvani Cast is a live, frequency-based communication platform that enables real-time interaction between multiple users through voice, text chat, and image sharing. Because communication occurs live and involves simultaneous participation by many individuals, the quality, safety, and integrity of the platform depend heavily on responsible user behavior.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Due to the nature of these services, private frequencies:',
+                'These Community Guidelines are established to define acceptable conduct, prevent harm, protect users from abuse, and ensure that Dhvani Cast remains a safe and inclusive environment for adult users. All users are expected to understand that participation on the platform is a privilege, not a right, and continued access is conditional upon adherence to these guidelines.',
               ),
-              const SizedBox(height: 8),
-              _buildBulletPoints([
-                'Cannot be reused once activated',
-                'Cannot be transferred to another user',
-                'Cannot be resold or extended after expiry',
-              ]),
               const SizedBox(height: 20),
 
-              _buildSectionTitle('9.2 Refund Eligibility Criteria'),
+              _buildSectionTitle('3.2 Standards of Conduct'),
               _buildParagraph(
-                'Refunds are granted only in limited circumstances where:',
+                'Users are required to behave in a manner that is respectful, lawful, and considerate of others at all times. This applies equally to spoken audio, written messages, shared images, and any other form of interaction available on the platform.',
               ),
               const SizedBox(height: 8),
-              _buildBulletPoints([
-                'Payment has been successfully completed, and',
-                'The purchased service is not delivered due to a verified technical failure attributable solely to Dhvani Cast',
-              ]),
-              const SizedBox(height: 8),
               _buildParagraph(
-                'Refunds are not issued for reasons including, but not limited to:',
+                'Acceptable conduct includes engaging in conversations respectfully, allowing others to express themselves without intimidation, and refraining from language or behavior that could reasonably be perceived as abusive, threatening, or degrading. Users must recognize that real-time communication amplifies the impact of harmful speech and that spoken words carry the same accountability as written content.',
               ),
-              const SizedBox(height: 8),
-              _buildBulletPoints([
-                'User dissatisfaction',
-                'Accidental purchases',
-                'Failure to use the service within the validity period',
-                'Issues arising from password sharing or user error',
-              ]),
               const SizedBox(height: 20),
 
-              _buildSectionTitle('9.3 Refund Request and Processing'),
+              _buildSectionTitle('3.3 Harassment, Abuse, and Hate Speech'),
               _buildParagraph(
-                'Refund requests must be submitted within 24 hours of the transaction and must include relevant transaction details, such as the payment reference number and account information.',
+                'Dhvani Cast strictly prohibits harassment, bullying, intimidation, or abuse of any kind. This includes persistent unwanted communication, verbal attacks, threats, humiliation, or coordinated targeting of individuals or groups.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'All refund requests are reviewed on a case-by-case basis. If approved, refunds are processed through the original payment method in accordance with Razorpay\'s processing timelines and applicable regulations.',
+                'Hate speech and discriminatory behavior are expressly forbidden. Content or conduct that promotes hatred, violence, or exclusion based on race, religion, caste, gender, sexual orientation, nationality, disability, or any protected characteristic will result in immediate enforcement action.',
+              ),
+              const SizedBox(height: 20),
+
+              _buildSectionTitle('3.4 Sexual, Violent, and Illegal Content'),
+              _buildParagraph(
+                'Users must not create, share, or promote sexually explicit, obscene, or pornographic material. This applies to audio discussions, text messages, images, or any indirect references designed to bypass moderation.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Dhvani Cast reserves the right to deny refund requests that do not meet the eligibility criteria or where misuse or abuse is identified.',
+                'Violent, graphic, or disturbing content, including threats of violence or glorification of harm, is prohibited. Similarly, content that promotes or facilitates illegal activities, including drugs, fraud, or cybercrime, is not permitted.',
+              ),
+              const SizedBox(height: 20),
+
+              _buildSectionTitle(
+                '3.5 Media and Image Sharing Responsibilities',
+              ),
+              _buildParagraph(
+                'Images shared on Dhvani Cast must comply with community standards and applicable law. Users are responsible for ensuring that any media they share does not violate privacy, intellectual property rights, or platform rules.',
+              ),
+              const SizedBox(height: 8),
+              _buildParagraph(
+                'Images involving nudity, sexual activity, minors, graphic violence, or personal data of others will be removed and may result in account suspension or termination.',
+              ),
+              const SizedBox(height: 20),
+
+              _buildSectionTitle('3.6 Reporting, Enforcement, and Escalation'),
+              _buildParagraph(
+                'Dhvani Cast provides in-app tools for reporting violations. Reports are reviewed using a combination of automated systems and human moderation.',
+              ),
+              const SizedBox(height: 8),
+              _buildParagraph(
+                'Depending on severity and frequency, enforcement actions may include warnings, temporary restrictions, muting, removal from frequencies, suspension, or permanent account termination. Severe violations may be escalated directly to permanent enforcement without prior warning.',
               ),
               const SizedBox(height: 32),
 
@@ -232,44 +242,12 @@ class RefundPolicyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBulletPoints(List<String> points) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: points
-          .map(
-            (point) => Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '• ',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF00ff88)),
-                  ),
-                  Expanded(
-                    child: Text(
-                      point,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.6,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-
   Widget _buildWebsiteButton(BuildContext context) {
     return Center(
       child: ElevatedButton.icon(
         onPressed: _launchWebsite,
         icon: const Icon(Icons.open_in_browser),
-        label: const Text('View Full Refund Policy on Website'),
+        label: const Text('View Full Community Guidelines on Website'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           backgroundColor: const Color(0xFF00ff88),

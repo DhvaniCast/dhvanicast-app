@@ -355,13 +355,17 @@ class ApiException implements Exception {
   String get userFriendlyMessage {
     switch (statusCode) {
       case 400:
-        return 'Invalid request. Please check your input.';
+        return message.isNotEmpty
+            ? message
+            : 'Invalid request. Please check your input.';
       case 401:
         return 'Please check your connection and try again.'; // Changed to avoid auto-logout
       case 403:
         return 'You are not authorized to perform this action.';
       case 404:
-        return 'The requested resource was not found.';
+        return message.isNotEmpty
+            ? message
+            : 'The requested resource was not found.';
       case 429:
         return 'Too many requests. Please try again later.';
       case 500:
@@ -369,7 +373,9 @@ class ApiException implements Exception {
       case 0:
         return message; // Custom messages for network errors
       default:
-        return 'An error occurred. Please try again.';
+        return message.isNotEmpty
+            ? message
+            : 'An error occurred. Please try again.';
     }
   }
 }

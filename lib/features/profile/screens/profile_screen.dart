@@ -14,6 +14,10 @@ import '../../policies/screens/privacy_policy_screen.dart';
 import '../../policies/screens/refund_policy_screen.dart';
 import '../../policies/screens/terms_conditions_screen.dart';
 import '../../policies/screens/help_support_screen.dart';
+import '../../policies/screens/child_safety_screen.dart';
+import '../../policies/screens/community_guidelines_screen.dart';
+import '../../policies/screens/platform_policies_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -290,14 +294,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Actions Section
+                      // Legal & Support Section
                       _buildSectionTitle('Legal & Support'),
                       const SizedBox(height: 16),
+                      _buildActionTile(
+                        title: 'Terms & Conditions',
+                        icon: Icons.description_outlined,
+                        color: Colors.white70,
+                        onTap: _openTermsConditions,
+                      ),
+                      const SizedBox(height: 12),
                       _buildActionTile(
                         title: 'Privacy Policy',
                         icon: Icons.privacy_tip_outlined,
                         color: Colors.white70,
                         onTap: _openPrivacyPolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Child Safety and CSAE Policy',
+                        icon: Icons.shield_outlined,
+                        color: Colors.white70,
+                        onTap: _openChildSafety,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Community Guidelines',
+                        icon: Icons.groups_outlined,
+                        color: Colors.white70,
+                        onTap: _openCommunityGuidelines,
                       ),
                       const SizedBox(height: 12),
                       _buildActionTile(
@@ -308,10 +333,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       _buildActionTile(
-                        title: 'Terms & Conditions',
-                        icon: Icons.description_outlined,
+                        title: 'Platform Policies',
+                        icon: Icons.policy_outlined,
                         color: Colors.white70,
-                        onTap: _openTermsConditions,
+                        onTap: _openPlatformPolicies,
                       ),
                       const SizedBox(height: 12),
                       _buildActionTile(
@@ -319,6 +344,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.help_outline,
                         color: const Color(0xFF00ff88),
                         onTap: _openHelpSupport,
+                      ),
+                      const SizedBox(height: 16),
+                      // Website Link
+                      GestureDetector(
+                        onTap: _openWebsite,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00ff88).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF00ff88),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.language,
+                                color: Color(0xFF00ff88),
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Visit Our Website',
+                                style: TextStyle(
+                                  color: Color(0xFF00ff88),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(
+                                Icons.open_in_new,
+                                color: Color(0xFF00ff88),
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 32),
 
@@ -880,7 +946,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openRefundPolicy() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const RefundPolicyScreen()),
+      MaterialPageRoute(builder: (context) => RefundPolicyScreen()),
     );
   }
 
@@ -896,6 +962,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
     );
+  }
+
+  void _openChildSafety() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ChildSafetyScreen()),
+    );
+  }
+
+  void _openCommunityGuidelines() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CommunityGuidelinesScreen()),
+    );
+  }
+
+  void _openPlatformPolicies() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PlatformPoliciesScreen()),
+    );
+  }
+
+  void _openWebsite() async {
+    final url = Uri.parse('https://dhvanicast.com/');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _showTemporaryDeleteDialog() {
