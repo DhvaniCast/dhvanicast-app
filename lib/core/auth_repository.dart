@@ -3,6 +3,7 @@ import '../models/user.dart';
 import '../shared/constants/api_endpoints.dart';
 import '../shared/services/http_client.dart';
 import 'auth_storage_service.dart';
+import 'device_utils.dart';
 
 class AuthService {
   final HttpClient _httpClient = HttpClient();
@@ -74,9 +75,18 @@ class AuthService {
     required String otp,
   }) async {
     try {
+      // Get device ID and info
+      final deviceId = await DeviceUtils.getDeviceId();
+      final deviceInfo = await DeviceUtils.getDeviceInfo();
+
       final response = await _httpClient.post<AuthResponse>(
         ApiEndpoints.verifyOtp,
-        body: {'email': email.trim(), 'otp': otp.trim()},
+        body: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+          'deviceId': deviceId,
+          'deviceInfo': deviceInfo,
+        },
         fromJson: (json) => AuthResponse.fromJson(json),
       );
 

@@ -20,6 +20,55 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkAuthAndNavigate();
   }
 
+  /// Handle force logout - clear session and redirect to login
+  Future<void> _handleForceLogout() async {
+    print('🚪 [Force Logout] Handling force logout...');
+
+    try {
+      // Clear auth data
+      await AuthStorageService.clearAuthData();
+      print('✅ [Force Logout] Auth data cleared');
+
+      // Disconnect websocket
+      final wsClient = getIt<WebSocketClient>();
+      wsClient.disconnect();
+      print('✅ [Force Logout] WebSocket disconnected');
+
+      if (!mounted) return;
+
+      // Show dialog to user
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Logged Out'),
+          content: const Text(
+            'You have been logged out because your account was accessed from another device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/login', (route) => false);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      print('❌ [Force Logout] Error: $e');
+      // Still try to navigate to login
+      if (mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    }
+  }
+
   Future<void> _checkAuthAndNavigate() async {
     // Show splash screen for at least 2 seconds
     await Future.delayed(const Duration(seconds: 2));
@@ -46,6 +95,13 @@ class _SplashScreenState extends State<SplashScreen> {
           // Initialize WebSocket connection
           final wsClient = getIt<WebSocketClient>();
           wsClient.connect(token);
+
+          // Setup force logout listener
+          wsClient.setForceLogoutCallback((data) {
+            print('🚪 [Force Logout] Received force logout event');
+            print('📋 [Force Logout] Data: $data');
+            _handleForceLogout();
+          });
 
           // Navigate to dialer screen (main dashboard)
           Navigator.of(context).pushReplacementNamed('/dialer');

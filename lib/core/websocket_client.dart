@@ -1,6 +1,10 @@
 ﻿import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/foundation.dart';
 import '../shared/constants/api_endpoints.dart';
+import 'device_utils.dart';
+
+// Callback type for force logout
+typedef ForceLogoutCallback = void Function(Map<String, dynamic> data);
 
 class WebSocketClient {
   static final WebSocketClient _instance = WebSocketClient._internal();
@@ -13,10 +17,28 @@ class WebSocketClient {
   DateTime? _lastConnectionTime;
   int _reconnectCount = 0;
 
+  // Force logout callback
+  ForceLogoutCallback? _onForceLogout;
+
   // Getters
   bool get isConnected => _isConnected;
   IO.Socket? get socket => _socket;
   DateTime? get lastConnectionTime => _lastConnectionTime;
+
+  /// Set force logout callback
+  void setForceLogoutCallback(ForceLogoutCallback callback) {
+    _onForceLogout = callback;
+  }
+
+  /// Handle force logout
+  void _handleForceLogout(dynamic data) {
+    if (kDebugMode) {
+      print('🚪 Handling force logout...');
+    }
+    if (_onForceLogout != null) {
+      _onForceLogout!(data is Map<String, dynamic> ? data : {});
+    }
+  }
 
   /// Initialize and connect to Socket.IO server
   void connect(String token) {
@@ -101,7 +123,7 @@ class WebSocketClient {
         print('📋 Reason: $reason');
         print('🔄 Will auto-reconnect...');
       }
-      
+
       // Auto-reconnect after short delay if not intentional disconnect
       if (reason != 'io client disconnect' && _authToken != null) {
         Future.delayed(const Duration(seconds: 2), () {
@@ -136,6 +158,14 @@ class WebSocketClient {
       }
     });
 
+    _socket?.on('force_logout', (data) {
+      if (kDebugMode) {
+        print('🚪 Force logout received: $data');
+      }
+      // Handle force logout - this will be processed by the app
+      _handleForceLogout(data);
+    });
+
     _socket?.on('reconnect', (attemptNumber) {
       _isConnected = true;
       _lastConnectionTime = DateTime.now();
@@ -150,7 +180,9 @@ class WebSocketClient {
       _reconnectCount = attemptNumber as int;
       if (kDebugMode) {
         print('🔄 Socket.IO Reconnection attempt #$attemptNumber');
-        print('⏰ Time since last connection: ${_lastConnectionTime != null ? DateTime.now().difference(_lastConnectionTime!).inSeconds : "N/A"}s');
+        print(
+          '⏰ Time since last connection: ${_lastConnectionTime != null ? DateTime.now().difference(_lastConnectionTime!).inSeconds : "N/A"}s',
+        );
       }
     });
 
@@ -166,7 +198,7 @@ class WebSocketClient {
         print('⚠️ Socket.IO Reconnection attempts exhausted');
         print('🔄 Will retry in 5 seconds...');
       }
-      
+
       // Force reconnect after 5 seconds
       Future.delayed(const Duration(seconds: 5), () {
         if (!_isConnected && _authToken != null) {
@@ -193,9 +225,37 @@ class WebSocketClient {
   }
 
   /// Join a frequency
-  void joinFrequency(String frequencyId, {Map<String, dynamic>? userInfo}) {
+  Future<void> joinFrequency(
+    String frequencyId, {
+    Map<String, dynamic>? userInfo,
+  }) async {
+    // Get device info
+    final deviceName = await DeviceUtils.getDeviceInfo();
+    final deviceInfo = await DeviceUtils.getDeviceInfo();
+
+    // Try to get IP address (this will be the client's perspective, backend will use socket IP)
+    String ipAddress = 'Unknown';
+    try {
+      // Note: On mobile, we can't directly get public IP, backend will use socket's IP
+      ipAddress = 'Client-Side-Unknown';
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠️ Could not get IP address: $e');
+      }
+    }
+
+    if (kDebugMode) {
+      print('📱 Joining frequency with device info:');
+      print('   - Device Name: $deviceName');
+      print('   - Device Info: $deviceInfo');
+      print('   - IP Address: $ipAddress (Backend will use socket IP)');
+    }
+
     _socket?.emit('join_frequency', {
       'frequencyId': frequencyId,
+      'deviceName': deviceName,
+      'deviceInfo': deviceInfo,
+      'ipAddress': ipAddress,
       if (userInfo != null) 'userInfo': userInfo,
     });
   }
@@ -556,12 +616,12 @@ class WebSocketClient {
     if (kDebugMode) {
       print('🔄 Manual reconnect requested');
     }
-    
+
     if (_socket != null) {
       _socket?.disconnect();
       _socket?.dispose();
     }
-    
+
     if (_authToken != null) {
       connect(_authToken!);
     }
@@ -593,7 +653,7 @@ class WebSocketClient {
       'transport': _socket?.io.engine?.transport?.name ?? 'none',
       'lastConnectionTime': _lastConnectionTime?.toIso8601String(),
       'reconnectCount': _reconnectCount,
-      'timeSinceLastConnection': _lastConnectionTime != null 
+      'timeSinceLastConnection': _lastConnectionTime != null
           ? DateTime.now().difference(_lastConnectionTime!).inSeconds
           : null,
     };
