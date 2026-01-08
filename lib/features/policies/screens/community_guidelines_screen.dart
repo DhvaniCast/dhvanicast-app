@@ -17,7 +17,10 @@ class CommunityGuidelinesScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Community Guidelines',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF00ff88),
+          ),
         ),
         backgroundColor: const Color(0xFF1a1a1a),
         elevation: 0,
@@ -39,8 +42,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              const SizedBox(height: 20),
+              // Removed duplicate heading from body
               _buildContactCard(),
               const SizedBox(height: 24),
 
@@ -116,56 +118,38 @@ class CommunityGuidelinesScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF00ff88).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFF00ff88).withOpacity(0.3),
-          width: 1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Community Guidelines',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF00ff88),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-              children: [
-                TextSpan(
-                  text: 'Effective Date: ',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextSpan(text: '31 December 2025'),
-              ],
-            ),
+        const SizedBox(height: 12),
+        Text(
+          'Effective Date: 31 December 2025\nJurisdiction: India',
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.white54,
+            height: 1.4,
           ),
-          const SizedBox(height: 4),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-              children: [
-                TextSpan(
-                  text: 'Jurisdiction: ',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextSpan(text: 'India'),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildContactCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF00ff88).withOpacity(0.1),
-        border: Border.all(color: const Color(0xFF00ff88), width: 1.5),
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF00ff88), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,7 +213,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Colors.white,
+        color: Color(0xFF00ff88),
       ),
     );
   }

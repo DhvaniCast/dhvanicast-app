@@ -10,7 +10,10 @@ class ChildSafetyScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Child Safety & CSAE Policy',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF00ff88),
+          ),
         ),
         backgroundColor: const Color(0xFF1a1a1a),
         elevation: 0,
@@ -31,20 +34,18 @@ class ChildSafetyScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
-              _buildTitle('Child Safety & CSAE Policy'),
-              const SizedBox(height: 12),
               _buildMetaInfo(
                 'Effective Date: 31 December 2025\nJurisdiction: India',
               ),
               const SizedBox(height: 20),
-
               _buildContactBox(context),
               const SizedBox(height: 20),
-
               _buildZeroToleranceBox(),
               const SizedBox(height: 30),
 
+              // Start with section 10.1, do not repeat the main heading
               _buildSectionTitle('10.1 Zero-Tolerance Policy'),
               _buildParagraph(
                 'Dhvani Cast maintains an absolute zero-tolerance stance against Child Sexual Abuse and Exploitation (CSAE) in any form. This policy applies to all users, all frequencies (public and private), all communication methods (audio, text, images), and all forms of interaction on the platform.',

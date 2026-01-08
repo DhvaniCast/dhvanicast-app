@@ -10,13 +10,18 @@ import '../../../providers/auth_event.dart';
 import '../../../providers/auth_state.dart';
 import '../../../injection.dart';
 import '../../../shared/services/dialer_service.dart';
+import '../../policies/screens/frequency_usage_policy_screen.dart';
+import '../../policies/screens/platform_operations_policy_screen.dart';
+import '../../policies/screens/transparency_moderation_policy_screen.dart';
+import '../../policies/screens/cookie_policy_screen.dart';
 import '../../policies/screens/privacy_policy_screen.dart';
 import '../../policies/screens/refund_policy_screen.dart';
 import '../../policies/screens/terms_conditions_screen.dart';
 import '../../policies/screens/help_support_screen.dart';
 import '../../policies/screens/child_safety_screen.dart';
 import '../../policies/screens/community_guidelines_screen.dart';
-import '../../policies/screens/platform_policies_screen.dart';
+import '../../policies/screens/payment_policy_screen.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -312,6 +317,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       _buildActionTile(
+                        title: 'Cookie Policy',
+                        icon: Icons.cookie_outlined,
+                        color: Colors.white70,
+                        onTap: _openCookiePolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Frequency Usage Policy',
+                        icon: Icons.waves_outlined,
+                        color: Colors.white70,
+                        onTap: _openFrequencyUsagePolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Platform Operations Policy',
+                        icon: Icons.settings_outlined,
+                        color: Colors.white70,
+                        onTap: _openPlatformOperationsPolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Transparency and Moderation Policy',
+                        icon: Icons.transcribe_outlined,
+                        color: Colors.white70,
+                        onTap: _openTransparencyModerationPolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        title: 'Payment Policy',
+                        icon: Icons.payment_outlined,
+                        color: Colors.white70,
+                        onTap: _openPaymentPolicy,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
                         title: 'Child Safety and CSAE Policy',
                         icon: Icons.shield_outlined,
                         color: Colors.white70,
@@ -332,12 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: _openRefundPolicy,
                       ),
                       const SizedBox(height: 12),
-                      _buildActionTile(
-                        title: 'Platform Policies',
-                        icon: Icons.policy_outlined,
-                        color: Colors.white70,
-                        onTap: _openPlatformPolicies,
-                      ),
+
                       const SizedBox(height: 12),
                       _buildActionTile(
                         title: 'Help & Support',
@@ -943,6 +978,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openCookiePolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CookiePolicyScreen()),
+    );
+  }
+
   void _openRefundPolicy() {
     Navigator.push(
       context,
@@ -978,10 +1020,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _openPlatformPolicies() {
+  void _openFrequencyUsagePolicy() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PlatformPoliciesScreen()),
+      MaterialPageRoute(builder: (context) => FrequencyUsagePolicyScreen()),
+    );
+  }
+
+  void _openTransparencyModerationPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TransparencyModerationPolicyScreen(),
+      ),
+    );
+  }
+
+  void _openPlatformOperationsPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PlatformOperationsPolicyScreen()),
+    );
+  }
+
+  void _openPaymentPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PaymentPolicyScreen()),
     );
   }
 
