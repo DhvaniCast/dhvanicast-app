@@ -106,10 +106,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 'Device type and operating system',
                 'App version and build number',
                 'IP address and network information',
+                'Device name and device identifiers provided by the operating system',
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'This information is used for security, fraud prevention, compatibility, and diagnostics.',
+                'This information is used for security, fraud prevention, compatibility, diagnostics, and to detect unauthorized or suspicious access, including the use of unsupported network configurations.',
               ),
               const SizedBox(height: 16),
 
@@ -188,6 +189,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               _buildSectionTitle('2.6 Data Security Measures'),
+
               _buildParagraph(
                 'Dhvani Cast implements appropriate technical and organizational safeguards to protect personal data, including:',
               ),
@@ -201,6 +203,23 @@ class PrivacyPolicyScreen extends StatelessWidget {
               const SizedBox(height: 8),
               _buildParagraph(
                 'Security practices are reviewed periodically to address evolving risks.',
+              ),
+              const SizedBox(height: 20),
+
+              // 2.6.1 Network Integrity and VPN Restrictions
+              _buildSubsectionTitle(
+                '2.6.1 Network Integrity and VPN Restrictions',
+              ),
+              _buildParagraph(
+                'To maintain platform security, prevent misuse, and ensure compliance with safety and regulatory requirements, Dhvani Cast monitors network integrity indicators such as IP address consistency, device identifiers, and connection characteristics.',
+              ),
+              const SizedBox(height: 8),
+              _buildParagraph(
+                'The use of Virtual Private Networks (VPNs), proxy services, or anonymization tools is not supported on the Dhvani Cast platform. Access attempts detected through VPNs or similar technologies may be restricted, limited, or blocked to protect platform integrity, prevent abuse, and ensure accurate enforcement of safety policies.',
+              ),
+              const SizedBox(height: 8),
+              _buildParagraph(
+                'Users are required to access the platform using a standard, non-anonymized internet connection. Attempts to bypass these restrictions may result in limited functionality or denial of access.',
               ),
               const SizedBox(height: 20),
 
