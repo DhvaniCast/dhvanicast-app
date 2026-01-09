@@ -20,7 +20,7 @@ class _SignupScreenState extends State<SignupScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _stateController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
@@ -33,47 +33,204 @@ class _SignupScreenState extends State<SignupScreen>
   bool _isOtpSent = false;
   bool _isLoading = false;
   int _currentStep = 0;
-  String? _selectedState;
+  String? _selectedCountry;
   bool _acceptedTerms = false;
 
-  // List of Indian states and union territories
-  final List<String> _indianStates = [
-    'Andhra Pradesh',
-    'Arunachal Pradesh',
-    'Assam',
-    'Bihar',
-    'Chhattisgarh',
-    'Goa',
-    'Gujarat',
-    'Haryana',
-    'Himachal Pradesh',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Manipur',
-    'Meghalaya',
-    'Mizoram',
-    'Nagaland',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Sikkim',
-    'Tamil Nadu',
-    'Telangana',
-    'Tripura',
-    'Uttar Pradesh',
-    'Uttarakhand',
-    'West Bengal',
-    'Andaman and Nicobar Islands',
-    'Chandigarh',
-    'Dadra and Nagar Haveli and Daman and Diu',
-    'Delhi',
-    'Jammu and Kashmir',
-    'Ladakh',
-    'Lakshadweep',
-    'Puducherry',
+  // List of countries
+  final List<String> _countries = [
+    'Afghanistan',
+    'Albania',
+    'Algeria',
+    'Andorra',
+    'Angola',
+    'Argentina',
+    'Armenia',
+    'Australia',
+    'Austria',
+    'Azerbaijan',
+    'Bahamas',
+    'Bahrain',
+    'Bangladesh',
+    'Barbados',
+    'Belarus',
+    'Belgium',
+    'Belize',
+    'Benin',
+    'Bhutan',
+    'Bolivia',
+    'Bosnia and Herzegovina',
+    'Botswana',
+    'Brazil',
+    'Brunei',
+    'Bulgaria',
+    'Burkina Faso',
+    'Burundi',
+    'Cambodia',
+    'Cameroon',
+    'Canada',
+    'Cape Verde',
+    'Central African Republic',
+    'Chad',
+    'Chile',
+    'China',
+    'Colombia',
+    'Comoros',
+    'Congo',
+    'Costa Rica',
+    'Croatia',
+    'Cuba',
+    'Cyprus',
+    'Czech Republic',
+    'Denmark',
+    'Djibouti',
+    'Dominica',
+    'Dominican Republic',
+    'East Timor',
+    'Ecuador',
+    'Egypt',
+    'El Salvador',
+    'Equatorial Guinea',
+    'Eritrea',
+    'Estonia',
+    'Ethiopia',
+    'Fiji',
+    'Finland',
+    'France',
+    'Gabon',
+    'Gambia',
+    'Georgia',
+    'Germany',
+    'Ghana',
+    'Greece',
+    'Grenada',
+    'Guatemala',
+    'Guinea',
+    'Guinea-Bissau',
+    'Guyana',
+    'Haiti',
+    'Honduras',
+    'Hungary',
+    'Iceland',
+    'India',
+    'Indonesia',
+    'Iran',
+    'Iraq',
+    'Ireland',
+    'Israel',
+    'Italy',
+    'Ivory Coast',
+    'Jamaica',
+    'Japan',
+    'Jordan',
+    'Kazakhstan',
+    'Kenya',
+    'Kiribati',
+    'Kuwait',
+    'Kyrgyzstan',
+    'Laos',
+    'Latvia',
+    'Lebanon',
+    'Lesotho',
+    'Liberia',
+    'Libya',
+    'Liechtenstein',
+    'Lithuania',
+    'Luxembourg',
+    'Macedonia',
+    'Madagascar',
+    'Malawi',
+    'Malaysia',
+    'Maldives',
+    'Mali',
+    'Malta',
+    'Marshall Islands',
+    'Mauritania',
+    'Mauritius',
+    'Mexico',
+    'Micronesia',
+    'Moldova',
+    'Monaco',
+    'Mongolia',
+    'Montenegro',
+    'Morocco',
+    'Mozambique',
+    'Myanmar',
+    'Namibia',
+    'Nauru',
+    'Nepal',
+    'Netherlands',
+    'New Zealand',
+    'Nicaragua',
+    'Niger',
+    'Nigeria',
+    'North Korea',
+    'Norway',
+    'Oman',
+    'Pakistan',
+    'Palau',
+    'Panama',
+    'Papua New Guinea',
+    'Paraguay',
+    'Peru',
+    'Philippines',
+    'Poland',
+    'Portugal',
+    'Qatar',
+    'Romania',
+    'Russia',
+    'Rwanda',
+    'Saint Kitts and Nevis',
+    'Saint Lucia',
+    'Saint Vincent and the Grenadines',
+    'Samoa',
+    'San Marino',
+    'Sao Tome and Principe',
+    'Saudi Arabia',
+    'Senegal',
+    'Serbia',
+    'Seychelles',
+    'Sierra Leone',
+    'Singapore',
+    'Slovakia',
+    'Slovenia',
+    'Solomon Islands',
+    'Somalia',
+    'South Africa',
+    'South Korea',
+    'South Sudan',
+    'Spain',
+    'Sri Lanka',
+    'Sudan',
+    'Suriname',
+    'Swaziland',
+    'Sweden',
+    'Switzerland',
+    'Syria',
+    'Taiwan',
+    'Tajikistan',
+    'Tanzania',
+    'Thailand',
+    'Togo',
+    'Tonga',
+    'Trinidad and Tobago',
+    'Tunisia',
+    'Turkey',
+    'Turkmenistan',
+    'Tuvalu',
+    'Uganda',
+    'Ukraine',
+    'United Arab Emirates',
+    'United Kingdom',
+    'United States',
+    'Uruguay',
+    'Uzbekistan',
+    'Vanuatu',
+    'Vatican City',
+    'Venezuela',
+    'Vietnam',
+    'Yemen',
+    'Zambia',
+    'Zimbabwe',
   ];
 
   @override
@@ -103,7 +260,7 @@ class _SignupScreenState extends State<SignupScreen>
   void dispose() {
     _animationController.dispose();
     _nameController.dispose();
-    _stateController.dispose();
+    _countryController.dispose();
     _emailController.dispose();
     _ageController.dispose();
     _mobileController.dispose();
@@ -116,8 +273,8 @@ class _SignupScreenState extends State<SignupScreen>
         _ageController.text.trim().isNotEmpty &&
         _mobileController.text.trim().isNotEmpty &&
         _nameController.text.trim().isNotEmpty &&
-        _selectedState != null &&
-        _selectedState!.isNotEmpty) {
+        _selectedCountry != null &&
+        _selectedCountry!.isNotEmpty) {
       // Check if terms are accepted
       if (!_acceptedTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -141,7 +298,7 @@ class _SignupScreenState extends State<SignupScreen>
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           age: age,
-          state: _selectedState!,
+          state: _selectedCountry!,
           mobile: _mobileController.text.trim(),
         ),
       );
@@ -427,8 +584,8 @@ class _SignupScreenState extends State<SignupScreen>
                                   ),
                                   const SizedBox(height: 14),
 
-                                  // State Dropdown Field
-                                  _buildStateDropdown(),
+                                  // Country Dropdown Field
+                                  _buildCountryDropdown(),
                                   const SizedBox(height: 14),
 
                                   // Email Field
@@ -599,8 +756,9 @@ class _SignupScreenState extends State<SignupScreen>
                                               if (_nameController.text
                                                       .trim()
                                                       .isNotEmpty &&
-                                                  _selectedState != null &&
-                                                  _selectedState!.isNotEmpty &&
+                                                  _selectedCountry != null &&
+                                                  _selectedCountry!
+                                                      .isNotEmpty &&
                                                   _emailController.text
                                                       .trim()
                                                       .isNotEmpty &&
@@ -887,16 +1045,13 @@ class _SignupScreenState extends State<SignupScreen>
     );
   }
 
-  Widget _buildStateDropdown() {
+  Widget _buildCountryDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedState,
+      value: _selectedCountry,
       decoration: InputDecoration(
-        labelText: 'State/Region',
+        labelText: 'Country',
         labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: const Icon(
-          Icons.location_on_outlined,
-          color: Color(0xFF00ff88),
-        ),
+        prefixIcon: const Icon(Icons.public_outlined, color: Color(0xFF00ff88)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF555555)),
@@ -913,24 +1068,24 @@ class _SignupScreenState extends State<SignupScreen>
       icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00ff88)),
       isExpanded: true,
       hint: const Text(
-        'Select your state',
+        'Select your country',
         style: TextStyle(color: Colors.white70),
       ),
-      items: _indianStates.map((String state) {
+      items: _countries.map((String country) {
         return DropdownMenuItem<String>(
-          value: state,
-          child: Text(state, style: const TextStyle(color: Colors.white)),
+          value: country,
+          child: Text(country, style: const TextStyle(color: Colors.white)),
         );
       }).toList(),
       onChanged: (String? newValue) {
         setState(() {
-          _selectedState = newValue;
-          _stateController.text = newValue ?? '';
+          _selectedCountry = newValue;
+          _countryController.text = newValue ?? '';
         });
       },
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please select your state';
+          return 'Please select your country';
         }
         return null;
       },

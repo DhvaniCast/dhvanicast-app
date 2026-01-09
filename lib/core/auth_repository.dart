@@ -13,7 +13,7 @@ class AuthService {
   /// [name] - Full name of the user
   /// [email] - Email address
   /// [age] - Age of the user
-  /// [state] - State name
+  /// [state] - Country name (parameter kept as 'state' for compatibility)
   /// [mobile] - Mobile number (required, no OTP sent)
   ///
   /// Returns [ApiResponse<OtpResponse>] with OTP details
@@ -31,7 +31,7 @@ class AuthService {
           'name': name.trim(),
           'email': email.trim(),
           'age': age,
-          'state': state.trim(),
+          'country': state.trim(), // Send as 'country' to backend
           'mobile': mobile.trim(),
         },
         fromJson: (json) => OtpResponse.fromJson(json),
@@ -122,7 +122,7 @@ class AuthService {
   /// Update user profile
   ///
   /// [name] - Optional new name
-  /// [state] - Optional new state
+  /// [state] - Optional new country (parameter kept as 'state' for compatibility)
   /// [avatar] - Optional profile image (base64)
   ///
   /// Requires authentication token
@@ -139,7 +139,7 @@ class AuthService {
         body['name'] = name.trim();
       }
       if (state != null && state.trim().isNotEmpty) {
-        body['state'] = state.trim();
+        body['country'] = state.trim(); // Send as 'country' to backend
       }
       if (avatar != null && avatar.isNotEmpty) {
         body['avatar'] = avatar;

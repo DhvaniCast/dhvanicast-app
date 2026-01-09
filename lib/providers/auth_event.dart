@@ -11,7 +11,8 @@ class AuthRegisterRequested extends AuthEvent {
   final String name;
   final String email;
   final int age;
-  final String state;
+  final String
+  state; // Keep as 'state' for backward compatibility but will send as country
   final String mobile;
 
   AuthRegisterRequested({
@@ -42,10 +43,10 @@ class AuthProfileRequested extends AuthEvent {}
 
 class AuthProfileUpdateRequested extends AuthEvent {
   final String? name;
-  final String? state;
+  final String? country;
   final String? avatar;
 
-  AuthProfileUpdateRequested({this.name, this.state, this.avatar});
+  AuthProfileUpdateRequested({this.name, this.country, this.avatar});
 }
 
 class AuthTemporaryDeleteRequested extends AuthEvent {}

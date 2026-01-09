@@ -348,7 +348,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final response = await _authService.updateProfile(
         name: event.name,
-        state: event.state,
+        state: event.country,
         avatar: event.avatar,
       );
 

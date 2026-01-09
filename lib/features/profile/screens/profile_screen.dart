@@ -61,14 +61,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _loadProfileData(AuthState state) {
     if (state is AuthProfileLoaded) {
       _nameController.text = state.user.name;
-      _stateController.text = state.user.state;
+      _stateController.text = state.user.country;
       _mobileController.text = state.user.mobile ?? '';
       setState(() {
         _currentAvatar = state.user.avatar;
       });
     } else if (state is AuthSuccess) {
       _nameController.text = state.user.name;
-      _stateController.text = state.user.state;
+      _stateController.text = state.user.country;
       _mobileController.text = state.user.mobile ?? '';
       setState(() {
         _currentAvatar = state.user.avatar;
@@ -609,7 +609,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.read<AuthBloc>().add(
       AuthProfileUpdateRequested(
         name: _nameController.text.trim(),
-        state: _stateController.text.trim(),
+        country: _stateController.text.trim(),
         avatar: _avatarBase64, // Send avatar if updated
       ),
     );
