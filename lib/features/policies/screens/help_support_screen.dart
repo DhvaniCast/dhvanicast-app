@@ -84,10 +84,10 @@ class HelpSupportScreen extends StatelessWidget {
               _buildContactCard(
                 context,
                 icon: Icons.report_outlined,
-                title: 'Report Case',
+                title: 'Report CSAE',
                 subtitle: 'Report inappropriate behavior or content',
                 color: Colors.redAccent,
-                onTap: () => _showReportDialog(context, 'Report Case'),
+                onTap: () => _showReportDialog(context, 'Report CSAE'),
               ),
               const SizedBox(height: 32),
 

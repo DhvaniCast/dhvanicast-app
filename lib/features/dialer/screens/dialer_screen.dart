@@ -98,15 +98,16 @@ class _DialerScreenState extends State<DialerScreen>
       }
     }
 
-    if (_dialerService.error != null) {
-      print('❌ Error: ${_dialerService.error}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${_dialerService.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    // Error display commented out
+    // if (_dialerService.error != null) {
+    //   print('❌ Error: ${_dialerService.error}');
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text('Error: ${_dialerService.error}'),
+    //       backgroundColor: Colors.red,
+    //     ),
+    //   );
+    // }
 
     setState(() {});
   }
@@ -123,29 +124,61 @@ class _DialerScreenState extends State<DialerScreen>
   void _setupPeriodicRefresh() {
     print('⏰ Setting up periodic refresh (every 30 seconds)');
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      // Check if widget is still mounted and service is available
+      if (!mounted) {
+        print('⚠️ Widget not mounted, canceling periodic refresh');
+        timer.cancel();
+        return;
+      }
+
       print('🔄 Periodic refresh triggered');
       try {
-        // Run both refreshes in parallel
-        await Future.wait([
-          _dialerService.loadFrequencies(isPublic: true, forceRefresh: true),
-          _dialerService.loadUserGroups(),
-        ]);
-        print('✅ Periodic refresh complete');
+        // Check if service is still valid before using it
+        if (_dialerService.hasListeners) {
+          // Run both refreshes in parallel
+          await Future.wait([
+            _dialerService.loadFrequencies(isPublic: true, forceRefresh: true),
+            _dialerService.loadUserGroups(),
+          ]);
+          print('✅ Periodic refresh complete');
+        } else {
+          print('⚠️ DialerService no longer has listeners, stopping refresh');
+          timer.cancel();
+        }
       } catch (e) {
-        print('⚠️ Periodic refresh error (will retry): $e');
+        print('! Periodic refresh error (will retry): $e');
+        // If error contains "disposed", cancel the timer
+        if (e.toString().contains('disposed')) {
+          print('⚠️ Service disposed, canceling periodic refresh');
+          timer.cancel();
+        }
       }
     });
   }
 
   @override
   void dispose() {
+    print('🗑️ [DIALER-SCREEN] Disposing...');
+
+    // Cancel timer first
     _refreshTimer?.cancel();
-    _dialerService.removeListener(_onServiceUpdate);
+    _refreshTimer = null;
+
+    // Remove listener
+    try {
+      _dialerService.removeListener(_onServiceUpdate);
+    } catch (e) {
+      print('⚠️ Error removing listener: $e');
+    }
+
+    // Dispose controllers
     _pulseController.dispose();
     _dialController.dispose();
     _frequencySelectorController.dispose();
     _quickSelectController.dispose();
+
     super.dispose();
+    print('✅ [DIALER-SCREEN] Disposed');
   }
 
   // Scroll to current frequency in the selector

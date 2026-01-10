@@ -30,11 +30,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthLoginRequested event,
     Emitter<AuthState> emit,
   ) async {
+    print('========== AUTH BLOC: LOGIN REQUESTED ==========');
+    print('Email: ${event.email}');
+
     emit(AuthLoading());
 
     try {
       // Validate email
       if (!_authService.isValidEmail(event.email)) {
+        print('ERROR: Email validation failed');
         emit(
           AuthError(
             message: 'Please enter a valid email address',
@@ -45,9 +49,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
+      print('Calling API to send OTP...');
       final response = await _authService.sendOtpForLogin(email: event.email);
+      print('API Response - Success: ${response.success}');
 
       if (response.success && response.data != null) {
+        print('OTP sent successfully to ${response.data!.email}');
         emit(
           AuthOtpSent(
             email: response.data!.email,
@@ -57,11 +64,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           ),
         );
       } else {
+        print('OTP send failed: ${response.message}');
         emit(
           AuthError(message: response.message, statusCode: response.statusCode),
         );
       }
     } on ApiException catch (e) {
+      print('API Exception: ${e.userFriendlyMessage}');
       emit(
         AuthError(
           message: e.userFriendlyMessage,
@@ -70,6 +79,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
+      print('Unexpected error: $e');
       if (kDebugMode) {
         print('Login error: $e');
       }
@@ -184,11 +194,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthOtpVerifyRequested event,
     Emitter<AuthState> emit,
   ) async {
+    print('========== AUTH BLOC: OTP VERIFY REQUESTED ==========');
+    print('Email: ${event.email}');
+
     emit(AuthLoading());
 
     try {
       // Validate inputs
       if (!_authService.isValidEmail(event.email)) {
+        print('ERROR: Email validation failed');
         emit(
           AuthError(
             message: 'Invalid credentials',
@@ -200,6 +214,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
 
       if (!_authService.isValidOtp(event.otp)) {
+        print('ERROR: OTP validation failed');
         emit(
           AuthError(
             message: 'Invalid credentials',
@@ -210,12 +225,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
+      print('Calling API to verify OTP...');
       final response = await _authService.verifyOtp(
         email: event.email,
         otp: event.otp,
       );
+      print('API Response - Success: ${response.success}');
 
       if (response.success && response.data != null) {
+        print('OTP verified successfully for ${response.data!.user.email}');
         emit(
           AuthSuccess(
             user: response.data!.user,
@@ -224,6 +242,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           ),
         );
       } else {
+        print('OTP verification failed: ${response.message}');
         emit(
           AuthError(
             message: 'Invalid credentials',
@@ -232,6 +251,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
       }
     } on ApiException catch (e) {
+      print('API Exception: ${e.userFriendlyMessage}');
       // Don't auto-logout on 401 - just show error message
       emit(
         AuthError(
@@ -243,6 +263,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (e) {
+      print('Unexpected error: $e');
       if (kDebugMode) {
         print('OTP verification error: $e');
       }

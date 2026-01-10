@@ -72,6 +72,10 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _startOtpTimer() {
+    print('\n⏱️ ========== OTP TIMER STARTED ==========');
+    print('⏰ Starting 60 second countdown');
+    print('🕒 Start Time: ${DateTime.now().toIso8601String()}');
+
     setState(() {
       _otpTimeRemaining = 60; // 60 seconds
       _canResendOtp = false;
@@ -82,7 +86,17 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() {
         if (_otpTimeRemaining > 0) {
           _otpTimeRemaining--;
+          if (_otpTimeRemaining % 10 == 0 || _otpTimeRemaining <= 5) {
+            print('⏱️ Timer: $_otpTimeRemaining seconds remaining');
+          }
         } else {
+          print('\n⚠️ ========== OTP TIMER EXPIRED ==========');
+          print('⚠️ Timer reached 0 - OTP has expired');
+          print('✅ User can now resend OTP');
+          print('🕒 Expiry Time: ${DateTime.now().toIso8601String()}');
+          print('⚠️ IMPORTANT: User document should NOT be deleted!');
+          print('========== TIMER EXPIRED ==========\n');
+
           _canResendOtp = true;
           timer.cancel();
         }
@@ -91,28 +105,50 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _sendOtp() async {
+    print('\n========== SEND OTP INITIATED ==========');
+    print('📧 Email: ${_emailController.text.trim()}');
+    print('🕒 Timestamp: ${DateTime.now().toIso8601String()}');
+
     if (_emailController.text.trim().isNotEmpty) {
+      print('✅ Email validation passed');
       setState(() {
         _isLoading = true;
       });
 
+      print('🚀 Dispatching AuthLoginRequested event to BLoC...');
       // Send OTP via API
       context.read<AuthBloc>().add(
         AuthLoginRequested(email: _emailController.text.trim()),
       );
+      print('========== SEND OTP REQUEST SENT ==========\n');
+    } else {
+      print('❌ ERROR: Email is empty!');
+      print('========== SEND OTP FAILED ==========\n');
     }
   }
 
   void _resendOtp() async {
+    print('\n========== RESEND OTP INITIATED ==========');
+    print('🔄 Resend OTP requested');
+    print('📧 Email: ${_emailController.text.trim()}');
+    print('🕒 Timestamp: ${DateTime.now().toIso8601String()}');
+    print('⏱️ Can Resend: $_canResendOtp');
+    print('⏱️ Time Remaining: $_otpTimeRemaining seconds');
+
     if (_canResendOtp && _emailController.text.trim().isNotEmpty) {
+      print('✅ Resend conditions met');
       setState(() {
         _isLoading = true;
       });
 
+      print('🚀 Dispatching AuthLoginRequested event to BLoC for resend...');
       // Resend OTP via API (using same send-otp endpoint)
       context.read<AuthBloc>().add(
         AuthLoginRequested(email: _emailController.text.trim()),
       );
+
+      print('✅ Resend OTP request sent successfully');
+      print('========== RESEND OTP REQUEST SENT ==========\n');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -121,15 +157,28 @@ class _LoginScreenState extends State<LoginScreen>
           duration: Duration(seconds: 2),
         ),
       );
+    } else {
+      print('❌ ERROR: Cannot resend OTP');
+      print('   - Can Resend: $_canResendOtp');
+      print('   - Email Empty: ${_emailController.text.trim().isEmpty}');
+      print('========== RESEND OTP FAILED ==========\n');
     }
   }
 
   void _submit() async {
+    print('\n========== VERIFY OTP INITIATED ==========');
+    print('✅ Verify OTP button pressed');
+    print('📧 Email: ${_emailController.text.trim()}');
+    print('🔐 OTP: ${_otpController.text.trim()}');
+    print('🕒 Timestamp: ${DateTime.now().toIso8601String()}');
+
     if (_formKey.currentState?.validate() ?? false) {
+      print('✅ Form validation passed');
       setState(() {
         _isLoading = true;
       });
 
+      print('🚀 Dispatching AuthOtpVerifyRequested event to BLoC...');
       // Verify OTP via API
       context.read<AuthBloc>().add(
         AuthOtpVerifyRequested(
@@ -137,6 +186,10 @@ class _LoginScreenState extends State<LoginScreen>
           otp: _otpController.text.trim(),
         ),
       );
+      print('========== VERIFY OTP REQUEST SENT ==========\n');
+    } else {
+      print('❌ ERROR: Form validation failed');
+      print('========== VERIFY OTP FAILED ==========\n');
     }
   }
 

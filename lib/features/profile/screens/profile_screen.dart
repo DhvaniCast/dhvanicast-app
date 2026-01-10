@@ -956,7 +956,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Cancel any background timers/services before logout
               // This prevents API calls after logout
               final dialerService = getIt<DialerService>();
-              dialerService.dispose();
+              // Don't dispose singleton service, just cleanup its resources
+              dialerService.cleanup();
 
               // Call logout API
               context.read<AuthBloc>().add(AuthLogoutRequested());

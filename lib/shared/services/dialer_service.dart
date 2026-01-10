@@ -18,10 +18,18 @@ class DialerService extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   Timer? _connectionCheckTimer;
+  bool _disposed = false;
 
   DialerService() {
     _setupAutomaticSocketListeners();
     _startConnectionHealthCheck();
+  }
+
+  /// Safe notify listeners - only notify if not disposed
+  void _safeNotifyListeners() {
+    if (!_disposed) {
+      notifyListeners();
+    }
   }
 
   /// Start periodic connection health check
@@ -30,6 +38,10 @@ class DialerService extends ChangeNotifier {
     _connectionCheckTimer = Timer.periodic(const Duration(seconds: 30), (
       timer,
     ) {
+      if (_disposed) {
+        timer.cancel();
+        return;
+      }
       if (kDebugMode) {
         print('🏥 [HEALTH-CHECK] Checking socket connection...');
       }
@@ -672,11 +684,13 @@ class DialerService extends ChangeNotifier {
     }
   }
 
-  /// Dispose resources and clean up
-  @override
-  void dispose() {
+  /// Cleanup resources without disposing (for singleton services)
+  void cleanup() {
+    print('🧹 [DIALER-SERVICE] Cleaning up DialerService resources...');
+
     // Cancel health check timer
     _connectionCheckTimer?.cancel();
+    _connectionCheckTimer = null;
 
     // Remove socket listeners
     _socketClient.off('user_joined');
@@ -684,6 +698,17 @@ class DialerService extends ChangeNotifier {
     _socketClient.off('transmission_started');
     _socketClient.off('transmission_stopped');
 
+    print('✅ [DIALER-SERVICE] Cleanup completed');
+  }
+
+  /// Dispose resources and clean up (should not be called for singleton)
+  @override
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+
+    print('🗑️ [DIALER-SERVICE] Disposing DialerService...');
+    cleanup(); // Call cleanup first
     super.dispose();
   }
 }
