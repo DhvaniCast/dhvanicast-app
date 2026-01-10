@@ -44,20 +44,27 @@ class PrivacyPolicyScreen extends StatelessWidget {
             children: [
               _buildContactCard(),
               const SizedBox(height: 24),
-
-              _buildSectionTitle('2.1 Purpose and Scope'),
-              _buildParagraph(
-                'Dhvani Cast respects the privacy of its users and is committed to protecting personal data shared with or collected through the platform. This Privacy Policy explains how Dhvani Cast collects, uses, stores, processes, and discloses personal data when users access or use the Dhvani Cast mobile application and related services.',
+              // ...existing code...
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    final url = Uri.parse('https://dhvanicast.com/');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Visit dhvanicast.com'),
+                ),
               ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'This policy applies to all users and all interactions with the platform, including public and private frequencies, live audio communication, text chat, image sharing, account management, and paid services.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'This Privacy Policy is governed by and compliant with the Digital Personal Data Protection Act, 2023 (India), the Information Technology Act, 2000, and applicable rules and regulations.',
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+            // Remove this extraneous closing bracket and comma
 
               _buildSectionTitle('2.2 Categories of Personal Data Collected'),
               _buildParagraph(

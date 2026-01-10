@@ -44,21 +44,26 @@ class RefundPolicyScreen extends StatelessWidget {
             children: [
               _buildContactCard(),
               const SizedBox(height: 24),
-
-              _buildSectionTitle('9.1 Nature of Digital Services'),
-              _buildParagraph(
-                'Private frequencies offered on Dhvani Cast are time-bound, exclusive digital services. Once activated, these services are immediately consumed by reserving exclusive access to a specific frequency for a defined duration.',
+              // ...existing code...
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    final url = Uri.parse('https://dhvanicast.com/');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Visit dhvanicast.com'),
+                ),
               ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Due to the nature of these services, private frequencies:',
-              ),
-              const SizedBox(height: 8),
-              _buildBulletPoints([
-                'Cannot be reused once activated',
-                'Cannot be transferred to another user',
-                'Cannot be resold or extended after expiry',
-              ]),
+              const SizedBox(height: 16),
               const SizedBox(height: 20),
 
               _buildSectionTitle('9.2 Refund Eligibility Criteria'),

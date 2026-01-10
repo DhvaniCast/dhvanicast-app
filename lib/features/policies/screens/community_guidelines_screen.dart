@@ -45,26 +45,34 @@ class CommunityGuidelinesScreen extends StatelessWidget {
               // Removed duplicate heading from body
               _buildContactCard(),
               const SizedBox(height: 24),
-
-              _buildSectionTitle('3.1 Purpose and Philosophy'),
-              _buildParagraph(
-                'Dhvani Cast is a live, frequency-based communication platform that enables real-time interaction between multiple users through voice, text chat, and image sharing. Because communication occurs live and involves simultaneous participation by many individuals, the quality, safety, and integrity of the platform depend heavily on responsible user behavior.',
+              // ...existing code...
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    final url = Uri.parse('https://dhvanicast.com/');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Visit dhvanicast.com'),
+                ),
               ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'These Community Guidelines are established to define acceptable conduct, prevent harm, protect users from abuse, and ensure that Dhvani Cast remains a safe and inclusive environment for adult users. All users are expected to understand that participation on the platform is a privilege, not a right, and continued access is conditional upon adherence to these guidelines.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('3.2 Standards of Conduct'),
-              _buildParagraph(
-                'Users are required to behave in a manner that is respectful, lawful, and considerate of others at all times. This applies equally to spoken audio, written messages, shared images, and any other form of interaction available on the platform.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Acceptable conduct includes engaging in conversations respectfully, allowing others to express themselves without intimidation, and refraining from language or behavior that could reasonably be perceived as abusive, threatening, or degrading. Users must recognize that real-time communication amplifies the impact of harmful speech and that spoken words carry the same accountability as written content.',
-              ),
-              const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            _buildParagraph(
+              'Users are required to behave in a manner that is respectful, lawful, and considerate of others at all times. This applies equally to spoken audio, written messages, shared images, and any other form of interaction available on the platform.',
+            ),
+            const SizedBox(height: 8),
+            _buildParagraph(
+              'Acceptable conduct includes engaging in conversations respectfully, allowing others to express themselves without intimidation, and refraining from language or behavior that could reasonably be perceived as abusive, threatening, or degrading. Users must recognize that real-time communication amplifies the impact of harmful speech and that spoken words carry the same accountability as written content.',
+            ),
+            const SizedBox(height: 20),
 
               _buildSectionTitle('3.3 Harassment, Abuse, and Hate Speech'),
               _buildParagraph(

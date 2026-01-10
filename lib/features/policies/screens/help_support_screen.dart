@@ -39,27 +39,28 @@ class HelpSupportScreen extends StatelessWidget {
                 'We\'re here to assist you! Choose from the options below to get support.',
               ),
               const SizedBox(height: 32),
-
-              // Contact Options
-              _buildContactCard(
-                context,
-                icon: Icons.email_outlined,
-                title: 'Email Support',
-                subtitle: 'support@dhvanicast.com',
-                color: const Color(0xFF00ff88),
-                onTap: () => _openEmailApp(context),
+              // ...existing code...
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () async {
+                    final url = Uri.parse('https://dhvanicast.com/');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Visit dhvanicast.com'),
+                ),
               ),
               const SizedBox(height: 16),
-
-              _buildContactCard(
-                context,
-                icon: Icons.bug_report_outlined,
-                title: 'Report a Bug',
-                subtitle: 'Help us improve by reporting issues',
-                color: Colors.orangeAccent,
-                onTap: () => _showReportDialog(context, 'Bug Report'),
-              ),
-              const SizedBox(height: 16),
+            // Removed erroneous closing bracket and comma here
+            const SizedBox(height: 16),
 
               _buildContactCard(
                 context,

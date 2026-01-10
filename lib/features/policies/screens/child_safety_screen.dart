@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 class ChildSafetyScreen extends StatelessWidget {
@@ -7,332 +8,500 @@ class ChildSafetyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF18181b),
       appBar: AppBar(
-        title: const Text(
-          'Child Safety & CSAE Policy',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF00ff88),
-          ),
-        ),
-        backgroundColor: const Color(0xFF1a1a1a),
+        backgroundColor: const Color(0xFF18181b),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF00ff88)),
           onPressed: () => Navigator.pop(context),
         ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1a1a1a), Color(0xFF2a2a2a)],
+        title: const Text(
+          'Child Safety & CSAE Reporting',
+          style: TextStyle(
+            color: Color(0xFF00ff88),
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-              _buildMetaInfo(
-                'Effective Date: 31 December 2025\nJurisdiction: India',
-              ),
-              const SizedBox(height: 20),
-              _buildContactBox(context),
-              const SizedBox(height: 20),
-              _buildZeroToleranceBox(),
-              const SizedBox(height: 30),
-
-              // Start with section 10.1, do not repeat the main heading
-              _buildSectionTitle('10.1 Zero-Tolerance Policy'),
-              _buildParagraph(
-                'Dhvani Cast maintains an absolute zero-tolerance stance against Child Sexual Abuse and Exploitation (CSAE) in any form. This policy applies to all users, all frequencies (public and private), all communication methods (audio, text, images), and all forms of interaction on the platform.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'The platform prohibits the creation, distribution, solicitation, or possession of any content that sexualizes, exploits, or endangers minors. This includes visual, textual, audio, or implied content depicting or facilitating child abuse or exploitation.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.2 Definitions and Scope'),
-              _buildParagraph('For the purposes of this policy:'),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                '• "Minor" or "Child" refers to any individual under the age of 18 years.\n\n'
-                '• "CSAE" includes child sexual abuse material (CSAM), grooming, solicitation, sextortion, trafficking-related communication, and any conduct or content that sexualizes or endangers minors.\n\n'
-                '• "Content" includes images, text messages, audio communication, user profiles, and any other data transmitted or stored on the platform.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.3 Platform Age Restrictions'),
-              _buildParagraph(
-                'Dhvani Cast is strictly an 18+ platform. Use of the platform by individuals under 18 years of age is expressly prohibited and constitutes a violation of the Terms of Use.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'While Dhvani Cast enforces this restriction through account registration controls, the platform acknowledges that technical enforcement alone is not sufficient to prevent all unauthorized access by minors. Therefore, the platform also maintains detection, monitoring, and reporting mechanisms to identify and respond to any presence of minors or CSAE-related activity.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.4 Detection and Monitoring Technologies'),
-              _buildSubsectionTitle('10.4.1 Image Scanning'),
-              _buildParagraph(
-                'All images uploaded or shared on Dhvani Cast are scanned using automated CSAE detection systems. These systems employ machine learning models trained to identify known and unknown CSAE content, including sexually explicit depictions of minors, grooming-related imagery, and related violations.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Detection systems operate in real time and apply equally to all frequencies, including private paid frequencies. Detection does not require human review of content unless a positive match or suspicious pattern is identified.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.4.2 Text and Metadata Analysis'),
-              _buildParagraph(
-                'Dhvani Cast uses automated text analysis and pattern recognition to detect language, phrases, or behavioral indicators commonly associated with grooming, solicitation, sextortion, or CSAE-related communication.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Metadata associated with shared content, including file properties, timestamps, and user interaction patterns, may also be analyzed to identify risks or violations.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.4.3 Behavioral Monitoring'),
-              _buildParagraph(
-                'The platform monitors for behavioral patterns that may indicate CSAE-related risk, including:\n\n'
-                '• Repeated attempts to share flagged or suspicious content\n'
-                '• Creation of multiple accounts following enforcement action\n'
-                '• Communication patterns consistent with grooming or solicitation\n'
-                '• Coordination with known offenders or flagged accounts',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.4.4 Hash-Based Detection'),
-              _buildParagraph(
-                'Dhvani Cast uses industry-standard hash-matching technology to compare uploaded images against databases of known CSAE content maintained by organizations such as the National Center for Missing & Exploited Children (NCMEC) and the Internet Watch Foundation (IWF).',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Hash-based detection enables rapid identification of previously identified illegal content without requiring manual review or re-exposure to harmful material.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.5 Reporting and Account Actions'),
-              _buildSubsectionTitle('10.5.1 Immediate Removal'),
-              _buildParagraph(
-                'Any content identified as violating this policy is immediately removed from the platform. Removal occurs automatically upon detection or following human review and does not require user notification or consent.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle(
-                '10.5.2 Account Suspension and Termination',
-              ),
-              _buildParagraph(
-                'Accounts associated with CSAE violations are subject to:\n\n'
-                '• Immediate suspension pending investigation\n'
-                '• Permanent termination without prior warning\n'
-                '• Restriction from creating new accounts\n'
-                '• Reporting to law enforcement and relevant authorities',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Terminated accounts are not eligible for appeal, reinstatement, or refund of any kind.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.5.3 Device and IP Restrictions'),
-              _buildParagraph(
-                'Dhvani Cast may implement device-level or IP-level restrictions to prevent repeat violations by the same individual using different accounts. These restrictions are applied based on technical identifiers and behavioral fingerprints associated with prior violations.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.6 User Reporting Mechanisms'),
-              _buildSubsectionTitle('10.6.1 In-App Reporting'),
-              _buildParagraph(
-                'Dhvani Cast provides an in-app reporting tool that allows users to report suspected CSAE content, grooming behavior, or any activity that may endanger minors. Reports are reviewed with the highest priority.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.6.2 Dedicated CSAE Reporting Email'),
-              _buildParagraph(
-                'Users may also report CSAE-related concerns directly via email to:',
-              ),
-              const SizedBox(height: 8),
-              _buildHighlightedEmail('csae@dhvanicast.com'),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'This inbox is monitored continuously and is designated exclusively for child safety matters.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.6.3 Anonymity and Confidentiality'),
-              _buildParagraph(
-                'Users may report concerns anonymously. Dhvani Cast does not retaliate against users who submit reports in good faith and takes steps to protect the identity of reporters where legally permissible.',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.6.4 Response Timelines'),
-              _buildParagraph(
-                'CSAE-related reports are prioritized as follows:\n\n'
-                '• Critical threats involving imminent harm or active abuse: Immediate response and escalation\n'
-                '• Confirmed CSAE content: Removal and reporting within 24 hours\n'
-                '• Suspected violations requiring further review: Investigation within 48 hours',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.7 Cooperation with Authorities'),
-              _buildParagraph(
-                'Dhvani Cast cooperates fully with law enforcement agencies, child protection organizations, and regulatory authorities to combat CSAE. This cooperation includes, but is not limited to:',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                '• Reporting verified or suspected CSAE content to the National Center for Missing & Exploited Children (NCMEC) via CyberTipline, as required under applicable law\n'
-                '• Providing account information, metadata, and evidence to law enforcement upon lawful request\n'
-                '• Participating in coordinated investigations and threat intelligence sharing\n'
-                '• Implementing technical measures requested by authorities to prevent further harm',
-              ),
-              const SizedBox(height: 12),
-              _buildParagraph(
-                'In addition to reporting to Indian law enforcement authorities, Dhvani Cast will report all confirmed instances of Child Sexual Abuse Material (CSAM) to the National Center for Missing & Exploited Children (NCMEC), as required under international child protection standards and Google Play Developer Program Policies.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Reports submitted to NCMEC may include:\n'
-                '• User identifiers\n'
-                '• Content identifiers\n'
-                '• IP addresses\n'
-                '• Timestamps\n'
-                '• Relevant metadata required for investigation',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Dhvani Cast cooperates fully with NCMEC, Google, and law enforcement agencies to support the identification, investigation, and prosecution of CSAE offenses.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'All reports submitted to NCMEC include:\n'
-                '• Description of the violation\n'
-                '• Hash values of flagged images (where applicable)\n'
-                '• Account identifiers and metadata\n'
-                '• Timestamps and context of detection\n'
-                '• Any additional information necessary for investigation',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Dhvani Cast may also disclose information to authorities without user consent where required by law or where disclosure is necessary to prevent imminent harm to a child.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.8 Compliance and Policy Alignment'),
-              _buildSubsectionTitle('10.8.1 Legal and Regulatory Compliance'),
-              _buildParagraph(
-                'This policy is designed to comply with applicable laws and regulations, including:\n\n'
-                '• The Information Technology Act, 2000 (India)\n'
-                '• The Protection of Children from Sexual Offences (POCSO) Act, 2012 (India)\n'
-                '• International standards for online child safety\n'
-                '• Google Play and Apple App Store child safety requirements',
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubsectionTitle('10.8.2 Google Play Coordination'),
-              _buildParagraph(
-                'As part of compliance with Google Play\'s child safety policies, Dhvani Cast:\n\n'
-                '• Promptly responds to takedown requests related to CSAE content\n'
-                '• Cooperates with Google\'s Trust & Safety team during investigations\n'
-                '• Implements recommended technical and policy enhancements\n'
-                '• Maintains transparency in reporting and enforcement practices',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.9 Training and Internal Controls'),
-              _buildParagraph(
-                'Dhvani Cast maintains internal policies and training protocols to ensure that employees, moderators, and contractors involved in content review or platform safety are:\n\n'
-                '• Trained to recognize CSAE content and grooming behavior\n'
-                '• Equipped with appropriate psychological support and wellness resources\n'
-                '• Subject to strict confidentiality and data protection requirements\n'
-                '• Authorized to escalate concerns immediately to leadership and legal teams',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Access to flagged content, user data, and investigation materials is restricted to authorized personnel only and is logged for audit purposes.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle('10.10 Private Frequency Enforcement'),
-              _buildParagraph(
-                'Private frequencies, paid rooms, or password-protected communication spaces are NOT exempt from CSAE detection, moderation, reporting, or enforcement.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Any CSAE-related activity detected in private frequencies will be treated with the same zero-tolerance enforcement as public spaces, including immediate removal, account termination, and mandatory reporting to authorities.',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Users who purchase private frequencies are reminded that privacy does not extend to illegal activity and that Dhvani Cast prioritizes child safety above all other considerations.',
-              ),
-              const SizedBox(height: 20),
-
-              _buildSectionTitle(
-                '10.11 User Responsibilities and Community Role',
-              ),
-              _buildParagraph(
-                'All users share responsibility for maintaining a safe environment. Users are encouraged to:\n\n'
-                '• Report any suspected CSAE content or behavior immediately\n'
-                '• Refrain from engaging with or sharing suspicious content\n'
-                '• Educate themselves on the signs of grooming and exploitation\n'
-                '• Understand that participation on the platform requires adherence to the highest standards of conduct',
-              ),
-              const SizedBox(height: 8),
-              _buildParagraph(
-                'Failure to report known violations or attempts to obstruct enforcement actions may result in account suspension or termination.',
-              ),
-              const SizedBox(height: 30),
-
-              Center(
-                child: GestureDetector(
-                  onTap: () => _launchWebsite(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Back to Home link (styled as a button)
+            Row(
+              children: [
+                Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.primary, size: 20),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Text(
+                    'Back to Home',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00ff88).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFF00ff88),
-                        width: 1.5,
-                      ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Icon(Icons.shield, color: Theme.of(context).colorScheme.primary, size: 40),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Child Safety & CSAE Reporting',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Zero Tolerance Notice
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.red.shade900.withOpacity(0.2),
+                border: Border.all(color: Colors.red.shade500, width: 1.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.red.shade500, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Icon(
-                          Icons.open_in_new,
-                          color: Color(0xFF00ff88),
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
                         Text(
-                          'View Complete Policy',
+                          'ZERO TOLERANCE NOTICE',
                           style: TextStyle(
-                            color: Color(0xFF00ff88),
+                            color: Colors.red,
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 18,
                           ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Dhvani Cast maintains a zero-tolerance policy toward Child Sexual Abuse and Exploitation. Any violation results in permanent removal and reporting to authorities, regardless of user intent or account status.',
+                          style: TextStyle(color: Colors.white70, fontSize: 15),
                         ),
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 30),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+            // Contact Emails
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Official Contact Emails:',
+                    style: TextStyle(
+                      color: Color(0xFF00ff88),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.mail, color: Theme.of(context).colorScheme.primary, size: 18),
+                      const SizedBox(width: 8),
+                      const Text('Child Safety & CSAE Reporting:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => launchUrl(Uri.parse('mailto:csae@dhvanicast.com')),
+                        child: Text('csae@dhvanicast.com', style: TextStyle(color: Theme.of(context).colorScheme.primary, decoration: TextDecoration.underline)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.mail, color: Theme.of(context).colorScheme.primary, size: 18),
+                      const SizedBox(width: 8),
+                      const Text('General Support & Enquiries:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => launchUrl(Uri.parse('mailto:support@dhvanicast.com')),
+                        child: Text('support@dhvanicast.com', style: TextStyle(color: Theme.of(context).colorScheme.primary, decoration: TextDecoration.underline)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+            // Policy Content
+            ..._policySections(context),
+            const SizedBox(height: 32),
+            // Effective Date
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Effective Date', style: TextStyle(color: Color(0xFF00ff88), fontWeight: FontWeight.bold, fontSize: 18)),
+                  SizedBox(height: 6),
+                  Text('31 December 2025', style: TextStyle(color: Colors.white70)),
+                  SizedBox(height: 4),
+                  Text('Jurisdiction: India', style: TextStyle(color: Colors.white54)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Center(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00ff88),
+                  foregroundColor: Colors.black,
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                onPressed: () async {
+                  final url = Uri.parse('https://dhvanicast.com/');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Visit dhvanicast.com'),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );
   }
+
+  static List<Widget> _policySections(BuildContext context) {
+    TextStyle heading = const TextStyle(color: Color(0xFF00ff88), fontWeight: FontWeight.bold, fontSize: 20);
+    TextStyle subheading = const TextStyle(color: Color(0xFF00ff88), fontWeight: FontWeight.w600, fontSize: 16);
+    TextStyle body = const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6);
+    TextStyle bullet = const TextStyle(color: Colors.white70, fontSize: 15);
+    TextStyle red = const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15);
+    return [
+      // 1. Commitment to Child Safety
+      Text('1. Commitment to Child Safety', style: heading),
+      const SizedBox(height: 8),
+      Text('Dhvani Cast is committed to maintaining a safe digital environment and enforcing zero tolerance toward Child Sexual Abuse and Exploitation (CSAE).', style: body),
+      const SizedBox(height: 8),
+      Text('Although Dhvani Cast is a strictly 18+ platform, the company acknowledges its responsibility to prevent, detect, report, and remove any form of child sexual abuse material or grooming behavior that may appear on the platform, intentionally or unintentionally.', style: body),
+      const SizedBox(height: 8),
+      Text('Any CSAE-related content or behavior is treated as a serious criminal matter and handled with the highest priority.', style: body),
+      const SizedBox(height: 24),
+      // 2. Applicability of This Policy
+      Text('2. Applicability of This Policy', style: heading),
+      const SizedBox(height: 8),
+      Text('This Child Safety & CSAE Policy applies to:', style: body),
+      const SizedBox(height: 6),
+      _bulletedList([
+        'All users of Dhvani Cast',
+        'All communication channels, including:',
+        _bulletedList([
+          'Live audio conversations',
+          'Text chat',
+          'Image sharing',
+          'User profiles',
+          'Private and public frequencies',
+        ], indent: 24),
+        'All reports submitted via:',
+        _bulletedList([
+          'In-app reporting tools',
+          'Email communication',
+          'Third-party notifications (including Google Play)',
+        ], indent: 24),
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('This policy applies regardless of user age claims.', style: body),
+      const SizedBox(height: 24),
+      // 3. Strict Prohibition of CSAE Content
+      Text('3. Strict Prohibition of CSAE Content', style: heading),
+      const SizedBox(height: 8),
+      Text('Dhvani Cast explicitly and permanently prohibits any form of Child Sexual Abuse or Exploitation, including but not limited to:', style: body),
+      const SizedBox(height: 6),
+      Text('3.1 Prohibited Content', style: subheading),
+      _bulletedList([
+        'Any sexual content involving a minor (under 18)',
+        'Child Sexual Abuse Material (CSAM) in any format',
+        'Nude or sexually suggestive images of minors',
+        'Audio conversations describing sexual acts involving minors',
+        'Requests, offers, or encouragement to share CSAM',
+        'Links, references, or coded language used to distribute CSAM',
+        'Grooming behavior, including attempts to build trust with a minor for sexual purposes',
+        'Role-play, fantasy, or AI-generated content involving minors in a sexual context',
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('There are no exceptions, including fictional, artistic, or "joke" content.', style: red),
+      const SizedBox(height: 24),
+      // 4. Detection, Monitoring & Prevention Measures
+      Text('4. Detection, Monitoring & Prevention Measures', style: heading),
+      const SizedBox(height: 8),
+      Text('Dhvani Cast uses a multi-layered safety approach to detect and prevent CSAE:', style: body),
+      const SizedBox(height: 6),
+      Text('4.1 Automated Detection', style: subheading),
+      _bulletedList([
+        'Automated scanning of text chats and shared images',
+        'Pattern-based detection of grooming language',
+        'Behavioral monitoring for repeated suspicious activity',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('4.2 Human Review', style: subheading),
+      _bulletedList([
+        'All CSAE reports are reviewed by trained moderators',
+        'High-risk content is escalated immediately',
+        'Content is reviewed regardless of whether it occurs in a public or private frequency',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('4.3 Platform Design Safeguards', style: subheading),
+      _bulletedList([
+        'No public discovery of private chats',
+        'Limited image-sharing permissions',
+        'Controlled frequency access',
+        'Account-level enforcement tools',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('4.4 Hash-Based Detection', style: subheading),
+      Text('Where technically feasible, Dhvani Cast uses industry-standard hash-based detection techniques to identify known Child Sexual Abuse Material (CSAM) across images and shared media.', style: body),
+      const SizedBox(height: 4),
+      Text('This enables rapid identification and removal of previously reported CSAM without requiring human viewing of illegal material.', style: body),
+      const SizedBox(height: 24),
+      // 5. In-App Reporting Mechanism
+      Text('5. In-App Reporting Mechanism', style: heading),
+      const SizedBox(height: 8),
+      Text('Dhvani Cast provides a clear and accessible in-app mechanism for users to report CSAE concerns.', style: body),
+      const SizedBox(height: 6),
+      Text('5.1 How Users Can Report', style: subheading),
+      Text('Users can report suspected CSAE by:', style: body),
+      _bulletedList([
+        'Navigating to Settings → Safety → Report CSAE',
+        'Reporting a specific user, chat message, image, or frequency',
+        'Submitting a report via email to csae@dhvanicast.com',
+      ], indent: 12),
+      const SizedBox(height: 4),
+      Text('The reporting process is:', style: body),
+      _bulletedList([
+        'Simple',
+        'Confidential',
+        'Available at all times',
+      ], indent: 12),
+      const SizedBox(height: 24),
+      // 6. Response & Enforcement Procedure
+      Text('6. Response & Enforcement Procedure', style: heading),
+      const SizedBox(height: 8),
+      Text('When Dhvani Cast becomes aware of potential CSAE content (through user reports, automated systems, or third-party notifications), the following actions are taken:', style: body),
+      const SizedBox(height: 6),
+      Text('6.1 Immediate Actions', style: subheading),
+      _bulletedList([
+        'Content is restricted or removed immediately',
+        'Associated accounts are temporarily suspended',
+        'Access to affected frequencies may be frozen',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('6.2 Investigation', style: subheading),
+      _bulletedList([
+        'Evidence is preserved securely',
+        'Internal safety team conducts expedited review',
+        'False positives are minimized without delaying action',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('6.3 Enforcement', style: subheading),
+      Text('If CSAE is confirmed:', style: body),
+      _bulletedList([
+        'Permanent account termination',
+        'Device and account-level blocking',
+        'Removal of all related content',
+        'Zero possibility of reinstatement',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('6.4 Response Timelines', style: subheading),
+      Text('Dhvani Cast follows strict response timelines for CSAE content:', style: body),
+      _bulletedList([
+        'Immediate automated restriction upon detection',
+        'Human moderator review within 24 hours',
+        'Permanent enforcement and reporting within 24–48 hours of confirmation',
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('No CSAE-related content is allowed to remain accessible once flagged.', style: red),
+      const SizedBox(height: 24),
+      // 7. Reporting to Authorities & Legal Compliance
+      Text('7. Reporting to Authorities & Legal Compliance', style: heading),
+      const SizedBox(height: 8),
+      Text('Dhvani Cast complies with all applicable child safety laws and regulations, including:', style: body),
+      _bulletedList([
+        'Information Technology Act, 2000',
+        'POCSO Act, 2012 (India)',
+        'IT Rules, 2021',
+        'Digital Personal Data Protection Act, 2023',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('7.1 Law Enforcement Reporting', style: subheading),
+      Text('Confirmed CSAE cases are reported to:', style: body),
+      _bulletedList([
+        'Relevant Indian law enforcement agencies',
+        'Cybercrime units',
+        'Other legally mandated authorities',
+      ], indent: 12),
+      const SizedBox(height: 4),
+      Text('Where applicable, Dhvani Cast cooperates with:', style: body),
+      _bulletedList([
+        'Government agencies',
+        'Platform partners',
+        'Regulatory bodies',
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('In addition to reporting to Indian law enforcement authorities, Dhvani Cast will report all confirmed instances of Child Sexual Abuse Material (CSAM) to the National Center for Missing & Exploited Children (NCMEC), as required under international child protection standards and Google Play Developer Program Policies.', style: body),
+      const SizedBox(height: 4),
+      Text('Reports submitted to NCMEC may include:', style: body),
+      _bulletedList([
+        'User identifiers',
+        'Content identifiers',
+        'IP addresses',
+        'Timestamps',
+        'Relevant metadata required for investigation',
+      ], indent: 12),
+      const SizedBox(height: 4),
+      Text('Dhvani Cast cooperates fully with NCMEC, Google, and law enforcement agencies to support the identification, investigation, and prosecution of CSAE offenses.', style: body),
+      const SizedBox(height: 24),
+      // 8. Child Safety Point of Contact
+      Text('8. Child Safety Point of Contact', style: heading),
+      const SizedBox(height: 8),
+      Text('Dhvani Cast has designated a Child Safety Point of Contact to receive and act on CSAE notifications, including those from Google Play.', style: body),
+      Text('8.1 Designated Contact', style: subheading),
+      Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.10),
+          border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(Icons.mail, color: Theme.of(context).colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+            const Text('Email:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => launchUrl(Uri.parse('mailto:csae@dhvanicast.com')),
+              child: Text('csae@dhvanicast.com', style: TextStyle(color: Theme.of(context).colorScheme.primary, decoration: TextDecoration.underline)),
+            ),
+          ],
+        ),
+      ),
+      Text('This contact:', style: body),
+      _bulletedList([
+        'Receives CSAE alerts and reports',
+        'Is authorized to take enforcement action',
+        'Coordinates with law enforcement',
+        'Responds to Google Play inquiries regarding CSAE compliance',
+      ], indent: 12),
+      const SizedBox(height: 6),
+      Text('8.2 Google Play Coordination', style: subheading),
+      Text('The designated Child Safety Point of Contact is authorized to respond to and act upon CSAE notifications received from Google Play, including emergency takedown requests, compliance inquiries, and policy audits.', style: body),
+      const SizedBox(height: 24),
+      // 9. User Responsibilities
+      Text('9. User Responsibilities', style: heading),
+      const SizedBox(height: 8),
+      Text('All users are required to:', style: body),
+      _bulletedList([
+        'Immediately report suspected CSAE',
+        'Not download, forward, screenshot, or redistribute CSAE content',
+        'Avoid engaging with suspected offenders',
+        'Cooperate with safety investigations when requested',
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('Failure to report or attempts to conceal CSAE content may result in account termination.', style: red),
+      const SizedBox(height: 24),
+      // 10. Confidentiality & Victim Protection
+      Text('10. Confidentiality & Victim Protection', style: heading),
+      const SizedBox(height: 8),
+      Text('All CSAE reports are handled with:', style: body),
+      _bulletedList([
+        'Strict confidentiality',
+        'Limited internal access',
+        'Secure data handling',
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.red.shade900.withOpacity(0.2),
+            border: Border.all(color: Colors.red.shade500, width: 1.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('Important Notice:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('Private frequencies, paid rooms, or password-protected communication spaces are NOT exempt from CSAE detection, moderation, reporting, or enforcement.', style: TextStyle(color: Colors.white70)),
+              SizedBox(height: 4),
+              Text('Any CSAE-related activity detected in private frequencies will be treated with the same zero-tolerance enforcement as public spaces, including immediate removal, account termination, and mandatory reporting to authorities.', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+        'Sensitivity toward potential victims',
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('User identity is protected to the maximum extent permitted by law.', style: body),
+      const SizedBox(height: 24),
+      // 11. Policy Review & Updates
+      Text('11. Policy Review & Updates', style: heading),
+      const SizedBox(height: 8),
+      Text('This Child Safety & CSAE Policy is:', style: body),
+      _bulletedList([
+        'Reviewed regularly',
+        'Updated to reflect legal changes',
+        'Published publicly and accessible to users',
+      ], indent: 12),
+      const SizedBox(height: 8),
+      Text('Continued use of Dhvani Cast constitutes acceptance of this policy.', style: body),
+    ];
+  }
+
+  static Widget _bulletedList(List items, {double indent = 0}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items.map<Widget>((item) {
+        if (item is Widget) return Padding(padding: EdgeInsets.only(left: indent), child: item);
+        return Padding(
+          padding: EdgeInsets.only(left: indent, bottom: 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('• ', style: TextStyle(color: Colors.white70, fontSize: 15)),
+              Expanded(child: Text(item.toString(), style: const TextStyle(color: Colors.white70, fontSize: 15))),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
 
   Widget _buildTitle(String text) {
     return Text(
@@ -490,10 +659,9 @@ class ChildSafetyScreen extends StatelessWidget {
     );
   }
 
-  void _launchWebsite() async {
-    final url = Uri.parse('https://dhvanicast.com/');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
+void _launchWebsite() async {
+  final url = Uri.parse('https://dhvanicast.com/');
+  if (await canLaunchUrl(url)) {
+    await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 }
