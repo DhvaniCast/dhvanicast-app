@@ -400,14 +400,20 @@ class _LoginScreenState extends State<LoginScreen>
                                   TextFormField(
                                     controller: _emailController,
                                     keyboardType: TextInputType.emailAddress,
+                                    enabled:
+                                        !_isOtpSent, // Disable email field after OTP is sent
                                     decoration: InputDecoration(
                                       labelText: 'Email Address',
-                                      labelStyle: const TextStyle(
-                                        color: Colors.white70,
+                                      labelStyle: TextStyle(
+                                        color: _isOtpSent
+                                            ? Colors.white38
+                                            : Colors.white70,
                                       ),
-                                      prefixIcon: const Icon(
+                                      prefixIcon: Icon(
                                         Icons.email,
-                                        color: Color(0xFF00ff88),
+                                        color: _isOtpSent
+                                            ? Colors.white38
+                                            : const Color(0xFF00ff88),
                                       ),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -422,8 +428,16 @@ class _LoginScreenState extends State<LoginScreen>
                                           width: 2,
                                         ),
                                       ),
+                                      disabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF555555),
+                                        ),
+                                      ),
                                       filled: true,
-                                      fillColor: const Color(0xFF1a1a1a),
+                                      fillColor: _isOtpSent
+                                          ? const Color(0xFF151515)
+                                          : const Color(0xFF1a1a1a),
                                     ),
                                     validator: (v) {
                                       if (v == null || v.trim().isEmpty)
@@ -434,7 +448,11 @@ class _LoginScreenState extends State<LoginScreen>
                                         return 'Enter valid email';
                                       return null;
                                     },
-                                    style: const TextStyle(color: Colors.white),
+                                    style: TextStyle(
+                                      color: _isOtpSent
+                                          ? Colors.white54
+                                          : Colors.white,
+                                    ),
                                   ),
                                   const SizedBox(height: 20),
 
