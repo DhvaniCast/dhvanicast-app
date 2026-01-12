@@ -46,30 +46,11 @@ class TermsConditionsScreen extends StatelessWidget {
               // Contact Emails Card
               _buildContactCard(),
               const SizedBox(height: 24),
-              // ...existing code...
-              const SizedBox(height: 32),
-              Center(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00ff88),
-                    foregroundColor: Colors.black,
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Visit dhvanicast.com'),
-                ),
+
+              const SizedBox(height: 8),
+              _buildParagraph(
+                'By accessing, registering for, or using Dhvani Cast in any manner, you acknowledge that you have read, understood, and agreed to be legally bound by these Terms. If you do not agree with any part of these Terms, you must immediately discontinue use of the Service.',
               ),
-              const SizedBox(height: 16),
-            const SizedBox(height: 8),
-            _buildParagraph(
-              'By accessing, registering for, or using Dhvani Cast in any manner, you acknowledge that you have read, understood, and agreed to be legally bound by these Terms. If you do not agree with any part of these Terms, you must immediately discontinue use of the Service.',
-            ),
               const SizedBox(height: 8),
               _buildParagraph(
                 'These Terms constitute a legally binding agreement between you and the operator of Dhvani Cast.',

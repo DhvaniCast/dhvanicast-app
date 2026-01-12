@@ -51,7 +51,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
                     textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/');
+                    final url = Uri.parse('https://dhvanicast.com/transparency-and-moderation-policy');
                     if (await canLaunchUrl(url)) {
                       await launchUrl(url, mode: LaunchMode.externalApplication);
                     }

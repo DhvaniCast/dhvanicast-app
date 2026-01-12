@@ -182,7 +182,7 @@ class ChildSafetyScreen extends StatelessWidget {
                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 onPressed: () async {
-                  final url = Uri.parse('https://dhvanicast.com/');
+                  final url = Uri.parse('https://dhvanicast.com/child-safety');
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
                   }
@@ -298,7 +298,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('5.1 How Users Can Report', style: subheading),
       Text('Users can report suspected CSAE by:', style: body),
       _bulletedList([
-        'Navigating to Settings → Safety → Report CSAE',
+        'Navigating to Settings → help& support → Report CSAE',
         'Reporting a specific user, chat message, image, or frequency',
         'Submitting a report via email to csae@dhvanicast.com',
       ], indent: 12),
@@ -660,7 +660,7 @@ class ChildSafetyScreen extends StatelessWidget {
   }
 
 void _launchWebsite() async {
-  final url = Uri.parse('https://dhvanicast.com/');
+  final url = Uri.parse('https://dhvanicast.com/child-safety');
   if (await canLaunchUrl(url)) {
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
