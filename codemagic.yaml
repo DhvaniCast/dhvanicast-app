@@ -8,11 +8,11 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.yourcompany.dhvanicast
+        bundle_identifier: com.example.harborleafRadioApp
       vars:
         XCODE_WORKSPACE: "ios/Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
-        BUNDLE_ID: "com.yourcompany.dhvanicast"
+        BUNDLE_ID: "com.example.harborleafRadioApp"
         APP_STORE_APPLE_ID: 1234567890
       flutter: stable
       xcode: latest
@@ -46,7 +46,7 @@ workflows:
           failure: false
       app_store_connect:
         auth: integration
-        
+
         # Configuration related to TestFlight (optional)
         # Note: This action is performed during post-processing.
         submit_to_testflight: true
