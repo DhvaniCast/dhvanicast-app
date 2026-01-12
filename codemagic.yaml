@@ -8,11 +8,11 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.example.harborleafRadioApp
+        bundle_identifier: com.dhvanicast.radioapp
       vars:
         XCODE_WORKSPACE: "ios/Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
-        BUNDLE_ID: "com.example.harborleafRadioApp"
+        BUNDLE_ID: "com.dhvanicast.radioapp
         APP_STORE_APPLE_ID: 1234567890
       flutter: stable
       xcode: latest

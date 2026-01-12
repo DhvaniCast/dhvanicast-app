@@ -19,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.harborleaf.radio"
+    namespace = "com.dhvanicast.radio"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -34,7 +34,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.harborleaf.radio"
+        applicationId = "com.dhvanicast.radio"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = 5
