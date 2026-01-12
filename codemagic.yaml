@@ -12,7 +12,7 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
-        BUNDLE_ID: "com.dhvanicast.radioapp
+        BUNDLE_ID: "com.dhvanicast.radioapp"
         APP_STORE_APPLE_ID: 1234567890
       flutter: stable
       xcode: latest
