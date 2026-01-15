@@ -865,16 +865,14 @@ class _SignupScreenState extends State<SignupScreen>
                                     decoration: BoxDecoration(
                                       gradient: const LinearGradient(
                                         colors: [
-                                          Color(0xFF48BB78),
-                                          Color(0xFF38A169),
+                                          Color.fromARGB(255, 103, 223, 87),
+                                          Color.fromARGB(255, 106, 209, 111),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(
-                                            0xFF48BB78,
-                                          ).withOpacity(0.3),
+                                          color: const Color.fromARGB(255, 117, 234, 102).withOpacity(0.3),
                                           blurRadius: 20,
                                           offset: const Offset(0, 10),
                                         ),
@@ -919,7 +917,7 @@ class _SignupScreenState extends State<SignupScreen>
                                     child: const Text(
                                       'Resend OTP',
                                       style: TextStyle(
-                                        color: Color(0xFF667eea),
+                                        color: Color.fromARGB(255, 124, 234, 102),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
