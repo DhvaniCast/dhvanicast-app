@@ -45,7 +45,7 @@ class PaymentPolicyScreen extends StatelessWidget {
                 '8.1 Payment Processing, Pricing, and Disclosure',
               ),
               _buildParagraph(
-                'Dhvani Cast offers certain paid features, including private frequency access, which are processed exclusively through Razorpay, a regulated Indian payment gateway.',
+                'DC Audio Rooms offers certain paid features, including private frequency access, which are processed exclusively through Razorpay, a regulated Indian payment gateway.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
@@ -58,16 +58,16 @@ class PaymentPolicyScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Charges are applied only after successful transaction confirmation from Razorpay. Dhvani Cast does not process payments directly and does not store sensitive payment credentials such as card numbers, CVV codes, or UPI identifiers.',
+                'Charges are applied only after successful transaction confirmation from Razorpay. DC Audio Rooms does not process payments directly and does not store sensitive payment credentials such as card numbers, CVV codes, or UPI identifiers.',
               ),
               const SizedBox(height: 20),
               _buildSectionTitle('8.2 Fraud Detection and Risk Management'),
               _buildParagraph(
-                'To protect users and the platform from financial misuse, Dhvani Cast monitors transactions for indicators of fraud, abuse, or unauthorized activity. This may include detecting unusual transaction patterns, repeated failed payment attempts, chargeback abuse, or violations of payment gateway policies.',
+                'To protect users and the platform from financial misuse, DC Audio Rooms monitors transactions for indicators of fraud, abuse, or unauthorized activity. This may include detecting unusual transaction patterns, repeated failed payment attempts, chargeback abuse, or violations of payment gateway policies.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Where suspicious activity is detected, Dhvani Cast may:',
+                'Where suspicious activity is detected, DC Audio Rooms may:',
               ),
               _buildBulletPoints([
                 'Temporarily block or cancel transactions',
@@ -89,7 +89,7 @@ class PaymentPolicyScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Dhvani Cast is not responsible for unauthorized transactions resulting from user negligence, compromised payment methods, or third-party access to user accounts.',
+                'DC Audio Rooms is not responsible for unauthorized transactions resulting from user negligence, compromised payment methods, or third-party access to user accounts.',
               ),
             ],
           ),

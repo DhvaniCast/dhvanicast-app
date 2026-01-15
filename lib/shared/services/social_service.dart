@@ -483,4 +483,112 @@ class SocialService {
       throw Exception('Failed to remove friend: $e');
     }
   }
+
+  // ===================== BLOCK USER APIs =====================
+
+  /// Block a user
+  Future<Map<String, dynamic>> blockUser(String userId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      print('📡 [BLOCK] Blocking user: $userId');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/block/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('📥 [BLOCK] Response Status: ${response.statusCode}');
+      print('📥 [BLOCK] Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return data['data'];
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to block user');
+      }
+    } catch (e) {
+      print('❌ [BLOCK] Error: $e');
+      throw Exception('Failed to block user: $e');
+    }
+  }
+
+  /// Unblock a user
+  Future<Map<String, dynamic>> unblockUser(String userId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      print('📡 [UNBLOCK] Unblocking user: $userId');
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/block/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('📥 [UNBLOCK] Response Status: ${response.statusCode}');
+      print('📥 [UNBLOCK] Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'];
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to unblock user');
+      }
+    } catch (e) {
+      print('❌ [UNBLOCK] Error: $e');
+      throw Exception('Failed to unblock user: $e');
+    }
+  }
+
+  /// Get list of blocked users
+  Future<List<Map<String, dynamic>>> getBlockedUsers() async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      print('📡 [BLOCK] Fetching blocked users');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/blocked'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print('📥 [BLOCK] Response Status: ${response.statusCode}');
+      print('📥 [BLOCK] Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final blockedUsers = (data['data'] as List)
+            .map((user) => user as Map<String, dynamic>)
+            .toList();
+        print('✅ [BLOCK] Fetched ${blockedUsers.length} blocked users');
+        return blockedUsers;
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to fetch blocked users');
+      }
+    } catch (e) {
+      print('❌ [BLOCK] Error: $e');
+      throw Exception('Failed to fetch blocked users: $e');
+    }
+  }
 }

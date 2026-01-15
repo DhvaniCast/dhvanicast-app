@@ -172,7 +172,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
                 // Title
                 const Text(
-                  'Harborleaf Radio',
+                  'DC Audio Rooms',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

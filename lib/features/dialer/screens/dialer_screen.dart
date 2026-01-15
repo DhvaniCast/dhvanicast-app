@@ -1206,7 +1206,7 @@ class _DialerScreenState extends State<DialerScreen>
   // Share via any app (WhatsApp, SMS, etc.)
   Future<void> _shareViaApps(String link) async {
     final message =
-        '🎙️ Join me on Dhvani Cast!\n\n'
+        '🎙️ Join me on DC Audio Rooms!\n\n'
         'Frequency: ${_frequency.toStringAsFixed(1)} MHz\n'
         'Band: $_selectedBand\n\n'
         'Join now: $link';
@@ -1214,7 +1214,7 @@ class _DialerScreenState extends State<DialerScreen>
     try {
       await Share.share(
         message,
-        subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on Dhvani Cast',
+        subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on DC Audio Rooms',
       );
     } catch (e) {
       print('Error sharing: $e');
@@ -1391,7 +1391,7 @@ class _DialerScreenState extends State<DialerScreen>
   Future<void> _shareToSelectedContact(Contact contact, String link) async {
     final message =
         'Hi ${contact.displayName}! \n\n'
-        '🎙️ Join me on Dhvani Cast!\n\n'
+        '🎙️ Join me on DC Audio Rooms!\n\n'
         'Frequency: ${_frequency.toStringAsFixed(1)} MHz\n'
         'Band: $_selectedBand\n\n'
         'Join now: $link';
@@ -1399,7 +1399,7 @@ class _DialerScreenState extends State<DialerScreen>
     try {
       await Share.share(
         message,
-        subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on Dhvani Cast',
+        subject: 'Join ${_frequency.toStringAsFixed(1)} MHz on DC Audio Rooms',
       );
 
       if (mounted) {
@@ -1850,7 +1850,7 @@ class _DialerScreenState extends State<DialerScreen>
                           '/live_radio',
                           arguments: {
                             'frequency': _frequency.toStringAsFixed(1),
-                            'name': 'Dhvani Cast Live',
+                            'name': 'DC Audio Rooms Live',
                             'frequencyId': frequencyToJoin.id,
                           },
                         );
@@ -1998,7 +1998,7 @@ class _DialerScreenState extends State<DialerScreen>
       backgroundColor: const Color(0xFF1a1a1a),
       appBar: AppBar(
         title: const Text(
-          'Dhvani Cast',
+          'DC Audio Rooms',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: const Color(0xFF1a1a1a),

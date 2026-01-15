@@ -48,12 +48,20 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00ff88),
                     foregroundColor: Colors.black,
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/transparency-and-moderation-policy');
+                    final url = Uri.parse(
+                      'https://dhvanicast.com/transparency-and-moderation-policy',
+                    );
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   icon: const Icon(Icons.open_in_new),
@@ -132,7 +140,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast is committed to maintaining a safe, lawful, and respectful environment across all frequencies and platform features. To achieve this, the platform operates a hybrid moderation framework that combines automated detection technologies with human review by trained moderation personnel.',
+        'DC Audio Rooms is committed to maintaining a safe, lawful, and respectful environment across all frequencies and platform features. To achieve this, the platform operates a hybrid moderation framework that combines automated detection technologies with human review by trained moderation personnel.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -166,7 +174,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'To ensure accountability and consistency, Dhvani Cast maintains internal records of moderation actions taken on the platform. These records may include information such as the nature of the violation, the type of enforcement action applied, timestamps, and reference identifiers.',
+        'To ensure accountability and consistency, DC Audio Rooms maintains internal records of moderation actions taken on the platform. These records may include information such as the nature of the violation, the type of enforcement action applied, timestamps, and reference identifiers.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -188,7 +196,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Dhvani Cast may disclose moderation-related information to authorities when legally required or to protect the safety and integrity of the platform and its users.',
+        'DC Audio Rooms may disclose moderation-related information to authorities when legally required or to protect the safety and integrity of the platform and its users.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 16),
@@ -207,12 +215,12 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Users may contact support@dhvanicast.com to request a review of certain moderation actions. Appeals are reviewed by Dhvani Cast on a case-by-case basis, taking into account platform rules, user history, available evidence, and safety considerations.',
+        'Users may contact support@dhvanicast.com to request a review of certain moderation actions. Appeals are reviewed by DC Audio Rooms on a case-by-case basis, taking into account platform rules, user history, available evidence, and safety considerations.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
       Text(
-        'Dhvani Cast reserves the right to make final determinations regarding moderation outcomes. In cases involving serious violations, illegal activity, CSAE concerns, or repeated abuse, enforcement decisions may be final and not subject to appeal, in order to protect platform integrity and user safety.',
+        'DC Audio Rooms reserves the right to make final determinations regarding moderation outcomes. In cases involving serious violations, illegal activity, CSAE concerns, or repeated abuse, enforcement decisions may be final and not subject to appeal, in order to protect platform integrity and user safety.',
         style: TextStyle(color: Colors.white70),
       ),
     ];

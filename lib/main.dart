@@ -138,7 +138,7 @@ class MyApp extends StatelessWidget {
       create: (context) => getIt<AuthBloc>(),
       child: GlobalCallListener(
         child: MaterialApp(
-          title: 'Dhvanicast',
+          title: 'DC Audio Rooms',
           navigatorKey: NotificationService
               .navigatorKey, // Add navigator key for notifications
           theme: ThemeData(

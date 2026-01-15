@@ -165,7 +165,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 30),
               // App Name
               const Text(
-                'Dhvanicast',
+                'DC Audio Rooms',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

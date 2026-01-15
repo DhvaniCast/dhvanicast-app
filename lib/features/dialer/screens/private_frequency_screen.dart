@@ -487,7 +487,7 @@ class _CreateFrequencyFlowState extends State<CreateFrequencyFlow> {
         'key': orderData['keyId'],
         'amount': orderData['amount'],
         'currency': orderData['currency'],
-        'name': 'Dhvani Cast',
+        'name': 'DC Audio Rooms',
         'description': 'Private Frequency - 12 Hours',
         'order_id': orderData['orderId'],
         'prefill': {'contact': '', 'email': ''},
@@ -578,13 +578,13 @@ class _CreateFrequencyFlowState extends State<CreateFrequencyFlow> {
 
 🔗 Direct Link: $shareUrl
 
-Download Dhvani Cast to join!
+Download DC Audio Rooms to join!
 ''';
 
     try {
       await Share.share(
         shareText,
-        subject: 'Join my Private Frequency on Dhvani Cast',
+        subject: 'Join my Private Frequency on DC Audio Rooms',
       );
     } catch (e) {
       print('Error sharing: $e');
@@ -772,7 +772,7 @@ Download Dhvani Cast to join!
         '''
 Hi ${contact.displayName}! 
 
-🔒 Join My Private Frequency on Dhvani Cast!
+🔒 Join My Private Frequency on DC Audio Rooms!
 
 📻 Frequency Number: $_generatedFrequencyNumber
 📻 Frequency Name: $_generatedFrequencyName
@@ -780,13 +780,13 @@ Hi ${contact.displayName}!
 
 🔗 Direct Link: $shareUrl
 
-Download Dhvani Cast app to join!
+Download DC Audio Rooms app to join!
 ''';
 
     try {
       await Share.share(
         shareText,
-        subject: 'Join my Private Frequency on Dhvani Cast',
+        subject: 'Join my Private Frequency on DC Audio Rooms',
       );
 
       if (mounted) {
@@ -824,7 +824,7 @@ Download Dhvani Cast app to join!
 
 🔗 Direct Link: $shareUrl
 
-Download Dhvani Cast to join!
+Download DC Audio Rooms to join!
 ''';
 
     // Show dialog with URL and frequency number

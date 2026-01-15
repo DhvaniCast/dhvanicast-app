@@ -248,38 +248,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 32),
 
                       // Settings Section
-                      _buildSectionTitle('Settings'),
-                      const SizedBox(height: 16),
-                      _buildSettingsTile(
-                        title: 'Notifications',
-                        subtitle: 'Receive push notifications',
-                        icon: Icons.notifications_outlined,
-                        trailing: Switch(
-                          value: _notificationsEnabled,
-                          onChanged: (value) {
-                            setState(() {
-                              _notificationsEnabled = value;
-                            });
-                          },
-                          activeColor: const Color(0xFF00ff88),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSettingsTile(
-                        title: 'Location Services',
-                        subtitle: 'Allow location tracking',
-                        icon: Icons.location_on_outlined,
-                        trailing: Switch(
-                          value: _locationEnabled,
-                          onChanged: (value) {
-                            setState(() {
-                              _locationEnabled = value;
-                            });
-                          },
-                          activeColor: const Color(0xFF00ff88),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
+                      // _buildSectionTitle('Settings'),
+                      // const SizedBox(height: 16),
+                      // _buildSettingsTile(
+                      //   title: 'Notifications',
+                      //   subtitle: 'Receive push notifications',
+                      //   icon: Icons.notifications_outlined,
+                      //   trailing: Switch(
+                      //     value: _notificationsEnabled,
+                      //     onChanged: (value) {
+                      //       setState(() {
+                      //         _notificationsEnabled = value;
+                      //       });
+                      //     },
+                      //     activeColor: const Color(0xFF00ff88),
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 16),
+                      // _buildSettingsTile(
+                      //   title: 'Location Services',
+                      //   subtitle: 'Allow location tracking',
+                      //   icon: Icons.location_on_outlined,
+                      //   trailing: Switch(
+                      //     value: _locationEnabled,
+                      //     onChanged: (value) {
+                      //       setState(() {
+                      //         _locationEnabled = value;
+                      //       });
+                      //     },
+                      //     activeColor: const Color(0xFF00ff88),
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 32),
 
                       // Account Management Section
                       _buildSectionTitle('Account Management'),

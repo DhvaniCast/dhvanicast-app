@@ -52,7 +52,7 @@ class RefundPolicyScreen extends StatelessWidget {
               const SizedBox(height: 8),
               _buildBulletPoints([
                 'Payment has been successfully completed, and',
-                'The purchased service is not delivered due to a verified technical failure attributable solely to Dhvani Cast',
+                'The purchased service is not delivered due to a verified technical failure attributable solely to DC Audio Rooms',
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
@@ -77,7 +77,7 @@ class RefundPolicyScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Dhvani Cast reserves the right to deny refund requests that do not meet the eligibility criteria or where misuse or abuse is identified.',
+                'DC Audio Rooms reserves the right to deny refund requests that do not meet the eligibility criteria or where misuse or abuse is identified.',
               ),
               const SizedBox(height: 32),
 

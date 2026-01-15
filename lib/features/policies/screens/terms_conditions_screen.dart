@@ -49,11 +49,11 @@ class TermsConditionsScreen extends StatelessWidget {
 
               const SizedBox(height: 8),
               _buildParagraph(
-                'By accessing, registering for, or using Dhvani Cast in any manner, you acknowledge that you have read, understood, and agreed to be legally bound by these Terms. If you do not agree with any part of these Terms, you must immediately discontinue use of the Service.',
+                'By accessing, registering for, or using DC Audio Rooms in any manner, you acknowledge that you have read, understood, and agreed to be legally bound by these Terms. If you do not agree with any part of these Terms, you must immediately discontinue use of the Service.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'These Terms constitute a legally binding agreement between you and the operator of Dhvani Cast.',
+                'These Terms constitute a legally binding agreement between you and the operator of DC Audio Rooms.',
               ),
               const SizedBox(height: 20),
 
@@ -62,11 +62,11 @@ class TermsConditionsScreen extends StatelessWidget {
                 '1.2 Eligibility and Age Restriction (Strict 18+ Platform)',
               ),
               _buildParagraph(
-                'Dhvani Cast is designed and operated exclusively for adult users.',
+                'DC Audio Rooms is designed and operated exclusively for adult users.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Only individuals who are 18 years of age or older are permitted to create an account, access frequencies, or use any feature of the platform. There are no teen accounts, no child accounts, and no minor-accessible modes available on Dhvani Cast.',
+                'Only individuals who are 18 years of age or older are permitted to create an account, access frequencies, or use any feature of the platform. There are no teen accounts, no child accounts, and no minor-accessible modes available on DC Audio Rooms.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
@@ -80,14 +80,14 @@ class TermsConditionsScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'If Dhvani Cast becomes aware, through reports, investigations, or technical detection, that an account belongs to a person under 18 years of age, such account will be immediately suspended or permanently terminated without prior notice. Any associated data may be retained solely for legal and compliance obligations.',
+                'If DC Audio Rooms becomes aware, through reports, investigations, or technical detection, that an account belongs to a person under 18 years of age, such account will be immediately suspended or permanently terminated without prior notice. Any associated data may be retained solely for legal and compliance obligations.',
               ),
               const SizedBox(height: 20),
 
               // Section 1.3
               _buildSectionTitle('1.3 Account Registration and Security'),
               _buildParagraph(
-                'To access Dhvani Cast, users must create an account using a valid and active email address. Each user is permitted to maintain only one account unless explicitly authorized by Dhvani Cast.',
+                'To access DC Audio Rooms, users must create an account using a valid and active email address. Each user is permitted to maintain only one account unless explicitly authorized by DC Audio Rooms.',
               ),
               const SizedBox(height: 8),
               _buildParagraph('Users are solely responsible for:'),
@@ -99,7 +99,7 @@ class TermsConditionsScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Dhvani Cast will not be responsible for losses arising from unauthorized access resulting from user negligence, including sharing login details or failing to secure email access.',
+                'DC Audio Rooms will not be responsible for losses arising from unauthorized access resulting from user negligence, including sharing login details or failing to secure email access.',
               ),
               const SizedBox(height: 20),
 
@@ -108,7 +108,7 @@ class TermsConditionsScreen extends StatelessWidget {
                 '1.4 User Responsibilities and Acceptable Use',
               ),
               _buildParagraph(
-                'Users agree to use Dhvani Cast in a lawful, respectful, and responsible manner. Participation in frequencies requires adherence to community norms, platform rules, and applicable laws.',
+                'Users agree to use DC Audio Rooms in a lawful, respectful, and responsible manner. Participation in frequencies requires adherence to community norms, platform rules, and applicable laws.',
               ),
               const SizedBox(height: 8),
               _buildParagraph('Users are responsible for:'),
@@ -128,7 +128,7 @@ class TermsConditionsScreen extends StatelessWidget {
               // Section 1.5
               _buildSectionTitle('1.5 Prohibited Activities'),
               _buildParagraph(
-                'To maintain platform integrity and user safety, Dhvani Cast strictly prohibits activities including but not limited to:',
+                'To maintain platform integrity and user safety, DC Audio Rooms strictly prohibits activities including but not limited to:',
               ),
               const SizedBox(height: 8),
               _buildBulletPoints([
@@ -149,18 +149,18 @@ class TermsConditionsScreen extends StatelessWidget {
               // Section 1.6
               _buildSectionTitle('1.6 User Content and License'),
               _buildParagraph(
-                'Users retain ownership of any content they create or share on Dhvani Cast. However, by using the Service, users grant Dhvani Cast a limited, non-exclusive, royalty-free license to transmit, host, and display such content solely for the purpose of operating and improving the Service.',
+                'Users retain ownership of any content they create or share on DC Audio Rooms. However, by using the Service, users grant DC Audio Rooms a limited, non-exclusive, royalty-free license to transmit, host, and display such content solely for the purpose of operating and improving the Service.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'This license does not transfer ownership of user content to Dhvani Cast.',
+                'This license does not transfer ownership of user content to DC Audio Rooms.',
               ),
               const SizedBox(height: 20),
 
               // Section 1.7
               _buildSectionTitle('1.7 Suspension and Termination'),
               _buildParagraph(
-                'Dhvani Cast reserves the right to suspend or terminate user accounts at its sole discretion when necessary to:',
+                'DC Audio Rooms reserves the right to suspend or terminate user accounts at its sole discretion when necessary to:',
               ),
               const SizedBox(height: 8),
               _buildBulletPoints([
@@ -178,11 +178,11 @@ class TermsConditionsScreen extends StatelessWidget {
               // Section 1.8
               _buildSectionTitle('1.8 Disclaimer and Limitation of Liability'),
               _buildParagraph(
-                'Dhvani Cast is provided on an "as-is" and "as-available" basis. The platform does not guarantee uninterrupted service, frequency availability, or error-free operation.',
+                'DC Audio Rooms is provided on an "as-is" and "as-available" basis. The platform does not guarantee uninterrupted service, frequency availability, or error-free operation.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Dhvani Cast is not liable for user-generated content, user conduct, or interactions between users.',
+                'DC Audio Rooms is not liable for user-generated content, user conduct, or interactions between users.',
               ),
               const SizedBox(height: 20),
 
@@ -196,7 +196,7 @@ class TermsConditionsScreen extends StatelessWidget {
               // Section 1.10
               _buildSectionTitle('1.10 Changes to Terms'),
               _buildParagraph(
-                'Dhvani Cast may modify these Terms periodically. Continued use of the platform after changes constitutes acceptance.',
+                'DC Audio Rooms may modify these Terms periodically. Continued use of the platform after changes constitutes acceptance.',
               ),
               const SizedBox(height: 32),
 

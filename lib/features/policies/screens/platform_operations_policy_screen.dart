@@ -48,12 +48,20 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00ff88),
                     foregroundColor: Colors.black,
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/platform-operations-policy');
+                    final url = Uri.parse(
+                      'https://dhvanicast.com/platform-operations-policy',
+                    );
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   icon: const Icon(Icons.open_in_new),
@@ -132,12 +140,12 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast operates a real-time, frequency-based communication platform that requires continuous operational oversight to ensure reliability, security, and service quality. To achieve this, Dhvani Cast maintains ongoing monitoring of its technical infrastructure, application services, and usage patterns.',
+        'DC Audio Rooms operates a real-time, frequency-based communication platform that requires continuous operational oversight to ensure reliability, security, and service quality. To achieve this, DC Audio Rooms maintains ongoing monitoring of its technical infrastructure, application services, and usage patterns.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
       Text(
-        'Operational monitoring includes, but is not limited to, tracking server uptime, network latency, system load, error rates, service availability, and abnormal traffic patterns. This monitoring enables Dhvani Cast to identify performance degradation, service outages, security threats, and misuse of platform resources at the earliest possible stage.',
+        'Operational monitoring includes, but is not limited to, tracking server uptime, network latency, system load, error rates, service availability, and abnormal traffic patterns. This monitoring enables DC Audio Rooms to identify performance degradation, service outages, security threats, and misuse of platform resources at the earliest possible stage.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -156,7 +164,7 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'To maintain application stability and ensure a consistent user experience across different devices and operating systems, Dhvani Cast collects crash reports and diagnostic logs generated when the application encounters errors or failures.',
+        'To maintain application stability and ensure a consistent user experience across different devices and operating systems, DC Audio Rooms collects crash reports and diagnostic logs generated when the application encounters errors or failures.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -166,7 +174,7 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Crash analytics data is not used to analyze the substance of user communications, including live audio, text messages, or shared images, beyond what is technically necessary to diagnose system errors. Dhvani Cast does not use diagnostic data for advertising, behavioral profiling, or content surveillance.',
+        'Crash analytics data is not used to analyze the substance of user communications, including live audio, text messages, or shared images, beyond what is technically necessary to diagnose system errors. DC Audio Rooms does not use diagnostic data for advertising, behavioral profiling, or content surveillance.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -185,7 +193,7 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast is an evolving platform and may periodically introduce new features, modify existing functionality, or discontinue features to improve performance, enhance safety, comply with legal or regulatory requirements, or respond to technological changes.',
+        'DC Audio Rooms is an evolving platform and may periodically introduce new features, modify existing functionality, or discontinue features to improve performance, enhance safety, comply with legal or regulatory requirements, or respond to technological changes.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -195,7 +203,7 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Dhvani Cast also reserves the right to perform scheduled or emergency maintenance, during which some or all services may be temporarily unavailable. Where reasonably possible, advance notice of planned maintenance will be provided through in-app notifications or other communication channels.',
+        'DC Audio Rooms also reserves the right to perform scheduled or emergency maintenance, during which some or all services may be temporarily unavailable. Where reasonably possible, advance notice of planned maintenance will be provided through in-app notifications or other communication channels.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -214,12 +222,12 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Maintaining the integrity of Dhvani Cast is essential to ensuring a safe and fair environment for all users. The platform employs technical, procedural, and policy-based safeguards to prevent abuse, misuse, and exploitation of its systems.',
+        'Maintaining the integrity of DC Audio Rooms is essential to ensuring a safe and fair environment for all users. The platform employs technical, procedural, and policy-based safeguards to prevent abuse, misuse, and exploitation of its systems.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
       Text(
-        'These safeguards include mechanisms to detect and limit spamming, automated or bot-driven activity, coordinated misuse, attempts to overload system resources, and efforts to circumvent platform restrictions. Dhvani Cast may impose rate limits, access restrictions, or automated blocks where suspicious or harmful activity is detected.',
+        'These safeguards include mechanisms to detect and limit spamming, automated or bot-driven activity, coordinated misuse, attempts to overload system resources, and efforts to circumvent platform restrictions. DC Audio Rooms may impose rate limits, access restrictions, or automated blocks where suspicious or harmful activity is detected.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -229,7 +237,7 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Dhvani Cast reserves the right to take all necessary steps to protect its infrastructure, users, and services from harm, while ensuring that enforcement actions are proportionate, documented, and aligned with applicable laws and platform policies.',
+        'DC Audio Rooms reserves the right to take all necessary steps to protect its infrastructure, users, and services from harm, while ensuring that enforcement actions are proportionate, documented, and aligned with applicable laws and platform policies.',
         style: TextStyle(color: Colors.white70),
       ),
     ];

@@ -347,7 +347,7 @@ class _SignupScreenState extends State<SignupScreen>
               ),
               const SizedBox(height: 20),
               const Text(
-                'Welcome to Dhvani Cast!',
+                'Welcome to DC Audio Rooms!',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -483,7 +483,7 @@ class _SignupScreenState extends State<SignupScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 const Text(
-                                  'Join Dhvanicast',
+                                  'Join DC Audio Rooms',
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,

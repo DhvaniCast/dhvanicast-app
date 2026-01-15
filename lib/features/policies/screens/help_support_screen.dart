@@ -46,12 +46,18 @@ class HelpSupportScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00ff88),
                     foregroundColor: Colors.black,
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPressed: () async {
                     final url = Uri.parse('https://dhvanicast.com/');
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   icon: const Icon(Icons.open_in_new),
@@ -59,8 +65,8 @@ class HelpSupportScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-            // Removed erroneous closing bracket and comma here
-            const SizedBox(height: 16),
+              // Removed erroneous closing bracket and comma here
+              const SizedBox(height: 16),
 
               _buildContactCard(
                 context,
@@ -302,7 +308,8 @@ class HelpSupportScreen extends StatelessWidget {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: 'support@dhvanicast.com',
-      query: 'subject=Support Request&body=Hello DhvaniCast Support Team,\n\n',
+      query:
+          'subject=Support Request&body=Hello DC Audio Rooms Support Team,\n\n',
     );
 
     try {

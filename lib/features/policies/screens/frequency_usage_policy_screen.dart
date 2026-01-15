@@ -48,12 +48,20 @@ class FrequencyUsagePolicyScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00ff88),
                     foregroundColor: Colors.black,
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/frequency-usage-policy');
+                    final url = Uri.parse(
+                      'https://dhvanicast.com/frequency-usage-policy',
+                    );
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   icon: const Icon(Icons.open_in_new),
@@ -132,7 +140,7 @@ class FrequencyUsagePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast operates on a frequency-based model inspired by radio communication, where each frequency represents a shared communication channel accessible by multiple users simultaneously. Frequencies are communal spaces and should be treated as such.',
+        'DC Audio Rooms operates on a frequency-based model inspired by radio communication, where each frequency represents a shared communication channel accessible by multiple users simultaneously. Frequencies are communal spaces and should be treated as such.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -156,7 +164,7 @@ class FrequencyUsagePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Dhvani Cast reserves the right to temporarily restrict, mute, or close public frequencies if misuse or safety risks are identified.',
+        'DC Audio Rooms reserves the right to temporarily restrict, mute, or close public frequencies if misuse or safety risks are identified.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 16),
@@ -198,7 +206,7 @@ class FrequencyUsagePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'The purchaser of a private frequency bears full responsibility for how access is managed, including password sharing and participant selection. Dhvani Cast is not responsible for misuse arising from user negligence or intentional sharing of access credentials.',
+        'The purchaser of a private frequency bears full responsibility for how access is managed, including password sharing and participant selection. DC Audio Rooms is not responsible for misuse arising from user negligence or intentional sharing of access credentials.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 16),
@@ -226,7 +234,7 @@ class FrequencyUsagePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'All frequencies, including private ones, may be reviewed or restricted if violations, illegal activity, or CSAE concerns are suspected. Dhvani Cast prioritizes safety and legal compliance over frequency privacy.',
+        'All frequencies, including private ones, may be reviewed or restricted if violations, illegal activity, or CSAE concerns are suspected. DC Audio Rooms prioritizes safety and legal compliance over frequency privacy.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 16),

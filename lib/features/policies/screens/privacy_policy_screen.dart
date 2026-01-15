@@ -47,7 +47,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
               _buildSectionTitle('2.2 Categories of Personal Data Collected'),
               _buildParagraph(
-                'Dhvani Cast collects only such personal data as is reasonably necessary to operate the platform, ensure safety, comply with legal obligations, and improve service quality.',
+                'DC Audio Rooms collects only such personal data as is reasonably necessary to operate the platform, ensure safety, comply with legal obligations, and improve service quality.',
               ),
               const SizedBox(height: 16),
 
@@ -83,7 +83,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'This data helps Dhvani Cast understand platform usage patterns and improve performance, reliability, and user experience.',
+                'This data helps DC Audio Rooms understand platform usage patterns and improve performance, reliability, and user experience.',
               ),
               const SizedBox(height: 16),
 
@@ -119,7 +119,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Dhvani Cast does not collect or store card details, UPI IDs, CVV numbers, or banking credentials. All sensitive payment data is processed directly by Razorpay.',
+                'DC Audio Rooms does not collect or store card details, UPI IDs, CVV numbers, or banking credentials. All sensitive payment data is processed directly by Razorpay.',
               ),
               const SizedBox(height: 20),
 
@@ -127,7 +127,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 '2.3 Live Audio, Chat, and Media Data Handling',
               ),
               _buildParagraph(
-                'Dhvani Cast is a real-time communication platform.',
+                'DC Audio Rooms is a real-time communication platform.',
               ),
               const SizedBox(height: 8),
               _buildBulletPoints([
@@ -161,7 +161,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 'All payments are processed exclusively through Razorpay, a regulated Indian payment gateway.',
               ),
               const SizedBox(height: 8),
-              _buildParagraph('Dhvani Cast:'),
+              _buildParagraph('DC Audio Rooms:'),
               const SizedBox(height: 8),
               _buildBulletPoints([
                 'Does not process payments directly',
@@ -177,7 +177,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSectionTitle('2.6 Data Security Measures'),
 
               _buildParagraph(
-                'Dhvani Cast implements appropriate technical and organizational safeguards to protect personal data, including:',
+                'DC Audio Rooms implements appropriate technical and organizational safeguards to protect personal data, including:',
               ),
               const SizedBox(height: 8),
               _buildBulletPoints([
@@ -197,11 +197,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 '2.6.1 Network Integrity and VPN Restrictions',
               ),
               _buildParagraph(
-                'To maintain platform security, prevent misuse, and ensure compliance with safety and regulatory requirements, Dhvani Cast monitors network integrity indicators such as IP address consistency, device identifiers, and connection characteristics.',
+                'To maintain platform security, prevent misuse, and ensure compliance with safety and regulatory requirements, DC Audio Rooms monitors network integrity indicators such as IP address consistency, device identifiers, and connection characteristics.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
-                'The use of Virtual Private Networks (VPNs), proxy services, or anonymization tools is not supported on the Dhvani Cast platform. Access attempts detected through VPNs or similar technologies may be restricted, limited, or blocked to protect platform integrity, prevent abuse, and ensure accurate enforcement of safety policies.',
+                'The use of Virtual Private Networks (VPNs), proxy services, or anonymization tools is not supported on the DC Audio Rooms platform. Access attempts detected through VPNs or similar technologies may be restricted, limited, or blocked to protect platform integrity, prevent abuse, and ensure accurate enforcement of safety policies.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
@@ -241,7 +241,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               _buildSectionTitle('2.9 Data Sharing and Disclosure'),
-              _buildParagraph('Dhvani Cast does not sell personal data.'),
+              _buildParagraph('DC Audio Rooms does not sell personal data.'),
               const SizedBox(height: 8),
               _buildParagraph('Data may be shared only:'),
               const SizedBox(height: 8),
@@ -257,7 +257,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               _buildSectionTitle('2.10 Legal Compliance'),
-              _buildParagraph('Dhvani Cast complies with:'),
+              _buildParagraph('DC Audio Rooms complies with:'),
               const SizedBox(height: 8),
               _buildBulletPoints([
                 'Digital Personal Data Protection Act, 2023',

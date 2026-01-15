@@ -33,7 +33,7 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   bool _isSpeakerOn =
       true; // Speaker output mode (true = loudspeaker, false = earpiece)
   String _frequency = "505.1";
-  String _stationName = "Dhvani Cast Station";
+  String _stationName = "DC Audio Rooms Station";
   String? _frequencyId;
   bool _showChat = false;
 
@@ -56,6 +56,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
   // Private frequency users list
   List<FrequencyUser> _privateFrequencyUsers = [];
 
+  // Blocked users list
+  Set<String> _blockedUserIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +71,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
     // Load current user ID
     _loadCurrentUserId();
+
+    // Load blocked users
+    _loadBlockedUsers();
 
     _waveController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -222,6 +228,9 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
 
       // Connect to LiveKit
       await _livekitService.connectToFrequency(_frequencyId!, userName, token);
+
+      // Update blocked users in LiveKit service
+      _livekitService.updateBlockedUsers(_blockedUserIds);
 
       // Update mute state from service
       setState(() {
@@ -683,6 +692,24 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       }
     } catch (e) {
       print('❌ [USER ID] Error loading current user ID: $e');
+    }
+  }
+
+  Future<void> _loadBlockedUsers() async {
+    print('🚫 [BLOCKED] Loading blocked users...');
+    try {
+      final socialService = SocialService();
+      final blockedUsers = await socialService.getBlockedUsers();
+
+      setState(() {
+        _blockedUserIds = blockedUsers
+            .map((user) => user['_id'] as String)
+            .toSet();
+      });
+
+      print('✅ [BLOCKED] Loaded ${_blockedUserIds.length} blocked users');
+    } catch (e) {
+      print('❌ [BLOCKED] Error loading blocked users: $e');
     }
   }
 
@@ -1915,6 +1942,66 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
                   ),
                 ),
                 const Divider(color: Color(0xFF444444), height: 1),
+                // Block User Option
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showBlockConfirmDialog(context, userId, userName);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                      horizontal: 24,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.block,
+                            color: Colors.orange,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Block User',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'You won\'t hear their voice',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white38,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(color: Color(0xFF444444), height: 1),
               ],
 
               // Report Frequency Option (available for everyone)
@@ -2769,6 +2856,197 @@ class _LiveRadioScreenState extends State<LiveRadioScreen>
       }
     } catch (e) {
       print('❌ [REPORT] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.red),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.toString().replaceAll('Exception: ', ''),
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.red, width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // Show block confirmation dialog
+  void _showBlockConfirmDialog(
+    BuildContext context,
+    String userId,
+    String userName,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF2a2a2a),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.block,
+                    color: Colors.orange,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Title
+                const Text(
+                  'Block User',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Description
+                Text(
+                  'Are you sure you want to block $userName?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'You won\'t be able to hear their voice in any frequency.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, fontSize: 13),
+                ),
+                const SizedBox(height: 24),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Color(0xFF444444)),
+                          ),
+                        ),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _blockUser(userId, userName);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Block',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Block user
+  Future<void> _blockUser(String userId, String userName) async {
+    final socialService = SocialService();
+
+    try {
+      print('🚫 [BLOCK] Blocking userId: $userId');
+
+      // Call API
+      await socialService.blockUser(userId);
+
+      // Add to local blocked list
+      setState(() {
+        _blockedUserIds.add(userId);
+      });
+
+      // Update LiveKit service to mute blocked user's audio
+      _livekitService.updateBlockedUsers(_blockedUserIds);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Color(0xFF00ff88)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '$userName has been blocked. You won\'t hear their voice.',
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2a2a2a),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF00ff88), width: 1),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [BLOCK] Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -48,12 +48,20 @@ class CookiePolicyScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00ff88),
                     foregroundColor: Colors.black,
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/cookie-policy');
+                    final url = Uri.parse(
+                      'https://dhvanicast.com/cookie-policy',
+                    );
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   icon: const Icon(Icons.open_in_new),
@@ -141,12 +149,12 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast uses cookies and similar technologies to ensure the secure, reliable, and efficient operation of its platform. Cookies are small data files stored on a user\'s device that allow the application to recognize returning users, maintain authenticated sessions, and support essential security and operational functions.',
+        'DC Audio Rooms uses cookies and similar technologies to ensure the secure, reliable, and efficient operation of its platform. Cookies are small data files stored on a user\'s device that allow the application to recognize returning users, maintain authenticated sessions, and support essential security and operational functions.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
       Text(
-        'Cookies are fundamental to enabling core platform features, including user authentication, session continuity, access control, and protection against unauthorized access. Without the use of cookies or equivalent technologies, Dhvani Cast would be unable to reliably verify user identity, prevent session hijacking, or provide a seamless user experience during live communication.',
+        'Cookies are fundamental to enabling core platform features, including user authentication, session continuity, access control, and protection against unauthorized access. Without the use of cookies or equivalent technologies, DC Audio Rooms would be unable to reliably verify user identity, prevent session hijacking, or provide a seamless user experience during live communication.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -165,7 +173,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast uses the following categories of cookies and similar technologies:',
+        'DC Audio Rooms uses the following categories of cookies and similar technologies:',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -205,7 +213,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Performance cookies are used to collect aggregated and anonymized information about how the platform is used. These cookies help Dhvani Cast:',
+        'Performance cookies are used to collect aggregated and anonymized information about how the platform is used. These cookies help DC Audio Rooms:',
         style: TextStyle(color: Colors.white70),
       ),
       Padding(
@@ -243,7 +251,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'These cookies allow Dhvani Cast to provide a more consistent and personalized experience without compromising security or privacy.',
+        'These cookies allow DC Audio Rooms to provide a more consistent and personalized experience without compromising security or privacy.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),
@@ -257,7 +265,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'Dhvani Cast does not use cookies for:',
+        'DC Audio Rooms does not use cookies for:',
         style: TextStyle(color: Colors.white70),
       ),
       Padding(
@@ -300,7 +308,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'By continuing to use Dhvani Cast without disabling cookies, users consent to the use of cookies as described in this policy.',
+        'By continuing to use DC Audio Rooms without disabling cookies, users consent to the use of cookies as described in this policy.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 16),
@@ -314,7 +322,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 4),
       Text(
-        'All cookie-related data is handled in accordance with Dhvani Cast\'s Privacy Policy and applicable data protection laws. Cookie data is:',
+        'All cookie-related data is handled in accordance with DC Audio Rooms\'s Privacy Policy and applicable data protection laws. Cookie data is:',
         style: TextStyle(color: Colors.white70),
       ),
       Padding(
@@ -326,7 +334,7 @@ class CookiePolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Dhvani Cast regularly reviews its use of cookies to ensure compliance with legal and security standards.',
+        'DC Audio Rooms regularly reviews its use of cookies to ensure compliance with legal and security standards.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 16),

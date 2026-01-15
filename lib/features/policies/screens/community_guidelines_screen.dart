@@ -57,7 +57,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
 
               _buildSectionTitle('3.3 Harassment, Abuse, and Hate Speech'),
               _buildParagraph(
-                'Dhvani Cast strictly prohibits harassment, bullying, intimidation, or abuse of any kind. This includes persistent unwanted communication, verbal attacks, threats, humiliation, or coordinated targeting of individuals or groups.',
+                'DC Audio Rooms strictly prohibits harassment, bullying, intimidation, or abuse of any kind. This includes persistent unwanted communication, verbal attacks, threats, humiliation, or coordinated targeting of individuals or groups.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
@@ -79,7 +79,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
                 '3.5 Media and Image Sharing Responsibilities',
               ),
               _buildParagraph(
-                'Images shared on Dhvani Cast must comply with community standards and applicable law. Users are responsible for ensuring that any media they share does not violate privacy, intellectual property rights, or platform rules.',
+                'Images shared on DC Audio Rooms must comply with community standards and applicable law. Users are responsible for ensuring that any media they share does not violate privacy, intellectual property rights, or platform rules.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(
@@ -89,7 +89,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
 
               _buildSectionTitle('3.6 Reporting, Enforcement, and Escalation'),
               _buildParagraph(
-                'Dhvani Cast provides in-app tools for reporting violations. Reports are reviewed using a combination of automated systems and human moderation.',
+                'DC Audio Rooms provides in-app tools for reporting violations. Reports are reviewed using a combination of automated systems and human moderation.',
               ),
               const SizedBox(height: 8),
               _buildParagraph(

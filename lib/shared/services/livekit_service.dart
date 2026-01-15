@@ -11,8 +11,39 @@ class LiveKitService {
   String? _currentFrequencyId;
   String? _token;
 
+  // Blocked users list
+  Set<String> _blockedUserIds = {};
+
   bool get isMuted => _isMuted;
   bool get isConnected => _isConnected;
+
+  /// Update blocked users list
+  void updateBlockedUsers(Set<String> blockedUserIds) {
+    print('🚫 [LiveKit] Updating blocked users: ${blockedUserIds.length}');
+    _blockedUserIds = blockedUserIds;
+
+    // Mute audio from blocked users if already in room
+    if (_room != null) {
+      for (var participant in _room!.remoteParticipants.values) {
+        final userId = participant.identity;
+        if (_blockedUserIds.contains(userId)) {
+          print('🚫 [LiveKit] Muting blocked user: ${participant.name}');
+          _muteParticipant(participant);
+        }
+      }
+    }
+  }
+
+  /// Mute a specific participant's audio
+  void _muteParticipant(RemoteParticipant participant) {
+    for (var publication in participant.audioTrackPublications) {
+      if (publication.track != null && publication.track is RemoteAudioTrack) {
+        final audioTrack = publication.track as RemoteAudioTrack;
+        audioTrack.disable();
+        print('🔇 [LiveKit] Muted audio from ${participant.name}');
+      }
+    }
+  }
 
   /// Connect to LiveKit room for a frequency
   Future<void> connectToFrequency(
@@ -345,12 +376,25 @@ class LiveKitService {
           print(
             '🔊 [LiveKit] ✅ Receiving audio from: ${event.participant.name}',
           );
-          print('📡 [LiveKit] You should now hear ${event.participant.name}');
 
-          // Enable the audio track explicitly
+          // Check if user is blocked
+          final isBlocked = _blockedUserIds.contains(
+            event.participant.identity,
+          );
+
+          // Enable/disable the audio track based on block status
           final audioTrack = event.track as RemoteAudioTrack;
-          audioTrack.enable();
-          print('🔊 [LiveKit] Audio track enabled for playback');
+          if (isBlocked) {
+            audioTrack.disable();
+            print(
+              '🔇 [LiveKit] Audio track disabled for blocked user ${event.participant.name}',
+            );
+          } else {
+            audioTrack.enable();
+            print(
+              '🔊 [LiveKit] Audio track enabled for playback from ${event.participant.name}',
+            );
+          }
         }
       } else if (event is TrackUnsubscribedEvent) {
         if (event.track is RemoteAudioTrack) {
@@ -380,12 +424,29 @@ class LiveKitService {
   void _subscribeToParticipant(RemoteParticipant participant) {
     print('🔗 [LiveKit] Subscribing to ${participant.name}\'s tracks...');
 
+    // Check if user is blocked
+    final isBlocked = _blockedUserIds.contains(participant.identity);
+    if (isBlocked) {
+      print(
+        '🚫 [LiveKit] User ${participant.name} is blocked, audio will be muted',
+      );
+    }
+
     // Subscribe to all audio publications
     for (var publication in participant.audioTrackPublications) {
       if (publication.track != null && publication.track is RemoteAudioTrack) {
         final audioTrack = publication.track as RemoteAudioTrack;
-        audioTrack.enable();
-        print('🔊 [LiveKit] Enabled audio from ${participant.name}');
+
+        // Enable/disable based on block status
+        if (isBlocked) {
+          audioTrack.disable();
+          print(
+            '🔇 [LiveKit] Disabled audio from blocked user ${participant.name}',
+          );
+        } else {
+          audioTrack.enable();
+          print('🔊 [LiveKit] Enabled audio from ${participant.name}');
+        }
       } else if (!publication.subscribed) {
         // Try to subscribe if not already subscribed
         print(
