@@ -175,7 +175,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Your Personal Radio Network',
+                'Your Personal Radio Network ',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.white70,
@@ -190,6 +190,18 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   strokeWidth: 3,
+                ),
+              ),
+              const Spacer(),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 20),
+                child: Text(
+                  'product by Editevolv',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white60,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
             ],

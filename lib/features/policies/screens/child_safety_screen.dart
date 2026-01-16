@@ -155,10 +155,11 @@ class ChildSafetyScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       GestureDetector(
-                        onTap: () =>
-                            launchUrl(Uri.parse('mailto:csae@dhvanicast.com')),
+                        onTap: () => launchUrl(
+                          Uri.parse('mailto:csae@dcaudiorooms.com'),
+                        ),
                         child: Text(
-                          'csae@dhvanicast.com',
+                          'csae@dcaudiorooms.com',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             decoration: TextDecoration.underline,
@@ -186,10 +187,10 @@ class ChildSafetyScreen extends StatelessWidget {
                       const SizedBox(width: 6),
                       GestureDetector(
                         onTap: () => launchUrl(
-                          Uri.parse('mailto:support@dhvanicast.com'),
+                          Uri.parse('mailto:Support@dcaudiorooms.com'),
                         ),
                         child: Text(
-                          'support@dhvanicast.com',
+                          'Support@dcaudiorooms.com',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             decoration: TextDecoration.underline,
@@ -291,12 +292,12 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('1. Commitment to Child Safety', style: heading),
       const SizedBox(height: 8),
       Text(
-        'DC Audio Rooms is committed to maintaining a safe digital environment and enforcing zero tolerance toward Child Sexual Abuse and Exploitation (CSAE).',
+        'Dhvani Cast is committed to maintaining a safe digital environment and enforcing zero tolerance toward Child Sexual Abuse and Exploitation (CSAE).',
         style: body,
       ),
       const SizedBox(height: 8),
       Text(
-        'Although DC Audio Rooms is a strictly 18+ platform, the company acknowledges its responsibility to prevent, detect, report, and remove any form of child sexual abuse material or grooming behavior that may appear on the platform, intentionally or unintentionally.',
+        'Although Dhvani Cast is a strictly 18+ platform, the company acknowledges its responsibility to prevent, detect, report, and remove any form of child sexual abuse material or grooming behavior that may appear on the platform, intentionally or unintentionally.',
         style: body,
       ),
       const SizedBox(height: 8),
@@ -334,7 +335,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('3. Strict Prohibition of CSAE Content', style: heading),
       const SizedBox(height: 8),
       Text(
-        'DC Audio Rooms explicitly and permanently prohibits any form of Child Sexual Abuse or Exploitation, including but not limited to:',
+        'Dhvani Cast explicitly and permanently prohibits any form of Child Sexual Abuse or Exploitation, including but not limited to:',
         style: body,
       ),
       const SizedBox(height: 6),
@@ -359,7 +360,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('4. Detection, Monitoring & Prevention Measures', style: heading),
       const SizedBox(height: 8),
       Text(
-        'DC Audio Rooms uses a multi-layered safety approach to detect and prevent CSAE:',
+        'Dhvani Cast uses a multi-layered safety approach to detect and prevent CSAE:',
         style: body,
       ),
       const SizedBox(height: 6),
@@ -387,7 +388,7 @@ class ChildSafetyScreen extends StatelessWidget {
       const SizedBox(height: 6),
       Text('4.4 Hash-Based Detection', style: subheading),
       Text(
-        'Where technically feasible, DC Audio Rooms uses industry-standard hash-based detection techniques to identify known Child Sexual Abuse Material (CSAM) across images and shared media.',
+        'Where technically feasible, Dhvani Cast uses industry-standard hash-based detection techniques to identify known Child Sexual Abuse Material (CSAM) across images and shared media.',
         style: body,
       ),
       const SizedBox(height: 4),
@@ -400,7 +401,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('5. In-App Reporting Mechanism', style: heading),
       const SizedBox(height: 8),
       Text(
-        'DC Audio Rooms provides a clear and accessible in-app mechanism for users to report CSAE concerns.',
+        'Dhvani Cast provides a clear and accessible in-app mechanism for users to report CSAE concerns.',
         style: body,
       ),
       const SizedBox(height: 6),
@@ -409,7 +410,7 @@ class ChildSafetyScreen extends StatelessWidget {
       _bulletedList([
         'Navigating to Settings → help& support → Report CSAE',
         'Reporting a specific user, chat message, image, or frequency',
-        'Submitting a report via email to csae@dhvanicast.com',
+        'Submitting a report via email to csae@dcaudiorooms.com',
       ], indent: 12),
       const SizedBox(height: 4),
       Text('The reporting process is:', style: body),
@@ -423,7 +424,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('6. Response & Enforcement Procedure', style: heading),
       const SizedBox(height: 8),
       Text(
-        'When DC Audio Rooms becomes aware of potential CSAE content (through user reports, automated systems, or third-party notifications), the following actions are taken:',
+        'When Dhvani Cast becomes aware of potential CSAE content (through user reports, automated systems, or third-party notifications), the following actions are taken:',
         style: body,
       ),
       const SizedBox(height: 6),
@@ -452,7 +453,7 @@ class ChildSafetyScreen extends StatelessWidget {
       const SizedBox(height: 6),
       Text('6.4 Response Timelines', style: subheading),
       Text(
-        'DC Audio Rooms follows strict response timelines for CSAE content:',
+        'Dhvani Cast follows strict response timelines for CSAE content:',
         style: body,
       ),
       _bulletedList([
@@ -470,7 +471,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('7. Reporting to Authorities & Legal Compliance', style: heading),
       const SizedBox(height: 8),
       Text(
-        'DC Audio Rooms complies with all applicable child safety laws and regulations, including:',
+        'Dhvani Cast complies with all applicable child safety laws and regulations, including:',
         style: body,
       ),
       _bulletedList([
@@ -496,7 +497,7 @@ class ChildSafetyScreen extends StatelessWidget {
       ], indent: 12),
       const SizedBox(height: 8),
       Text(
-        'In addition to reporting to Indian law enforcement authorities, DC Audio Rooms will report all confirmed instances of Child Sexual Abuse Material (CSAM) to the National Center for Missing & Exploited Children (NCMEC), as required under international child protection standards and Google Play Developer Program Policies.',
+        'In addition to reporting to Indian law enforcement authorities, Dhvani Cast will report all confirmed instances of Child Sexual Abuse Material (CSAM) to the National Center for Missing & Exploited Children (NCMEC), as required under international child protection standards and Google Play Developer Program Policies.',
         style: body,
       ),
       const SizedBox(height: 4),
@@ -510,7 +511,7 @@ class ChildSafetyScreen extends StatelessWidget {
       ], indent: 12),
       const SizedBox(height: 4),
       Text(
-        'DC Audio Rooms cooperates fully with NCMEC, Google, and law enforcement agencies to support the identification, investigation, and prosecution of CSAE offenses.',
+        'Dhvani Cast cooperates fully with NCMEC, Google, and law enforcement agencies to support the identification, investigation, and prosecution of CSAE offenses.',
         style: body,
       ),
       const SizedBox(height: 24),
@@ -518,7 +519,7 @@ class ChildSafetyScreen extends StatelessWidget {
       Text('8. Child Safety Point of Contact', style: heading),
       const SizedBox(height: 8),
       Text(
-        'DC Audio Rooms has designated a Child Safety Point of Contact to receive and act on CSAE notifications, including those from Google Play.',
+        'Dhvani Cast has designated a Child Safety Point of Contact to receive and act on CSAE notifications, including those from Google Play.',
         style: body,
       ),
       Text('8.1 Designated Contact', style: subheading),
@@ -550,9 +551,9 @@ class ChildSafetyScreen extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: () => launchUrl(Uri.parse('mailto:csae@dhvanicast.com')),
+              onTap: () => launchUrl(Uri.parse('mailto:csae@dcaudiorooms.com')),
               child: Text(
-                'csae@dhvanicast.com',
+                'csae@dcaudiorooms.com',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   decoration: TextDecoration.underline,
@@ -650,7 +651,7 @@ class ChildSafetyScreen extends StatelessWidget {
       ], indent: 12),
       const SizedBox(height: 8),
       Text(
-        'Continued use of DC Audio Rooms constitutes acceptance of this policy.',
+        'Continued use of Dhvani Cast constitutes acceptance of this policy.',
         style: body,
       ),
     ];
@@ -729,12 +730,12 @@ Widget _buildContactBox(BuildContext context) {
         const SizedBox(height: 12),
         _buildContactItem(
           'General Support & Enquiries:',
-          'support@dhvanicast.com',
+          'Support@dcaudiorooms.com',
         ),
         const SizedBox(height: 8),
         _buildContactItem(
           'Child Safety & CSAE Reporting:',
-          'csae@dhvanicast.com',
+          'csae@dcaudiorooms.com',
         ),
       ],
     ),

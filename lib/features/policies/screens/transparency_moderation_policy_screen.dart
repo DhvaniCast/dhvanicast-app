@@ -115,11 +115,11 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'General Support & Enquiries: support@dhvanicast.com',
+            'General Support & Enquiries: Support@dcaudiorooms.com',
             style: TextStyle(color: Colors.white70),
           ),
           Text(
-            'Child Safety & CSAE Reporting: csae@dhvanicast.com',
+            'Child Safety & CSAE Reporting: csae@dcaudiorooms.com',
             style: TextStyle(color: Colors.white70),
           ),
         ],
@@ -215,7 +215,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Users may contact support@dhvanicast.com to request a review of certain moderation actions. Appeals are reviewed by DC Audio Rooms on a case-by-case basis, taking into account platform rules, user history, available evidence, and safety considerations.',
+        'Users may contact Support@dcaudiorooms.com to request a review of certain moderation actions. Appeals are reviewed by Dhvani Cast on a case-by-case basis, taking into account platform rules, user history, available evidence, and safety considerations.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),

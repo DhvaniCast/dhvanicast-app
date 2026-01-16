@@ -115,11 +115,11 @@ class CookiePolicyScreen extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'General Support & Enquiries: support@dhvanicast.com',
+            'General Support & Enquiries: Support@dcaudiorooms.com',
             style: TextStyle(color: Colors.white70),
           ),
           Text(
-            'Child Safety & CSAE Reporting: csae@dhvanicast.com',
+            'Child Safety & CSAE Reporting: csae@dcaudiorooms.com',
             style: TextStyle(color: Colors.white70),
           ),
         ],

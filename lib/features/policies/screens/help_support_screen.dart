@@ -307,9 +307,8 @@ class HelpSupportScreen extends StatelessWidget {
   Future<void> _openEmailApp(BuildContext context) async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
-      path: 'support@dhvanicast.com',
-      query:
-          'subject=Support Request&body=Hello DC Audio Rooms Support Team,\n\n',
+      path: 'Support@dcaudiorooms.com',
+      query: 'subject=Support Request&body=Hello DhvaniCast Support Team,\n\n',
     );
 
     try {
@@ -319,14 +318,14 @@ class HelpSupportScreen extends StatelessWidget {
         // If email app is not available, copy to clipboard as fallback
         _copyToClipboard(
           context,
-          'support@dhvanicast.com',
+          'Support@dcaudiorooms.com',
           'Email copied to clipboard',
         );
       }
     } catch (e) {
       _copyToClipboard(
         context,
-        'support@dhvanicast.com',
+        'Support@dcaudiorooms.com',
         'Email copied to clipboard',
       );
     }

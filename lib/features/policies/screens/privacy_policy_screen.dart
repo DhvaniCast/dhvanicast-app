@@ -44,7 +44,34 @@ class PrivacyPolicyScreen extends StatelessWidget {
             children: [
               _buildContactCard(),
               const SizedBox(height: 24),
+              // ...existing code...
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00ff88),
+                    foregroundColor: Colors.black,
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: () async {
+                    final url = Uri.parse('https://dhvanicast.com/');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Visit dhvanicast.com'),
+                ),
+              ),
+              const SizedBox(height: 16),
 
+              // Remove this extraneous closing bracket and comma
               _buildSectionTitle('2.2 Categories of Personal Data Collected'),
               _buildParagraph(
                 'DC Audio Rooms collects only such personal data as is reasonably necessary to operate the platform, ensure safety, comply with legal obligations, and improve service quality.',
@@ -236,7 +263,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               _buildParagraph(
-                'Requests may be submitted by emailing support@dhvanicast.com and will be addressed within a reasonable timeframe.',
+                'Requests may be submitted by emailing Support@dcaudiorooms.com and will be addressed within a reasonable timeframe.',
               ),
               const SizedBox(height: 20),
 
@@ -336,7 +363,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 TextSpan(
-                  text: 'support@dhvanicast.com',
+                  text: 'Support@dcaudiorooms.com',
                   style: TextStyle(
                     color: Color(0xFF00ff88),
                     fontWeight: FontWeight.bold,
@@ -356,7 +383,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 TextSpan(
-                  text: 'csae@dhvanicast.com',
+                  text: 'csae@dcaudiorooms.com',
                   style: TextStyle(
                     color: Color(0xFF00ff88),
                     fontWeight: FontWeight.bold,
