@@ -47,7 +47,7 @@ class ApiEndpoints {
       case Environment.local:
         return '$_localServerUrl/api';
       case Environment.production:
-        return 'http://100.31.177.152/api';
+        return 'https://api.dcaudiorooms.com/api';
     }
   }
 
@@ -57,7 +57,7 @@ class ApiEndpoints {
         return _localServerUrl;
       case Environment.production:
         // FIXED: Use same backend as API (Google Cloud Run, not Render.com)
-        return 'http://100.31.177.152';
+        return 'https://api.dcaudiorooms.com';
     }
   }
 
