@@ -130,13 +130,17 @@ class _SplashScreenState extends State<SplashScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color.fromARGB(255, 21, 22, 22), Color.fromARGB(255, 35, 35, 36)],
+            colors: [
+              Color.fromARGB(255, 21, 22, 22),
+              Color.fromARGB(255, 35, 35, 36),
+            ],
           ),
         ),
         child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              const Spacer(),
               // App Logo
               Container(
                 width: 120,
@@ -193,17 +197,11 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               const Spacer(),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 20),
-                child: Text(
-                  'product by Editevolv',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white60,
-                    letterSpacing: 0.3,
-                  ),
-                ),
+              const Text(
+                'product by Editevolv',
+                style: TextStyle(fontSize: 12, color: Colors.white60),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
