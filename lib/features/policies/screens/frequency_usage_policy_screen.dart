@@ -55,7 +55,7 @@ class FrequencyUsagePolicyScreen extends StatelessWidget {
                   ),
                   onPressed: () async {
                     final url = Uri.parse(
-                      'https://dhvanicast.com/frequency-usage-policy',
+                      'https://dcaudiorooms.com/frequency-usage-policy',
                     );
                     if (await canLaunchUrl(url)) {
                       await launchUrl(

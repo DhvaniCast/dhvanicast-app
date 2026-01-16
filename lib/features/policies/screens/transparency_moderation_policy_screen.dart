@@ -55,7 +55,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
                   ),
                   onPressed: () async {
                     final url = Uri.parse(
-                      'https://dhvanicast.com/transparency-and-moderation-policy',
+                      'https://dcaudiorooms.com/transparency-and-moderation-policy',
                     );
                     if (await canLaunchUrl(url)) {
                       await launchUrl(
@@ -215,7 +215,7 @@ class TransparencyModerationPolicyScreen extends StatelessWidget {
       ),
       SizedBox(height: 10),
       Text(
-        'Users may contact Support@dcaudiorooms.com to request a review of certain moderation actions. Appeals are reviewed by Dhvani Cast on a case-by-case basis, taking into account platform rules, user history, available evidence, and safety considerations.',
+        'Users may contact Support@dcaudiorooms.com to request a review of certain moderation actions. Appeals are reviewed by DC Audio Rooms on a case-by-case basis, taking into account platform rules, user history, available evidence, and safety considerations.',
         style: TextStyle(color: Colors.white70),
       ),
       SizedBox(height: 10),

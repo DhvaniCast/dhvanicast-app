@@ -1052,7 +1052,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _openWebsite() async {
-    final url = Uri.parse('https://dhvanicast.com/');
+    final url = Uri.parse('https://dcaudiorooms.com');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

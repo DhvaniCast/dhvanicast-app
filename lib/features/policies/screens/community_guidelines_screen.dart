@@ -5,7 +5,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
   const CommunityGuidelinesScreen({super.key});
 
   Future<void> _launchWebsite() async {
-    final Uri url = Uri.parse('https://dhvanicast.com/community-guidelines');
+    final Uri url = Uri.parse('https://dcaudiorooms.com/community-guidelines');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
@@ -45,32 +45,7 @@ class CommunityGuidelinesScreen extends StatelessWidget {
               // Removed duplicate heading from body
               _buildContactCard(),
               const SizedBox(height: 24),
-              // ...existing code...
-              const SizedBox(height: 32),
-              Center(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00ff88),
-                    foregroundColor: Colors.black,
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(
-                        url,
-                        mode: LaunchMode.externalApplication,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Visit dhvanicast.com'),
-                ),
-              ),
-              const SizedBox(height: 16),
+
               _buildParagraph(
                 'Users are required to behave in a manner that is respectful, lawful, and considerate of others at all times. This applies equally to spoken audio, written messages, shared images, and any other form of interaction available on the platform.',
               ),

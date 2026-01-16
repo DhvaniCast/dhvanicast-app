@@ -55,7 +55,7 @@ class CookiePolicyScreen extends StatelessWidget {
                   ),
                   onPressed: () async {
                     final url = Uri.parse(
-                      'https://dhvanicast.com/cookie-policy',
+                      'https://dcaudiorooms.com/cookie-policy',
                     );
                     if (await canLaunchUrl(url)) {
                       await launchUrl(

@@ -55,7 +55,7 @@ class PlatformOperationsPolicyScreen extends StatelessWidget {
                   ),
                   onPressed: () async {
                     final url = Uri.parse(
-                      'https://dhvanicast.com/platform-operations-policy',
+                      'https://dcaudiorooms.com/platform-operations-policy',
                     );
                     if (await canLaunchUrl(url)) {
                       await launchUrl(

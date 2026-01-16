@@ -52,7 +52,7 @@ class HelpSupportScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () async {
-                    final url = Uri.parse('https://dhvanicast.com/');
+                    final url = Uri.parse('https://dcaudiorooms.com/');
                     if (await canLaunchUrl(url)) {
                       await launchUrl(
                         url,
@@ -308,7 +308,8 @@ class HelpSupportScreen extends StatelessWidget {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: 'Support@dcaudiorooms.com',
-      query: 'subject=Support Request&body=Hello DhvaniCast Support Team,\n\n',
+      query:
+          'subject=Support Request&body=Hello DC Audio Rooms Support Team,\n\n',
     );
 
     try {
@@ -332,7 +333,9 @@ class HelpSupportScreen extends StatelessWidget {
   }
 
   Future<void> _openChildSafetyUrl(BuildContext context) async {
-    final Uri childSafetyUri = Uri.parse('https://dhvanicast.com/child-safety');
+    final Uri childSafetyUri = Uri.parse(
+      'https://dcaudiorooms.com/child-safety',
+    );
 
     try {
       if (await canLaunchUrl(childSafetyUri)) {
