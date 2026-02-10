@@ -3,9 +3,6 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
@@ -44,25 +41,31 @@ android {
 
     signingConfigs {
         create("release") {
-            val keyAliasValue = keystoreProperties["keyAlias"]
-            val keyPasswordValue = keystoreProperties["keyPassword"]
-            val storeFileValue = keystoreProperties["storeFile"]
-            val storePasswordValue = keystoreProperties["storePassword"]
+            // Only configure signing if key.properties exists with all required values
+            if (keystorePropertiesFile.exists()) {
+                val keyAliasValue = keystoreProperties["keyAlias"]
+                val keyPasswordValue = keystoreProperties["keyPassword"]
+                val storeFileValue = keystoreProperties["storeFile"]
+                val storePasswordValue = keystoreProperties["storePassword"]
 
-            if (keyAliasValue == null || keyPasswordValue == null || storeFileValue == null || storePasswordValue == null) {
-                throw GradleException("Missing keystore property. Please check key.properties file for keyAlias, keyPassword, storeFile, and storePassword.")
+                if (keyAliasValue != null && keyPasswordValue != null && storeFileValue != null && storePasswordValue != null) {
+                    keyAlias = keyAliasValue as String
+                    keyPassword = keyPasswordValue as String
+                    storeFile = file(storeFileValue as String)
+                    storePassword = storePasswordValue as String
+                }
             }
-
-            keyAlias = keyAliasValue as String
-            keyPassword = keyPasswordValue as String
-            storeFile = file(storeFileValue as String)
-            storePassword = storePasswordValue as String
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Use release signing config if keystore configured, otherwise use debug
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // Disable minification to prevent crashes
             isMinifyEnabled = false
             isShrinkResources = false

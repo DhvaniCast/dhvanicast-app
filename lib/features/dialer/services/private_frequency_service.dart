@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/constants/api_endpoints.dart';
+import '../../../shared/services/ios_iap_service.dart';
 
 class PrivateFrequencyService {
   static String get baseUrl => '${ApiEndpoints.baseUrl}/private-frequencies';
@@ -84,6 +86,48 @@ class PrivateFrequencyService {
         throw Exception(error['message'] ?? 'Failed to create frequency');
       }
     } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Verify iOS IAP and create frequency
+  Future<Map<String, dynamic>> verifyIosIapAndCreate({
+    required String receiptData,
+    required String transactionId,
+    required String password,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+
+      print('📡 Calling iOS IAP verify API: $baseUrl/create-ios');
+      final response = await http.post(
+        Uri.parse('$baseUrl/create-ios'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'receiptData': receiptData,
+          'transactionId': transactionId,
+          'password': password,
+        }),
+      );
+
+      print('📥 iOS IAP Response Status: ${response.statusCode}');
+      print('📥 iOS IAP Response Body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return data['data'];
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to create frequency');
+      }
+    } catch (e) {
+      print('❌ iOS IAP Verification Error: $e');
       throw Exception('Network error: $e');
     }
   }

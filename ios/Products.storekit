@@ -1,0 +1,35 @@
+{
+  "identifier" : "F4D0A1B2",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "99",
+      "familyShareable" : false,
+      "internalID" : "6736864916",
+      "localizations" : [
+        {
+          "description" : "Create a private frequency that lasts for 12 hours with password protection",
+          "displayName" : "Private Frequency - 12 Hours",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.dhvanicast.private_frequency",
+      "referenceName" : "Private Frequency 12 Hours",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6736864916",
+    "_developerTeamID" : "YOUR_TEAM_ID",
+    "_lastSynchronizedDate" : 760377600.0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

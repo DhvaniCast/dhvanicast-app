@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'dart:async';
+import 'dart:io';
 import '../services/private_frequency_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../shared/services/ios_iap_service.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 class PrivateFrequencyScreen extends StatefulWidget {
   const PrivateFrequencyScreen({Key? key}) : super(key: key);
@@ -414,28 +418,86 @@ class _CreateFrequencyFlowState extends State<CreateFrequencyFlow> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  // Android: Razorpay
   late Razorpay _razorpay;
   String? _orderId;
   String? _paymentId;
   String? _signature;
+
+  // iOS: In-App Purchase
+  final IosIapService _iapService = IosIapService();
+  String? _iapReceiptData;
+  String? _iapTransactionId;
+
   final PrivateFrequencyService _apiService = PrivateFrequencyService();
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+
+    if (Platform.isAndroid) {
+      // Setup Razorpay for Android
+      _razorpay = Razorpay();
+      _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    } else if (Platform.isIOS) {
+      // Setup iOS IAP
+      _setupIosIap();
+    }
+  }
+
+  Future<void> _setupIosIap() async {
+    try {
+      await _iapService.initialize();
+
+      // Set callbacks
+      _iapService.onPurchaseSuccess = (PurchaseDetails purchase) {
+        debugPrint('✅ Purchase successful in UI');
+
+        if (purchase is AppStorePurchaseDetails) {
+          setState(() {
+            _iapReceiptData = purchase.verificationData.serverVerificationData;
+            _iapTransactionId = purchase.purchaseID ?? '';
+            _currentStep = 1;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment Successful!'),
+              backgroundColor: Color(0xFF00ff88),
+            ),
+          );
+        }
+      };
+
+      _iapService.onPurchaseError = (String error) {
+        debugPrint('❌ Purchase error in UI: $error');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment Failed: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      };
+
+      debugPrint('✅ iOS IAP setup complete');
+    } catch (e) {
+      debugPrint('❌ iOS IAP setup error: $e');
+    }
   }
 
   @override
   void dispose() {
+    if (Platform.isAndroid) {
+      _razorpay.clear();
+    }
     _passwordController.dispose();
-    _razorpay.clear();
     super.dispose();
   }
 
+  // Android Razorpay handlers
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
     setState(() {
       _paymentId = response.paymentId;
@@ -475,26 +537,30 @@ class _CreateFrequencyFlowState extends State<CreateFrequencyFlow> {
     });
 
     try {
-      // Create Razorpay order
-      final orderData = await _apiService.createPaymentOrder();
+      if (Platform.isIOS) {
+        // iOS: Use In-App Purchase
+        await _iapService.purchasePrivateFrequency();
+      } else if (Platform.isAndroid) {
+        // Android: Use Razorpay
+        final orderData = await _apiService.createPaymentOrder();
 
-      setState(() {
-        _orderId = orderData['orderId'];
-      });
+        setState(() {
+          _orderId = orderData['orderId'];
+        });
 
-      // Open Razorpay checkout
-      var options = {
-        'key': orderData['keyId'],
-        'amount': orderData['amount'],
-        'currency': orderData['currency'],
-        'name': 'DC Audio Rooms',
-        'description': 'Private Frequency - 12 Hours',
-        'order_id': orderData['orderId'],
-        'prefill': {'contact': '', 'email': ''},
-        'theme': {'color': '#00ff88'},
-      };
+        var options = {
+          'key': orderData['keyId'],
+          'amount': orderData['amount'],
+          'currency': orderData['currency'],
+          'name': 'DC Audio Rooms',
+          'description': 'Private Frequency - 12 Hours',
+          'order_id': orderData['orderId'],
+          'prefill': {'contact': '', 'email': ''},
+          'theme': {'color': '#00ff88'},
+        };
 
-      _razorpay.open(options);
+        _razorpay.open(options);
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -517,28 +583,39 @@ class _CreateFrequencyFlowState extends State<CreateFrequencyFlow> {
       return;
     }
 
-    if (_orderId == null || _paymentId == null || _signature == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment verification failed'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Verify payment and create frequency
-      final frequencyData = await _apiService.verifyPaymentAndCreate(
-        orderId: _orderId!,
-        paymentId: _paymentId!,
-        signature: _signature!,
-        password: _passwordController.text,
-      );
+      Map<String, dynamic> frequencyData;
+
+      if (Platform.isIOS) {
+        // iOS: Verify IAP receipt with backend
+        if (_iapReceiptData == null || _iapTransactionId == null) {
+          throw Exception('Payment verification failed');
+        }
+
+        frequencyData = await _apiService.verifyIosIapAndCreate(
+          receiptData: _iapReceiptData!,
+          transactionId: _iapTransactionId!,
+          password: _passwordController.text,
+        );
+      } else if (Platform.isAndroid) {
+        // Android: Verify Razorpay payment
+        if (_orderId == null || _paymentId == null || _signature == null) {
+          throw Exception('Payment verification failed');
+        }
+
+        frequencyData = await _apiService.verifyPaymentAndCreate(
+          orderId: _orderId!,
+          paymentId: _paymentId!,
+          signature: _signature!,
+          password: _passwordController.text,
+        );
+      } else {
+        throw Exception('Unsupported platform');
+      }
 
       setState(() {
         _generatedFrequencyNumber = frequencyData['frequencyNumber'];

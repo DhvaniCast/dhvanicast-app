@@ -15,7 +15,7 @@ class ApiEndpoints {
   // 📱 DEVICE CONFIGURATION
   // =====================================================
   // 🔧 Set this to true for EMULATOR, false for REAL DEVICE
-  static const bool _useEmulator = false; // Change to true for emulator
+  static const bool _useEmulator = true; // Changed to TRUE for emulator
 
   // 🌐 Your Computer IP (for real device testing)
   // Using 127.0.0.1 with 'adb reverse tcp:8080 tcp:8080' to bypass Wi-Fi issues
@@ -35,7 +35,9 @@ class ApiEndpoints {
     if (_isWeb) {
       return 'http://localhost:8080'; // Web browser
     } else if (_useEmulator) {
-      return 'http://10.0.2.2:8080'; // Android Emulator
+      // iOS Simulator uses localhost directly
+      // Android Emulator uses 10.0.2.2
+      return 'http://localhost:8080'; // Changed: Works for iOS Simulator
     } else {
       return 'http://$_computerIP:8080'; // Real Device
     }

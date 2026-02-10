@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
-import 'dart:convert';
-
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 
 import 'injection.dart';
-import 'firebase_options.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
@@ -23,26 +15,7 @@ import 'features/profile/screens/profile_screen.dart';
 import 'features/radio/screens/live_radio_screen.dart';
 import 'features/social/screens/friends_screen.dart';
 import 'providers/auth_bloc.dart';
-import 'shared/services/notification_service.dart';
 import 'shared/widgets/global_call_listener.dart';
-
-// Background message handler (must be top-level function)
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  debugPrint('📲 [FCM] Background message: ${message.notification?.title}');
-
-  if (message.data['type'] == 'incoming_call') {
-    debugPrint(
-      '📞 [FCM] Incoming call in background from: ${message.data['callerName']}',
-    );
-
-    // Show local notification
-    final notificationService = NotificationService();
-    await notificationService.initialize();
-    await notificationService.showIncomingCallNotification(message.data);
-  }
-}
 
 void main() async {
   // Setup error handling
@@ -56,47 +29,6 @@ void main() async {
     () async {
       // Ensure Flutter bindings are initialized
       WidgetsFlutterBinding.ensureInitialized();
-
-      // Initialize Firebase
-      try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        debugPrint('✅ Firebase initialized');
-
-        // Set background message handler
-        FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler,
-        );
-
-        // Initialize notification service
-        final notificationService = NotificationService();
-        await notificationService.initialize();
-
-        // Setup FCM listeners for all states (foreground, background, terminated)
-        notificationService.setupFCMListeners();
-
-        // Request notification permissions
-        FirebaseMessaging messaging = FirebaseMessaging.instance;
-        NotificationSettings settings = await messaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-          criticalAlert: true,
-        );
-        debugPrint('✅ FCM permission status: ${settings.authorizationStatus}');
-
-        // Get FCM token
-        String? fcmToken = await messaging.getToken();
-        if (fcmToken != null) {
-          debugPrint('📲 [FCM TOKEN]: $fcmToken');
-          // Save token to backend after user logs in
-          _saveFCMTokenLater(fcmToken);
-        }
-      } catch (e, stack) {
-        debugPrint('❌ Error initializing Firebase: $e');
-        debugPrint('Stack: $stack');
-      }
 
       // Setup dependency injection
       try {
@@ -117,16 +49,6 @@ void main() async {
   );
 }
 
-// Save FCM token to backend (called after login)
-Future<void> _saveFCMTokenLater(String token) async {
-  // Store token locally, will be sent to backend after login
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('pending_fcm_token', token);
-  debugPrint(
-    '📲 [FCM] Token saved locally, will sync with backend after login',
-  );
-}
-
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
@@ -139,8 +61,6 @@ class MyApp extends StatelessWidget {
       child: GlobalCallListener(
         child: MaterialApp(
           title: 'DC Audio Rooms',
-          navigatorKey: NotificationService
-              .navigatorKey, // Add navigator key for notifications
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: const Color(0xFF667eea),
